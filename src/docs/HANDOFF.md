@@ -332,7 +332,8 @@ Third-party pages (June to October 2026) mention API models `deepseek-v4-flash` 
 
 ## 17. LIVE STATE (update this section only, with EDIT blocks)
 
-Last updated: 2026-11-01 (about 14:40 Codespace time).
+Last updated: 2026-11-01 (evening, after Campaign.js).
+STATUS NOTE 2026-11-01 evening: P1.5b DONE and tested by the user on port 4173 (DRIVE ring, DIG/DUMP, BRAKE, MENU work; RESTART JOB not confirmed). Touch layout edit applied to index.html and MobileControls.js, rotate overlay call removed. Second coin pill (je-counter from JobEffects.js) hidden with CSS. Build 4.97 MB in 3 files. P1.6 still open: favicon, GameUI text under 16 px, job card edge covers the minimap. P1.3b still open: replace the direct happytime() call in main.js with portal.happytime(). NEW: src/gameplay/Campaign.js written by DeepSeek (150 lines, 6 jobs, daily bonus, NOT connected yet). Next: connect Campaign to main.js; needs JobManager.js and World.js pasted. Standing rule: every DeepSeek prompt must contain the line "Put your whole answer in one code block." at the top and end. Test page is port 4173: after every apply click Run build check in tab 4, then reload with Ctrl+Shift+R.
 
 Phase: 1 (Basic Launch QA). Last action: handoff v2 installed and pushed (commit 66b7e9e). Main.js is about 753 lines.
 
