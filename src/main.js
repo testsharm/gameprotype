@@ -1,3 +1,4 @@
+import audioHub from './audio/AudioHub.js';
 import * as THREE from 'three';
 import { Vehicle } from './vehicle/Vehicle.js';
 import { AudioManager } from './audio/AudioManager.js';
@@ -14,6 +15,8 @@ import GameUI from './ui/GameUI.js';
 import Music from './audio/Music.js';
 import TrafficPhysics from './core/TrafficPhysics.js';
 import JobManager from './gameplay/JobManager.js';
+import { Portal } from './core/Portal.js';
+import MobileControls from './ui/MobileControls.js';
 
 let fx = null, guide = null, sfx = null, tutStep = 0, lastTarget = 'none';
 function safe(f) { try { return f(); } catch (e) { console.warn('[fx]', e); } }
@@ -330,6 +333,17 @@ audio.playDumpThud = () => {};
 audio.playSuccess = () => sfx2.complete();
 let qaManager = null;
 
+// ---- CrazyGames Portal (SDK, loading events, gameplay events, auto-pause) ----
+let portalPaused = false;
+const portal = new Portal();
+const portalReady = portal.init().then(() => { portal.loadingStart(); }).catch(() => {});
+const portalHold = () => { portalPaused = true; audioHub.hold('portal'); try { audio.playEngine(0.0); } catch (e) {} portal.gameplayStop(); };
+const portalRelease = () => { portalPaused = false; audioHub.release('portal'); if (isGameRunning && physReady) portal.gameplayStart(); };
+portal.onPause = portalHold;
+portal.onResume = portalRelease;
+portal.onAdStart = portalHold;
+portal.onAdEnd = portalRelease;
+
 function loadSave() { try { const raw = localStorage.getItem(SAVE_KEY); if (raw) saveData = JSON.parse(raw); } catch(e) {} }
 function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveData)); } catch(e) {} }
 loadSave();
@@ -342,8 +356,8 @@ function updateShopUI() {
     if(hydBtn) { hydBtn.textContent = saveData.hydraulicLevel >= 3 ? 'MAX' : `Upgrade (${saveData.hydraulicLevel * 100} Coins)`; hydBtn.disabled = saveData.coins < saveData.hydraulicLevel * 100 || saveData.hydraulicLevel >= 3; }
 }
 
-const shopBtn = document.getElementById('shop-btn'); if(shopBtn) shopBtn.addEventListener('click', () => { document.getElementById('shop-overlay').classList.add('active'); isGameRunning = false; updateShopUI(); });
-const closeShopBtn = document.getElementById('close-shop-btn'); if(closeShopBtn) closeShopBtn.addEventListener('click', () => { document.getElementById('shop-overlay').classList.remove('active'); isGameRunning = true; });
+const shopBtn = document.getElementById('shop-btn'); if(shopBtn) shopBtn.addEventListener('click', () => { document.getElementById('shop-overlay').classList.add('active'); isGameRunning = false; portal.gameplayStop(); updateShopUI(); });
+const closeShopBtn = document.getElementById('close-shop-btn'); if(closeShopBtn) closeShopBtn.addEventListener('click', () => { document.getElementById('shop-overlay').classList.remove('active'); isGameRunning = true; if (physReady && !portalPaused) portal.gameplayStart(); });
 
 const buyEngBtn = document.getElementById('buy-engine-btn'); if(buyEngBtn) buyEngBtn.addEventListener('click', () => { const cost = saveData.engineLevel * 100; if (saveData.coins >= cost && saveData.engineLevel < 3) { saveData.coins -= cost; saveData.engineLevel++; writeSave(); document.getElementById('coin-count').textContent = saveData.coins; if (vehicle) vehicle.setUpgrades(saveData); updateShopUI(); } });
 const buyHydBtn = document.getElementById('buy-hydraulic-btn'); if(buyHydBtn) buyHydBtn.addEventListener('click', () => { const cost = saveData.hydraulicLevel * 100; if (saveData.coins >= cost && saveData.hydraulicLevel < 3) { saveData.coins -= cost; saveData.hydraulicLevel++; writeSave(); document.getElementById('coin-count').textContent = saveData.coins; if (vehicle) vehicle.setUpgrades(saveData); updateShopUI(); } });
@@ -351,15 +365,33 @@ const buyHydBtn = document.getElementById('buy-hydraulic-btn'); if(buyHydBtn) bu
 const input = { forward: false, backward: false, left: false, right: false, brake: false };
 const keyMap = { 'w': 'btn-w', 'arrowup': 'btn-w', 'a': 'btn-a', 'arrowleft': 'btn-a', 's': 'btn-s', 'arrowdown': 'btn-s', 'd': 'btn-d', 'arrowright': 'btn-d', 'e': 'btn-e', 'f': 'btn-f' };
 
+function normKey(e) {
+    const c = e.code || '';
+    if (c.startsWith('Key')) return c.slice(3).toLowerCase();
+    if (c.startsWith('Digit')) return c.slice(5);
+    switch (c) {
+        case 'Space': return ' ';
+        case 'ArrowUp': return 'arrowup';
+        case 'ArrowDown': return 'arrowdown';
+        case 'ArrowLeft': return 'arrowleft';
+        case 'ArrowRight': return 'arrowright';
+        case 'ShiftLeft': case 'ShiftRight': return 'shift';
+        case 'Enter': case 'NumpadEnter': return 'enter';
+        case 'Escape': return 'escape';
+        case 'Tab': return 'tab';
+    }
+    return (e.key || '').toLowerCase();
+}
+
 window.addEventListener('keydown', (e) => {
     audio.init();
-    const key = e.key.toLowerCase();
+    const key = normKey(e);
     if (e.repeat) return;
     if (key === 'w' || key === 'arrowup') input.forward = true;
     if (key === 's' || key === 'arrowdown') input.backward = true;
     if (key === 'a' || key === 'arrowleft') input.left = true;
     if (key === 'd' || key === 'arrowright') input.right = true;
-    if (e.key === ' ') input.brake = true;
+    if (normKey(e) === ' ') input.brake = true;
     if (key === 'r') window.restartJob();
     if (key === 'e' && vehicle) vehicle.toggleArm();
     if (key === 'f' && vehicle) vehicle.autoAction();
@@ -373,12 +405,12 @@ window.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('keyup', (e) => {
-    const key = e.key.toLowerCase();
+    const key = normKey(e);
     if (key === 'w' || key === 'arrowup') input.forward = false;
     if (key === 's' || key === 'arrowdown') input.backward = false;
     if (key === 'a' || key === 'arrowleft') input.left = false;
     if (key === 'd' || key === 'arrowright') input.right = false;
-    if (e.key === ' ') input.brake = false;
+    if (normKey(e) === ' ') input.brake = false;
     if (keyMap[key]) { const btn = document.querySelector(`.key[data-mobile="${keyMap[key]}"]`); if (btn) btn.classList.remove('active-key'); }
 });
 
@@ -411,6 +443,20 @@ document.querySelectorAll('.cam-btn').forEach(btn => {
         document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
     });
+});
+
+
+// ---- Mobile touch controls (joystick, DIG/DUMP, brake, camera, menu). Does nothing on non-touch screens. ----
+window.addEventListener('pointerdown', () => { audio.init(); }, { passive: true });
+const mobileControls = new MobileControls(input, {
+    onAction: () => { audio.init(); if (vehicle) vehicle.autoAction(); },
+    onCamera: () => {
+        const modes = ['chase', 'orbit', 'cab', 'bucket'];
+        const next = (modes.indexOf(cameraManager.currentMode) + 1) % modes.length;
+        cameraManager.setMode(modes[next]);
+        document.querySelectorAll('.cam-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === modes[next]));
+    },
+    onMenu: () => { const b = document.getElementById('shop-btn'); if (b) b.click(); }
 });
 
 window.restartJob = () => {
@@ -450,9 +496,10 @@ async function initPhysics() {
         physReady = true; window.restartJob();
         
         qaManager = new QAManager(scene, camera, renderer, vehicle, worldBuilder);
+        safe(() => { portalReady.then(() => { portal.loadingStop(); portal.gameplayStart(); }); });
         
         document.getElementById('loading-screen').classList.add('hidden');
-    } catch (e) { console.error(e); document.getElementById('loading-screen').classList.add('hidden'); }
+    } catch (e) { console.error(e); safe(() => { portalReady.then(() => { portal.loadingStop(); }); }); document.getElementById('loading-screen').classList.add('hidden'); }
 }
 initPhysics();
 
@@ -570,12 +617,59 @@ function updateFx(dt) {
         }
     });
 }
+// ---- Fixed-timestep physics (same speed at 30, 60, 144, 240 Hz) ----
+const FIXED_DT = 1 / 60;
+const MAX_STEPS = 6;
+let physAcc = 0;
+const DEBUG_ON = import.meta.env.DEV || new URLSearchParams(location.search).has('debug');
+const physStats = { steps: 0, frames: 0, stepsPerSec: 0, fps: 0, last: performance.now() };
+function advanceAccumulator(acc, frameDt) {
+    acc += Math.min(frameDt, 0.1);
+    let steps = 0;
+    while (acc >= FIXED_DT - 1e-9 && steps < MAX_STEPS) { acc -= FIXED_DT; steps++; }
+    if (steps === MAX_STEPS && acc >= FIXED_DT) acc = 0;
+    return { acc, steps };
+}
+window.__testTimestep = () => {
+    const out = {};
+    for (const hz of [30, 60, 75, 120, 144, 165, 240]) {
+        let acc = 0, total = 0;
+        for (let i = 0; i < hz * 10; i++) { const r = advanceAccumulator(acc, 1 / hz); acc = r.acc; total += r.steps; }
+        out[hz + ' Hz'] = (total / 10).toFixed(1) + ' steps/s';
+    }
+    console.table(out);
+    return out;
+};
+let dbgEl = null;
+if (DEBUG_ON) {
+    dbgEl = document.createElement('div');
+    dbgEl.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;padding:4px 8px;background:rgba(0,0,0,.6);color:#9ef;font:12px monospace;border-radius:6px;display:none;pointer-events:none';
+    document.body.appendChild(dbgEl);
+    window.addEventListener('keydown', e => { if (e.code === 'Backquote') dbgEl.style.display = dbgEl.style.display === 'none' ? 'block' : 'none'; });
+}
+function updatePhysStats(steps) {
+    physStats.steps += steps; physStats.frames++;
+    const now = performance.now();
+    if (now - physStats.last >= 1000) {
+        physStats.stepsPerSec = Math.round(physStats.steps * 1000 / (now - physStats.last));
+        physStats.fps = Math.round(physStats.frames * 1000 / (now - physStats.last));
+        physStats.steps = 0; physStats.frames = 0; physStats.last = now;
+        if (dbgEl) dbgEl.textContent = 'physics ' + physStats.stepsPerSec + ' steps/s | render ' + physStats.fps + ' fps';
+    }
+}
+
 function animate() {
     requestAnimationFrame(animate);
-    if (isGameRunning && physReady && world && vehicle) {
-        const dt = Math.min(clock.getDelta(), 0.05);
-        vehicle.updateController(input, dt);
-        world.step();
+    if (isGameRunning && !portalPaused && physReady && world && vehicle) {
+        const frameDt = Math.min(clock.getDelta(), 0.1);
+        const adv = advanceAccumulator(physAcc, frameDt);
+        physAcc = adv.acc;
+        for (let i = 0; i < adv.steps; i++) {
+            vehicle.updateController(input, FIXED_DT);
+            world.step();
+        }
+        updatePhysStats(adv.steps);
+        const dt = Math.min(frameDt, 0.05);
         vehicle.updateVisuals(audio, dt);
         cameraManager.update(vehicle.mesh, dt, vehicle.currentSpeed);
         drawMinimap();
