@@ -6,7 +6,7 @@
     <title>TerraForm 3D: City Rescue</title>
     <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Montserrat:wght@800;900&display=swap');
+        /* system fonts only: CrazyGames wants no external fonts */
 
         :root {
             --glass-bg: rgba(14, 18, 24, 0.52);
@@ -518,6 +518,15 @@
         @media (max-width: 380px) {
             .key { min-width: 38px; height: 38px; font-size: 15px; }
             .camera-ui { display: none; }
+        }
+            /* ---------- P1.6 CLEANUP: old HUD pieces replaced by GameUI ---------- */
+        .top-hud, .coins-ui, .speedometer-ui { display: none !important; }
+        .cam-btn { font-size: 14px; padding: 6px 0; }
+        .menu-btn, .restart-btn { font-size: 13px; }
+        @media (pointer: coarse) {
+            .dashboard, .camera-ui, .menu-btn { display: none !important; }
+            .restart-btn { bottom: auto; top: calc(176px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); }
+            @media (min-width: 701px) { .restart-btn { top: calc(252px + env(safe-area-inset-top)); } }
         }
     </style>
 </head>

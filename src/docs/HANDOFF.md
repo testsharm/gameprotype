@@ -332,34 +332,37 @@ Third-party pages (June to October 2026) mention API models `deepseek-v4-flash` 
 
 ## 17. LIVE STATE (update this section only, with EDIT blocks)
 
-Last updated: 2026-11-01 (about 14:30 Codespace time).
+Last updated: 2026-11-01 (about 14:40 Codespace time).
 
-Phase: 1 (Basic Launch QA). Last action: AudioHub applied. Main.js is about 753 lines.
+Phase: 1 (Basic Launch QA). Last action: handoff v2 installed and pushed (commit 66b7e9e). Main.js is about 753 lines.
 
 | ID | Task | Status |
 |---|---|---|
 | P0.1 | Executor v3 running | DONE |
-| P0.2 | Status, Check project, build size | PARTLY DONE. Build size not measured |
-| P0.3 | Baseline commit | WAITING FOR USER (click "Game works" or "Before changes" in tab 4) |
+| P0.2 | Status, Check project, build size | DONE. Build 4.97 MB, 3 files, limits OK (2026-11-01) |
+| P0.3 | Baseline commit | DONE (commit 66b7e9e, 2026-11-01, includes AudioHub and the v2 docs) |
 | P0.4 | Docs installed in src/docs | DONE (this file replaces the old HANDOFF.md and STATE.md) |
 | P1.1 | Fixed timestep | APPLIED. Proof pending (`__testTimestep()` about 60.0 on every row) |
 | P1.5a | Keys via e.code (normKey) | APPLIED. grep showed normKey in place, test W A S D and space pending |
 | P1.3a | Portal minimal | APPLIED (Preview 724 -> 737). Not tested on CrazyGames (SDK only works there) |
 | P1.5 | MobileControls connected | APPLIED (737 -> 752). Not visually confirmed: the screenshot was of port 4173 (stale build) |
 | P1.4a | AudioHub | APPLIED (752 -> 753). Tab-switch test pending |
-| P1.5b | Hide old key pad in touch mode, remove rotate overlay | TODO |
-| P1.6 | HUD cleanup | NEXT. Needs index.html and GameUI.js pasted |
+| P1.5b | Hide old key pad in touch mode, remove rotate overlay | APPLIED (index.html 702 -> 704, MobileControls.js 475 -> 490). Screenshot clean. Awaiting test of joystick, DIG/DUMP, MENU, RESTART JOB. Unused _buildPortraitOverlay function still in the file |
+| P1.6 | HUD cleanup | PARTLY DONE. index.html edit applied (external font removed, old job text, coin pill and speedometer hidden, key pad hidden on touch). Duplicates gone in screenshot of build CuSPMWvB. Second edit applied (build CGEGQ4ZP): DRIVE ring, CAM and MENU moved below the minimap, old camera list and UPGRADES hidden in touch mode, RESTART JOB moved. Screenshot clean. Open: favicon, GameUI text under 16 px, job card edge covers minimap, unknown second coin pill at bottom left |
 | P1.2 | Flicker investigation | TODO |
 | P1.3b | Portal save, happytime via portal | TODO |
 | P1.4b | Mute button, balance, duck | TODO (read Sfx2.js first) |
 | P1.7, P1.8, P1.1b | Performance, scoop feel, interpolation | TODO |
 | P2.x | Levels, polish, economy, course, onboarding | TODO |
 
-Next task: P1.6 (and P1.5b with it). Ask the user for `index.html` and `GameUI.js` (tab 3, Copy selected, paste into the chat).
-Waiting for the user: tests for P1.1, P1.5a, P1.4a on port 5173; "Game works" save; Run build check numbers; phone-mode screenshot on 5173 after reload; is scoop and dump smooth (R11).
+Next task: user tests joystick, DIG/DUMP, MENU and RESTART JOB on port 4173 (after Run build check and Ctrl+Shift+R), then clicks "Game works". After that ask for src/main.js (tab 3, one file) to find the second coin pill at the bottom left, then fix GameUI text sizes and the favicon.
+Waiting for the user: tests for P1.1, P1.5a, P1.4a on port 5173; Run build check numbers; phone-mode screenshot on 5173 after reload; is scoop and dump smooth (R11).
 Open decisions: optional DeepSeek API mode (X2).
 
 Last log entries (newest first):
+- 2026-11-01: Touch layout edit applied (index.html 702 -> 704, MobileControls.js 475 -> 490): rotate overlay call removed, DRIVE ring added, CAM and MENU moved, old camera list and UPGRADES hidden in touch mode, RESTART JOB moved. Build OK 4.97 MB. Screenshot clean, interaction test pending.
+- 2026-11-01: index.html cleanup applied (2 pairs, 695 -> 702 lines). Build check OK, 4.97 MB. Test page is port 4173 only (no 5173 port in the user's list), so the user must click Run build check in tab 4 and reload with Ctrl+Shift+R after each apply. Rotate overlay still shows.
+- 2026-11-01: HANDOFF v2 installed and pushed to GitHub (commit 66b7e9e). Screenshot review: user was on port 4173 (stale build); old key pad, UPGRADES and RESTART JOB buttons overlap the speed gauge; small text on the right; next is P1.6 with P1.5b.
 - 2026-11-01: AudioHub applied; combined HANDOFF v2 written. Lessons recorded in section 6.
 - 2026-11-01: MobileControls connected (2 pairs). Portal connected (7 pairs). Key fix applied twice (second time after Undo of a faulty DeepSeek edit).
 - 2026-11-01: Fixed timestep applied. First DeepSeek attempts refused (guessed FIND text, invented markers).
