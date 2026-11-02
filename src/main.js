@@ -1,17 +1,17 @@
 import * as THREE from 'three';
 import { Vehicle } from './vehicle/Vehicle.js';
-import { AudioManager } from './audio/AudioManager.js';
+import { AudioHub } from './core/Audio.js';
 import { CameraManager } from './core/CameraManager.js';
 import { World } from './core/World.js';
 import { QAManager } from './core/QAManager.js';
 import JobEffects from './gameplay/JobEffects.js';
 import Guidance from './gameplay/Guidance.js';
-import SoundFX from './audio/SoundFX.js';
-import Sfx2 from './audio/Sfx2.js';
+// (SoundFX removed in M2: all sound is in core/Audio.js)
+// (Sfx2 removed in M2)
 import DigAnimator from './vehicle/DigAnimator.js';
-import DigSound from './audio/DigSound.js';
+// (DigSound removed in M2)
 import GameUI from './ui/GameUI.js';
-import Music from './audio/Music.js';
+// (Music removed in M2)
 import TrafficPhysics from './core/TrafficPhysics.js';
 import JobManager from './gameplay/JobManager.js';
 
@@ -24,9 +24,10 @@ const dm = { fill: 1, drop: -1, b: 0, k: 0, was: false };
 function updateDig(dt) {
     safe(() => {
         if (!dig && vehicle) {
-            dig = new DigAnimator(vehicle, THREE); digSound = new DigSound();
-            window.addEventListener('bh-dig', e => { if (!dig.busy) { dig.start(e.detail); if (e.detail === 'scoop') digSound.scoop(); else digSound.dump(); } });
+            dig = new DigAnimator(vehicle, THREE);
+            window.addEventListener('bh-dig', e => { if (!dig.busy) { dig.start(e.detail); } });
             dig.onEvent = (n) => {
+                hub.dig(dig._type, n);
                 if (n === 'dig') { cameraShake = 0.06; const p = new THREE.Vector3(); vehicle.bucketPivot.getWorldPosition(p); if (fx) fx.onScoop(p); }
                 if (n === 'fill') { vehicle.scoopDirt(); vehicle.spawnDirtBurst(); cameraShake = 0.1; vehicle.bucketDirtGroup.scale.setScalar(0.15); dm.fill = 0; }
                 if (n === 'drop') { vehicle.spawnDirtBurst(); dm.drop = 0; }
@@ -55,7 +56,7 @@ function updateDig(dt) {
 function initUi() {
     safe(() => {
         ui = new GameUI();
-        music = new Music();
+        music = hub;
         jm = new JobManager();
         jm.onTick = (t) => { if (ui) ui.setTimer(Math.ceil(t)); };
         jm.onFail = () => { if (ui) ui.toast('Time is up! Try again', 'warn'); window.restartJob(); };
@@ -322,12 +323,17 @@ let hasScoopedDirt = false;
 let jobCompleted = false;
 let cameraShake = 0; 
 const MAX_LOADS = 3;
-const audio = new AudioManager();
-const sfx2 = new Sfx2();
+const hub = new AudioHub();
+const audio = hub; // old name kept: Vehicle.updateVisuals(audio, dt) still receives it
+function toggleMute() {
+    const m = hub.toggleMute();
+    safe(() => { if (ui) ui.toast(m ? 'Sound off (press M to turn on)' : 'Sound on', m ? 'warn' : 'success'); });
+}
+// (Sfx2 removed in M2)
 audio.playDirtCrunch = () => {};
 audio.playScoop = () => {};
 audio.playDumpThud = () => {};
-audio.playSuccess = () => sfx2.complete();
+audio.playSuccess = () => hub.complete();
 let qaManager = null;
 
 function loadSave() { try { const raw = localStorage.getItem(SAVE_KEY); if (raw) saveData = JSON.parse(raw); } catch(e) {} }
@@ -354,7 +360,7 @@ const input = { forward: false, backward: false, left: false, right: false, brak
 const CODE_TO_KEY = {
     KeyW: 'w', ArrowUp: 'arrowup', KeyS: 's', ArrowDown: 'arrowdown',
     KeyA: 'a', ArrowLeft: 'arrowleft', KeyD: 'd', ArrowRight: 'arrowright',
-    Space: ' ', KeyE: 'e', KeyF: 'f', KeyC: 'c', KeyR: 'r'
+    Space: ' ', KeyE: 'e', KeyF: 'f', KeyC: 'c', KeyR: 'r', KeyM: 'm'
 };
 function normKey(ev) {
     let k = CODE_TO_KEY[ev.code];
@@ -381,6 +387,7 @@ window.addEventListener('keydown', (ev) => {
     if (key === 'd' || key === 'arrowright') input.right = true;
     if (e.key === ' ') input.brake = true;
     if (key === 'r') window.restartJob();
+    if (key === 'm') toggleMute();
     if (key === 'e' && vehicle) vehicle.toggleArm();
     if (key === 'f' && vehicle) vehicle.autoAction();
     if (key === 'c') {
@@ -605,7 +612,7 @@ function debugTick(frameDt, stepsThisFrame) {
     dbgSteps += stepsThisFrame; dbgFrames++; dbgTime += frameDt;
     if (dbgTime >= 1) {
         if (dbgEl && dbgEl.style.display !== 'none') {
-            dbgEl.textContent = 'physics ' + (dbgSteps / dbgTime).toFixed(1) + ' steps/s | render ' + (dbgFrames / dbgTime).toFixed(0) + ' fps';
+            dbgEl.textContent = 'physics ' + (dbgSteps / dbgTime).toFixed(1) + ' steps/s | render ' + (dbgFrames / dbgTime).toFixed(0) + ' fps | ' + hub.debugText();
         }
         dbgSteps = 0; dbgFrames = 0; dbgTime = 0;
     }
@@ -615,7 +622,7 @@ function initFx() {
     safe(() => {
         fx = new JobEffects(scene, camera, worldBuilder, vehicle);
         guide = new Guidance(scene, camera, renderer);
-        sfx = new SoundFX(); sfx.scoop = () => {}; sfx.complete = () => {}; sfx.coin = () => sfx2.coin();
+        sfx = { scoop() {}, complete() {}, coin() { hub.coin(); } };
         guide.startTutorial(); tutStep = 1;
         const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 60, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide, fog: false }));
         beam.visible = false; scene.add(beam); scene.userData.beam = beam;
@@ -677,8 +684,8 @@ function animate() {
             cameraShake -= dt * 2; 
         }
 
-        if (input.forward || input.backward) audio.playEngine(1.0);
-        else audio.playEngine(0.0);
+        if (input.forward || input.backward) hub.setEngine(vehicle.currentSpeed, 1);
+        else hub.setEngine(vehicle.currentSpeed, 0);
 
         if (!jobCompleted) {
             const bucketPos = new THREE.Vector3(); vehicle.bucketPivot.getWorldPosition(bucketPos);
