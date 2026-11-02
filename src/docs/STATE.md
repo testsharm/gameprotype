@@ -1,66 +1,53 @@
-# STATE - TerraForm 3D (live status)
+# STATE (live status)
 
-Updated: 2026-11-02
-Branch: clean-v1 (baseline 4495a5e, M1 saved as ba986e2)
-Repo: testsharm/gameprotype (Codespace). Ports: 3002 Executor, 5173 game, 4173 preview.
+Updated: 2026-11-02 (M2 depth pass 2)
+Branch: clean-v1. Repo: testsharm/gameprotype (Codespace).
+Ports: 3002 Executor, 5173 live game, 4173 preview.
 
 ## Milestones
-- M0 baseline restored: DONE, saved.
-- M1 stability pack: APPLIED and saved (ba986e2). Partly tested (see below).
-- M2 audio hub: APPLIED, awaiting your test. New file src/core/Audio.js (AudioHub). main.js edited (19 edits).
-- M3 world and machine visuals v2, anti-flicker, eased dig, remove the garage wall or roof blocking the camera.
-- M4 HUD and screens, slim index.html, remove duplicate HUD and the Google Fonts import.
-- M5 input and mobile.
-- M6 portal minimal.
-- M7 jobs, economy, shop, daily bonus, tutorial.
-- M8 skill course, quality tiers, performance and size.
-- M9 submission pack.
+| ID | Name | Status |
+|----|------|--------|
+| M0 | Baseline restored | DONE, saved (4495a5e) |
+| M1 | Stability pack | DONE, saved (ba986e2). Steps/s 60.6 at 143 fps and 60.0 at 144 fps seen. |
+| M2 | Audio hub | Version 1 applied and saved (ba0ae22). User said it sounds cheap. Version 2 (deeper) APPLIED? awaiting your test. |
+| M3 | World and machine visuals v2, anti-flicker, eased dig, remove dark wall | NOT STARTED |
+| M4 | HUD and screens, slim index.html | NOT STARTED |
+| M5 | Input and mobile | NOT STARTED |
+| M6 | Portal minimal | NOT STARTED |
+| M7 | Jobs, economy, shop, daily bonus, tutorial | NOT STARTED |
+| M8 | Skill course, quality tiers, performance and size | NOT STARTED |
+| M9 | Submission pack | NOT STARTED |
 
-## M1 acceptance
-1. Syntax check passed on apply: YES. Check project result: NOT REPORTED.
-2. Console on 5173: no game-code errors seen. Red: favicon 404 (harmless), CrazySDK not initialized (expected outside portal), "Receiving end does not exist" (probably a browser extension, unproven).
-3. __testTimestep shows 60.0 on 7 rows: NOT VERIFIED.
-4. Backquote overlay about 60 steps/s: NOT VERIFIED.
-5. Steps/s with 4x CPU throttle: NOT VERIFIED.
-6. Keys: user has a QWERTY keyboard. W A S D, E, F work as before (user report).
+## M2 version 2: what changed in src/core/Audio.js
+- Engine: diesel knock (sharp pulses), clatter, exhaust rumble, turbo whistle, body boost around 240 Hz. Engine strains while digging.
+- Space: reverb with pre-delay and early reflections, warm low shelf and soft high shelf on the master.
+- Music: stereo pad, sub drone, ping-pong echo, slow lead line, drums by intensity.
+- Ambience: wind, gravel rumble that follows speed, birds, rare distant clank.
+- Reverse beeper when speed is below -1.5 (needs signed speed from main.js, UNVERIFIED).
+- Dig and dump: valve clicks, extra body boom on the dump thud.
+- Debug box is now 3 short lines under the first green line, so the mission card does not hide it.
+- LEVELS: master 0.9, music 0.3, ambience 0.22, engine 0.7, sfx 0.8, reverb 0.4.
 
 ## M2 acceptance (user reports)
-1. Syntax check passed and Check project OK.
-2. Before any key or click: no sound and no yellow AudioContext warnings in the console.
-3. Backquote overlay shows "audio running | contexts 1".
-4. Levels balanced (user judgment: engine, music, dig, dump, coin).
-5. Dig and dump sounds follow the arm movement (scoop: whine, scrape at 1.3 s, thump at 1.9 s; dump: whine, creak, pour at 1.3 s, thud at 1.9 s).
-6. Music gets quieter during the dump (overlay duck about 0.50).
-7. M key mutes and unmutes.
-8. Silence while the tab is hidden; sound returns after coming back.
+1. Syntax passed and Check project OK: passed for version 1. Version 2 not yet.
+2. No sound and no yellow warning before first input: no yellow warning seen (v1).
+3. Overlay shows contexts 1: NOT SEEN yet.
+4. Levels balanced and not cheap: re-test with version 2.
+5. Dig and dump follow the arm: not reported.
+6. Music ducks during dump (duck about 0.50): not reported.
+7. M key mutes and unmutes: user says M works.
+8. Silence while tab is hidden: not reported.
 
-## Facts
-- Fixed physics step 1/60, max 6 steps per frame, render interpolation in Vehicle.js.
-- Events: bh-dig and bh-hint. Keys read by event.code (now includes M).
-- Debug overlay: backquote key, or ?debug in the URL. It now also shows audio state.
-- AudioHub keeps a no-op compatibility API (init, playEngine, playScoop, playDumpThud, playDirtCrunch, playSuccess) because Vehicle.updateVisuals(audio, dt) still receives it. Vehicle.js not yet checked for what it calls.
-- Old files no longer imported by main.js: audio/AudioManager.js, SoundFX.js, Sfx2.js, DigSound.js, Music.js. To be deleted after M2 passes (single command).
-- Mixer levels are the LEVELS constant at the top of src/core/Audio.js.
-- Only Job 1 exists until M7.
-
-## Known issues (planned)
-- Dark wall blocks Bucket camera (M3).
-- Mission card text clipped, speed dial overlaps the key hints (M4).
+## Known issues (later milestones)
 - Google Fonts import in index.html (M4).
-- logarithmicDepthBuffer on and camera near 1 (M3).
-- Top speed 40 km/h, spec says 32.
-- No favicon (M9).
-- P key has no feature yet. No on-screen mute button until M4.
-- Unseen files (GameUI, Guidance, JobManager, World, Vehicle) might still create their own audio. The overlay "contexts" number will show this.
-- main.js still holds old HUD and old systems.
+- logarithmicDepthBuffer true and camera near 1 (M3).
+- Top speed 40 km/h, spec says 32 (M7).
+- Mission card text clipped; speed dial overlaps WASD keys (M4).
+- Big dark wall blocks the Bucket camera (M3).
+- main.js still holds old HUD code and unconnected systems (M4 to M8).
+- Red console lines: favicon 404 (M9), CrazySDK not initialized (expected outside portal), extension message (probably Brave).
+- Old audio files still on disk, unused: AudioManager.js, SoundFX.js, Sfx2.js, DigSound.js, Music.js. Delete after M2 passes.
 
-## Open decisions for the user
-- Keep the game name?
-- Keep or drop the daily bonus and paint colors?
-
-## Working rules
-- The user only copies, pastes, clicks and reports. No terminal commands for the user, except one single copy-paste command when a file must be deleted.
-- One milestone at a time: Apply, Check project, play, report, Save to GitHub.
-- Undo last apply first if anything looks strange.
-- Executor start command if the red dot shows:
-  cd "$(git rev-parse --show-toplevel)"; pkill -f executor.cjs; nohup node tools/executor.cjs > .executor.log 2>&1 & sleep 2; cat .executor.log
+## Next
+1. User pastes this Audio.js, tests, reports levels and whether it still feels cheap.
+2. If good: Save to GitHub, one delete command for old audio files, then M3.
