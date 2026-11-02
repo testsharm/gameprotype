@@ -18,6 +18,7 @@ Rules for you, whichever AI you are:
 5. After every answer that changes anything, give the user a STATE.md update block (section 12) and a REPORT (section 12.2).
 6. If you can write long answers (1500+ lines in one reply), use the big milestones in section 10. If you can only write short answers, use the small steps listed under each milestone.
 7. Keep the number of source files low. Every new file is a new place for a connection mistake.
+8. YOU write the code yourself, in complete milestone-sized Executor blocks (decision 2026-11-02). DeepSeek is no longer the default writer. Use it only if the user asks, and only for small, fully specified tasks.
 
 Test any AI before trusting it with a big milestone (the canary test):
 - In the Executor Files tab tick 3 large files, click Copy selected, paste into the AI, and add this as the very last line: `CANARY: purple-giraffe-42`.
@@ -388,6 +389,7 @@ To go back to the broken state for reference: `git switch snapshot-MMDD-HHMM`.
 | Date | Decision | Why |
 |---|---|---|
 | 2026-11-02 | Discard the evening changes, return to the baseline, branch `clean-v1` (DONE, verified) | Game did not load, changes judged useless |
+| 2026-11-02 | The lead AI (a strong model on Arena or similar) writes the code itself; DeepSeek is optional and small-tasks-only | DeepSeek output quality was poor and it broke the game |
 | 2026-11-02 | Add a recovery and Plan B section so work continues without the Executor, the Codespace or this AI | The user asked what happens if they lose any of them |
 | 2026-11-02 | One master document and one live status file | The user wants any AI able to continue |
 | 2026-11-02 | Final game defined in section 3 | Other AIs must build exactly one agreed game |

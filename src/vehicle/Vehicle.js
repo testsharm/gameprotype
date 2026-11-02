@@ -109,7 +109,7 @@ export class Vehicle {
         const n = performance.now();
         if (this._lastHint && n - this._lastHint < 1500) return;
         this._lastHint = n;
-        window.dispatchEvent(new CustomEvent('jcb-hint', { detail: msg }));
+        window.dispatchEvent(new CustomEvent('bh-hint', { detail: msg }));
     }
 
     autoAction() {
@@ -117,10 +117,10 @@ export class Vehicle {
         const bp = new THREE.Vector3(); this.bucketPivot.getWorldPosition(bp);
         if (!this.hasDirt) {
             if (!this.pilePos || bp.distanceTo(this.pilePos) > 9) { this._hint('Drive the bucket over the dirt pile'); return; }
-            window.dispatchEvent(new CustomEvent('jcb-dig', { detail: 'scoop' }));
+            window.dispatchEvent(new CustomEvent('bh-dig', { detail: 'scoop' }));
         } else {
             if (!this.truckPos || bp.distanceTo(this.truckPos) > 8) { this._hint('Drive closer: bucket over the truck bed'); return; }
-            window.dispatchEvent(new CustomEvent('jcb-dig', { detail: 'dump' }));
+            window.dispatchEvent(new CustomEvent('bh-dig', { detail: 'dump' }));
         }
     }
 
@@ -360,6 +360,22 @@ export class Vehicle {
     scoopDirt() { if (!this.hasDirt) { this.hasDirt = true; this.bucketDirtGroup.children.forEach(c => c.visible = true); return true; } return false; }
     dropDirt() { if (this.hasDirt) { this.hasDirt = false; this.bucketDirtGroup.children.forEach(c => c.visible = false); return true; } return false; }
 
+    capturePhysicsState() {
+        const t = this.chassisBody.translation(), r = this.chassisBody.rotation();
+        if (!this._currPos) {
+            this._prevPos = new THREE.Vector3(t.x, t.y, t.z);
+            this._currPos = new THREE.Vector3(t.x, t.y, t.z);
+            this._prevQuat = new THREE.Quaternion(r.x, r.y, r.z, r.w);
+            this._currQuat = new THREE.Quaternion(r.x, r.y, r.z, r.w);
+            this._interpQuat = new THREE.Quaternion();
+        } else {
+            this._prevPos.copy(this._currPos); this._prevQuat.copy(this._currQuat);
+            this._currPos.set(t.x, t.y, t.z); this._currQuat.set(r.x, r.y, r.z, r.w);
+        }
+    }
+
+    resetInterpolation() { this._currPos = null; }
+
     getForwardSpeedMps() {
         const vel = this.chassisBody.linvel();
         const rot = this.chassisBody.rotation();
@@ -375,6 +391,7 @@ export class Vehicle {
     resetToSafe() {
         if (!this.lastSafePosition || !this.lastSafeQuaternion) return;
         this.chassisBody.setTranslation(this.lastSafePosition, true);
+        this.resetInterpolation();
         this.chassisBody.setRotation(this.lastSafeQuaternion, true);
         this.chassisBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
         this.chassisBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
@@ -480,7 +497,15 @@ export class Vehicle {
         
         // === Sync mesh from physics ===
         const translation = this.chassisBody.translation(); const rotation = this.chassisBody.rotation();
-        this.mesh.position.set(translation.x, translation.y, translation.z); this.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+        if (this._currPos) {
+            const al = Math.max(0, Math.min(1, this.renderAlpha === undefined ? 1 : this.renderAlpha));
+            this.mesh.position.lerpVectors(this._prevPos, this._currPos, al);
+            this._interpQuat.copy(this._prevQuat).slerp(this._currQuat, al);
+            this.mesh.quaternion.copy(this._interpQuat);
+        } else {
+            this.mesh.position.set(translation.x, translation.y, translation.z);
+            this.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+        }
         
         // === Wheels: suspension + spin + (front) steer ===
         for (let i = 0; i < this.wheelMeshes.length; i++) {
@@ -493,7 +518,7 @@ export class Vehicle {
         
         // === Hydraulics ===
         if (this.mode === 'jcb') {
-            const hydraulicSpeed = Math.min(0.25, 0.09 * this.hydraulicMultiplier); this._autoStep(dt);
+            const hydraulicSpeed = 1 - Math.pow(1 - Math.min(0.25, 0.09 * this.hydraulicMultiplier), Math.min(dt, 0.05) * 60); this._autoStep(dt);
             this.boomPivot.rotation.x = THREE.MathUtils.lerp(this.boomPivot.rotation.x, this.targetBoomAngle, hydraulicSpeed);
             this.bucketPivot.rotation.x = THREE.MathUtils.lerp(this.bucketPivot.rotation.x, this.targetBucketAngle, hydraulicSpeed);
         }

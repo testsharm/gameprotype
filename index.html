@@ -25,6 +25,7 @@
         html, body { width: 100%; height: 100%; }
         body {
             background-color: #0d1117;
+            user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
             font-family: var(--font-ui);
             overflow: hidden;
             color: var(--text);
@@ -673,17 +674,25 @@
                 'e': 'toggleArm',
                 'f': 'toggleBucket'
             };
+            var codeToAction = {
+                'KeyW': 'forward', 'ArrowUp': 'forward',
+                'KeyS': 'backward', 'ArrowDown': 'backward',
+                'KeyA': 'left', 'ArrowLeft': 'left',
+                'KeyD': 'right', 'ArrowRight': 'right',
+                'KeyE': 'toggleArm',
+                'KeyF': 'toggleBucket'
+            };
             var setPressed = function (action, on) {
                 var el = actionMap[action];
                 if (el) el.classList.toggle('is-pressed', on);
             };
             window.addEventListener('keydown', function (e) {
                 var a = keyToAction[(e.key || '').toLowerCase()];
-                if (a) setPressed(a, true);
+                a = codeToAction[e.code]; if (a) { setPressed(a, true); }
             });
             window.addEventListener('keyup', function (e) {
                 var a = keyToAction[(e.key || '').toLowerCase()];
-                if (a) setPressed(a, false);
+                a = codeToAction[e.code]; if (a) { setPressed(a, false); }
             });
             window.addEventListener('blur', function () {
                 Object.keys(actionMap).forEach(function (a) { setPressed(a, false); });

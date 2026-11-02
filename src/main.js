@@ -25,7 +25,7 @@ function updateDig(dt) {
     safe(() => {
         if (!dig && vehicle) {
             dig = new DigAnimator(vehicle, THREE); digSound = new DigSound();
-            window.addEventListener('jcb-dig', e => { if (!dig.busy) { dig.start(e.detail); if (e.detail === 'scoop') digSound.scoop(); else digSound.dump(); } });
+            window.addEventListener('bh-dig', e => { if (!dig.busy) { dig.start(e.detail); if (e.detail === 'scoop') digSound.scoop(); else digSound.dump(); } });
             dig.onEvent = (n) => {
                 if (n === 'dig') { cameraShake = 0.06; const p = new THREE.Vector3(); vehicle.bucketPivot.getWorldPosition(p); if (fx) fx.onScoop(p); }
                 if (n === 'fill') { vehicle.scoopDirt(); vehicle.spawnDirtBurst(); cameraShake = 0.1; vehicle.bucketDirtGroup.scale.setScalar(0.15); dm.fill = 0; }
@@ -63,7 +63,7 @@ function initUi() {
         ui.setJob(JOB_TITLE, JOB_OBJ, 'Scoop dirt 0/3');
         ui.setCoins(saveData.coins);
         music.start(); music.startAmbience();
-        window.addEventListener('jcb-hint', e => { if (ui) ui.toast(e.detail, 'warn'); });
+        window.addEventListener('bh-hint', e => { if (ui) ui.toast(e.detail, 'warn'); });
     });
 }
 function updateUi(dt) {
@@ -349,9 +349,29 @@ const buyEngBtn = document.getElementById('buy-engine-btn'); if(buyEngBtn) buyEn
 const buyHydBtn = document.getElementById('buy-hydraulic-btn'); if(buyHydBtn) buyHydBtn.addEventListener('click', () => { const cost = saveData.hydraulicLevel * 100; if (saveData.coins >= cost && saveData.hydraulicLevel < 3) { saveData.coins -= cost; saveData.hydraulicLevel++; writeSave(); document.getElementById('coin-count').textContent = saveData.coins; if (vehicle) vehicle.setUpgrades(saveData); updateShopUI(); } });
 
 const input = { forward: false, backward: false, left: false, right: false, brake: false };
+
+// ---- Keys by physical position (event.code), so AZERTY and other layouts work ----
+const CODE_TO_KEY = {
+    KeyW: 'w', ArrowUp: 'arrowup', KeyS: 's', ArrowDown: 'arrowdown',
+    KeyA: 'a', ArrowLeft: 'arrowleft', KeyD: 'd', ArrowRight: 'arrowright',
+    Space: ' ', KeyE: 'e', KeyF: 'f', KeyC: 'c', KeyR: 'r'
+};
+function normKey(ev) {
+    let k = CODE_TO_KEY[ev.code];
+    if (k === undefined) k = (!ev.code || ev.code === 'Unidentified') ? (ev.key || '').toLowerCase() : '';
+    return { key: k, repeat: ev.repeat };
+}
+// Release all driving keys if the window loses focus (prevents a stuck key)
+window.addEventListener('blur', () => {
+    input.forward = false; input.backward = false; input.left = false; input.right = false; input.brake = false;
+});
 const keyMap = { 'w': 'btn-w', 'arrowup': 'btn-w', 'a': 'btn-a', 'arrowleft': 'btn-a', 's': 'btn-s', 'arrowdown': 'btn-s', 'd': 'btn-d', 'arrowright': 'btn-d', 'e': 'btn-e', 'f': 'btn-f' };
 
-window.addEventListener('keydown', (e) => {
+window.addEventListener('keydown', (ev) => {
+    if (ev.code === 'Backquote') { toggleDebugOverlay(); return; }
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (isGameRunning && (ev.code === 'Space' || ev.code.startsWith('Arrow'))) ev.preventDefault();
+    const e = normKey(ev);
     audio.init();
     const key = e.key.toLowerCase();
     if (e.repeat) return;
@@ -372,7 +392,8 @@ window.addEventListener('keydown', (e) => {
     if (keyMap[key]) { const btn = document.querySelector(`.key[data-mobile="${keyMap[key]}"]`); if (btn) btn.classList.add('active-key'); }
 });
 
-window.addEventListener('keyup', (e) => {
+window.addEventListener('keyup', (ev) => {
+    const e = normKey(ev);
     const key = e.key.toLowerCase();
     if (key === 'w' || key === 'arrowup') input.forward = false;
     if (key === 's' || key === 'arrowdown') input.backward = false;
@@ -428,6 +449,7 @@ window.restartJob = () => {
         vehicle.chassisBody.setRotation({ x: 0, y: 1, z: 0, w: 0 }, true); 
         vehicle.chassisBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
         vehicle.chassisBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
+        vehicle.resetInterpolation();
         vehicle.hasDirt = false; 
         vehicle.bucketDirtGroup.children.forEach(c => c.visible = false);
         
@@ -540,6 +562,55 @@ function drawMinimap() {
 
 const clock = new THREE.Clock();
 
+// ---- Fixed 60 Hz physics (same speed on 30, 60, 144, 165, 240 Hz screens) ----
+const FIXED_DT = 1 / 60, MAX_STEPS = 6;
+let physAcc = 0;
+function advanceAccumulator(acc, frameDt) {
+    acc += Math.min(frameDt, 0.1);
+    let steps = 0;
+    while (acc >= FIXED_DT - 1e-9 && steps < MAX_STEPS) { acc -= FIXED_DT; steps++; }
+    if (steps === MAX_STEPS && acc >= FIXED_DT) acc = 0;
+    return { acc, steps };
+}
+
+// Console test: type __testTimestep() in the F12 console. Every row must show 60.0
+window.__testTimestep = function () {
+    const rates = [30, 60, 75, 120, 144, 165, 240];
+    const seconds = 10;
+    const rows = rates.map((hz) => {
+        let acc = 0, total = 0;
+        const frames = hz * seconds;
+        for (let i = 0; i < frames; i++) { const r = advanceAccumulator(acc, 1 / hz); acc = r.acc; total += r.steps; }
+        return { refreshHz: hz, stepsPerSecond: (total / seconds).toFixed(1) };
+    });
+    console.table(rows);
+    return rows;
+};
+
+// Debug overlay: press the Backquote key (`). Only in dev mode or with ?debug in the URL
+const DEBUG_ENABLED = !!import.meta.env.DEV || new URLSearchParams(location.search).has('debug');
+let dbgEl = null, dbgSteps = 0, dbgFrames = 0, dbgTime = 0;
+function toggleDebugOverlay() {
+    if (!DEBUG_ENABLED) return;
+    if (!dbgEl) {
+        dbgEl = document.createElement('div');
+        dbgEl.style.cssText = 'position:fixed;left:8px;top:64px;z-index:2000;padding:4px 8px;background:rgba(0,0,0,0.65);color:#7cfc9a;font:12px/1.4 monospace;pointer-events:none;border-radius:4px;';
+        dbgEl.textContent = 'physics -- steps/s | render -- fps';
+        document.body.appendChild(dbgEl);
+    } else {
+        dbgEl.style.display = dbgEl.style.display === 'none' ? 'block' : 'none';
+    }
+}
+function debugTick(frameDt, stepsThisFrame) {
+    dbgSteps += stepsThisFrame; dbgFrames++; dbgTime += frameDt;
+    if (dbgTime >= 1) {
+        if (dbgEl && dbgEl.style.display !== 'none') {
+            dbgEl.textContent = 'physics ' + (dbgSteps / dbgTime).toFixed(1) + ' steps/s | render ' + (dbgFrames / dbgTime).toFixed(0) + ' fps';
+        }
+        dbgSteps = 0; dbgFrames = 0; dbgTime = 0;
+    }
+}
+
 function initFx() {
     safe(() => {
         fx = new JobEffects(scene, camera, worldBuilder, vehicle);
@@ -572,10 +643,20 @@ function updateFx(dt) {
 }
 function animate() {
     requestAnimationFrame(animate);
+    const frameDt = clock.getDelta();
     if (isGameRunning && physReady && world && vehicle) {
-        const dt = Math.min(clock.getDelta(), 0.05);
-        vehicle.updateController(input, dt);
-        world.step();
+        const dt = Math.min(frameDt, 0.05);
+        const adv = advanceAccumulator(physAcc, frameDt);
+        physAcc = adv.acc;
+        for (let s = 0; s < adv.steps; s++) {
+            vehicle.updateController(input, FIXED_DT);
+            world.step();
+            vehicle.capturePhysicsState();
+        }
+        vehicle.renderAlpha = Math.max(0, Math.min(1, physAcc / FIXED_DT));
+        debugTick(frameDt, adv.steps);
+        // physics now runs in the fixed-step loop above
+        // physics step moved to the fixed-step loop above
         vehicle.updateVisuals(audio, dt);
         cameraManager.update(vehicle.mesh, dt, vehicle.currentSpeed);
         drawMinimap();
