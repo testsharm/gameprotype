@@ -11,6 +11,8 @@ export class Vehicle {
         this.engineMultiplier = 1.0; this.hydraulicMultiplier = 1.0;
 
         this.particles = []; this.particlePool = []; this.particleGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        // soft round smoke / dust puffs (sprites with a painted radial gradient)
+        this.puffTex = this._makePuffTexture(); this.puffPool = []; this.puffs = []; this._smokeAcc = 0; this._dustAcc = 0;
         
         this.chassisBody = this.createChassis();
         this.vehicleController = this.createVehicleController();
@@ -224,20 +226,21 @@ export class Vehicle {
         rbox(jcbGroup, 1.9, 0.44, 2.0, 0.1, paintDark, 0, 1.2, -0.65);
         const glassBox = box(jcbGroup, 1.5, 1.4, 1.5, glass, 0, 2.1, -0.65);
         glassBox.castShadow = false;
+        glassBox.userData.cabHide = true;
         [-1, 1].forEach((s) => {
             rbox(jcbGroup, 0.3, 1.5, 0.3, 0.1, paint, s * 0.77, 2.1, 0.15);
             rbox(jcbGroup, 0.3, 1.5, 0.3, 0.1, paint, s * 0.77, 2.1, -1.45);
         });
-        rbox(jcbGroup, 2.1, 0.3, 2.2, 0.12, paint, 0, 2.95, -0.65);
+        rbox(jcbGroup, 2.1, 0.3, 2.2, 0.12, paint, 0, 2.95, -0.65).userData.cabHide = true;
         // interior
         rbox(jcbGroup, 0.8, 0.9, 0.8, 0.15, blackPlastic, 0, 1.95, -1.0);
         rbox(jcbGroup, 1.0, 0.5, 0.4, 0.1, blackPlastic, 0, 1.75, -0.1);
         const steeringWheel = cyl(jcbGroup, 0.25, 0.3, 'y', blackPlastic, 0, 2.1, -0.35);
         steeringWheel.rotation.x = -1.0;
         // roof gear
-        rbox(jcbGroup, 0.9, 0.3, 0.6, 0.1, darkSteel, 0, 3.2, -1.15);
+        rbox(jcbGroup, 0.9, 0.3, 0.6, 0.1, darkSteel, 0, 3.2, -1.15).userData.cabHide = true;
         [-1, 1].forEach((s) => {
-            box(jcbGroup, 0.45, 0.3, 0.3, headlightMat, s * 0.7, 3.2, 0.3);
+            box(jcbGroup, 0.45, 0.3, 0.3, headlightMat, s * 0.7, 3.2, 0.3).userData.cabHide = true;
         });
 
         // amber beacon (blinking)
@@ -254,9 +257,9 @@ export class Vehicle {
         requestAnimationFrame(blinkLoop);
 
         // ---------- exhaust ----------
-        this.exhaustTip = new THREE.Object3D(); this.exhaustTip.position.set(0.72, 2.7, 0.55); jcbGroup.add(this.exhaustTip);
-        cyl(jcbGroup, 0.15, 1.0, 'y', darkSteel, 0.72, 1.9, 0.55, 12);
-        cyl(jcbGroup, 0.2, 0.3, 'y', steel, 0.72, 2.45, 0.55, 12);
+        this.exhaustTip = new THREE.Object3D(); this.exhaustTip.position.set(0.9, 3.55, 1.15); jcbGroup.add(this.exhaustTip);
+        cyl(jcbGroup, 0.15, 1.8, 'y', darkSteel, 0.9, 2.3, 1.15, 12);
+        cyl(jcbGroup, 0.2, 0.3, 'y', steel, 0.9, 3.3, 1.15, 12);
 
         // ---------- mirrors ----------
         [-1, 1].forEach((s) => {
@@ -342,11 +345,75 @@ export class Vehicle {
         this.particles.push(particle);
     }
 
-    spawnExhaust() { const pos = new THREE.Vector3(); this.exhaustTip.getWorldPosition(pos); const vel = new THREE.Vector3((Math.random() - 0.5) * 1.5, Math.random() * 2 + 1, (Math.random() - 0.5) * 1.5); this.spawnParticle(pos, vel, 0x333333, 0.6 + Math.random() * 0.4, 1.0); }
-    spawnTireDust(wheelIndex) { const pos = new THREE.Vector3(); this.wheelMeshes[wheelIndex].group.getWorldPosition(pos); pos.y = 0.2; const vel = new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 1.5, (Math.random() - 0.5) * 2); this.spawnParticle(pos, vel, 0x8c7053, 0.5 + Math.random() * 0.5, 1.5); }
+    spawnExhaust() { const pos = new THREE.Vector3(); this.exhaustTip.getWorldPosition(pos); const vel = new THREE.Vector3((Math.random() - 0.5) * 1.5, Math.random() * 2 + 1, (Math.random() - 0.5) * 1.5); this.spawnPuff(pos, vel.multiplyScalar(0.5), 0x4d4d4d, 1.4 + Math.random() * 0.6, 0.45, 2.4, 0.55); }
+    spawnTireDust(wheelIndex) { const pos = new THREE.Vector3(); this.wheelMeshes[wheelIndex].group.getWorldPosition(pos); pos.y = 0.2; const vel = new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 1.5, (Math.random() - 0.5) * 2); this.spawnPuff(pos, vel.multiplyScalar(0.4), 0xa89070, 0.9 + Math.random() * 0.5, 0.5, 1.9, 0.4); }
     spawnDirtBurst() { if (!this.hasDirt) return; const pos = new THREE.Vector3(); this.bucketPivot.getWorldPosition(pos); for (let i = 0; i < 15; i++) { const vel = new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 4, (Math.random() - 0.5) * 6); this.spawnParticle(pos, vel, 0x5c3a21, 0.8 + Math.random() * 0.4, 2.0); } }
 
+    _makePuffTexture() {
+        const c = document.createElement('canvas');
+        c.width = 64; c.height = 64;
+        const g = c.getContext('2d');
+        const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        grad.addColorStop(0, 'rgba(255,255,255,1)');
+        grad.addColorStop(0.45, 'rgba(255,255,255,0.55)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 64, 64);
+        const tex = new THREE.CanvasTexture(c);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+    }
+
+    spawnPuff(pos, vel, color, life, startScale, endScale, opacity) {
+        let p = this.puffPool.pop();
+        if (!p) {
+            const mat = new THREE.SpriteMaterial({ map: this.puffTex, color: color, transparent: true, depthWrite: false, opacity: 0 });
+            const sprite = new THREE.Sprite(mat);
+            sprite.renderOrder = 5;
+            this.scene.add(sprite);
+            p = { sprite: sprite, velocity: new THREE.Vector3(), life: 0, maxLife: 1, s0: 1, s1: 1, op: 1, spin: 0 };
+        }
+        p.sprite.visible = true;
+        p.sprite.position.copy(pos);
+        p.sprite.material.color.setHex(color);
+        p.sprite.material.rotation = Math.random() * 6.28;
+        p.sprite.scale.set(startScale, startScale, 1);
+        p.velocity.copy(vel);
+        p.life = life; p.maxLife = life;
+        p.s0 = startScale; p.s1 = endScale; p.op = opacity;
+        p.spin = (Math.random() - 0.5) * 0.8;
+        this.puffs.push(p);
+        if (this.puffs.length > 160) {
+            const old = this.puffs.shift();
+            old.sprite.visible = false;
+            this.puffPool.push(old);
+        }
+    }
+
+    updatePuffs(dt) {
+        const drag = Math.exp(-1.6 * dt);
+        for (let i = this.puffs.length - 1; i >= 0; i--) {
+            const p = this.puffs[i];
+            p.life -= dt;
+            if (p.life <= 0) {
+                p.sprite.visible = false;
+                this.puffPool.push(p);
+                this.puffs.splice(i, 1);
+                continue;
+            }
+            const age = 1 - p.life / p.maxLife;           // 0 -> 1
+            p.velocity.multiplyScalar(drag);
+            p.velocity.y += 0.9 * dt;                      // warm air carries it up
+            p.sprite.position.addScaledVector(p.velocity, dt);
+            const s = p.s0 + (p.s1 - p.s0) * Math.sqrt(age);
+            p.sprite.scale.set(s, s, 1);
+            p.sprite.material.rotation += p.spin * dt;
+            p.sprite.material.opacity = p.op * Math.min(1, age * 6) * (1 - age);
+        }
+    }
+
     updateParticles(dt) {
+        this.updatePuffs(dt);
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i]; p.life -= dt;
             if (p.life <= 0) { p.mesh.visible = false; this.particlePool.push(p); this.particles.splice(i, 1); continue; }
@@ -528,9 +595,12 @@ export class Vehicle {
         this.smoothedSpeed = this.smoothedSpeed * 0.85 + speedKmh * 0.15;
         this.currentSpeed = Math.round(this.smoothedSpeed);
         
+        // exhaust smoke is counted by time (same at 60 and 144 fps): a little at idle, more when working
+        this._smokeAcc += Math.min(dt, 0.05) * (this.currentSpeed > 5 ? 14 : 5 + Math.abs(this.throttleState) * 9);
+        while (this._smokeAcc >= 1) { this._smokeAcc -= 1; this.spawnExhaust(); }
         if (this.currentSpeed > 5) {
-            if (Math.random() < 0.3) this.spawnExhaust();
-            if (Math.random() < 0.5) this.spawnTireDust(2); if (Math.random() < 0.5) this.spawnTireDust(3);
+            // (exhaust smoke is spawned above)
+            this._dustAcc += Math.min(dt, 0.05) * 10; while (this._dustAcc >= 1) { this._dustAcc -= 1; this.spawnTireDust(2); this.spawnTireDust(3); }
         }
         this.updateParticles(dt);
     }

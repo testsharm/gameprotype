@@ -3,7 +3,7 @@ import * as THREE from 'three';
 // Cab camera settings (positions are local to the vehicle)
 const CAB_EYE = new THREE.Vector3(0, 2.4, -0.2);
 const CAB_LOOK = new THREE.Vector3(0, 1.4, 20);
-const CAB_NEAR = 0.15;
+const CAB_NEAR = 0.3;
 
 export class CameraManager {
     constructor(camera, domElement) {
@@ -97,35 +97,11 @@ export class CameraManager {
         this.currentMode = mode;
     }
 
-    // ---- Cab view: hide the parts that would be around / above the camera ----
+    // ---- Cab view: hide only the parts that Vehicle.js marked with userData.cabHide (roof, glass) ----
     _prepareCab(root) {
         this._restoreCab();
-        root.updateMatrixWorld(true);
-        const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
-        const rel = new THREE.Matrix4();
-        const box = new THREE.Box3();
-        const size = new THREE.Vector3();
-        const eye = CAB_EYE;
-
         root.traverse((o) => {
-            if (!o.isMesh || !o.visible || !o.geometry || o.isInstancedMesh) return;
-            if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
-            rel.multiplyMatrices(inv, o.matrixWorld);
-            box.copy(o.geometry.boundingBox).applyMatrix4(rel);
-            box.getSize(size);
-
-            // 1) anything above the driver's eyes (roof, roof lights, vent), but not the boom area in front
-            const aboveEye = box.min.y > eye.y - 0.3 && box.min.z < 1.0;
-
-            // 2) small or medium parts that surround the eye (cab glass box)
-            const pad = 0.2;
-            const surrounds =
-                box.min.x - pad < eye.x && box.max.x + pad > eye.x &&
-                box.min.y - pad < eye.y && box.max.y + pad > eye.y &&
-                box.min.z - pad < eye.z && box.max.z + pad > eye.z &&
-                size.x < 4 && size.y < 4 && size.z < 6;
-
-            if (aboveEye || surrounds) {
+            if (o.userData && o.userData.cabHide && o.visible) {
                 o.visible = false;
                 this._hidden.push(o);
             }
@@ -157,7 +133,7 @@ export class CameraManager {
         if (inCab && !this._cabReady) this._prepareCab(vehicleMesh);
         else if (!inCab && this._cabReady) this._restoreCab();
 
-        // near plane: small in the cab so nothing is cut, normal outside
+        // near plane: smaller in the cab so nothing is cut, normal outside
         if (!inCab && this.camera.near !== CAB_NEAR) this._baseNear = this.camera.near;
         const wantNear = inCab ? CAB_NEAR : this._baseNear;
         if (this.camera.near !== wantNear) this.camera.near = wantNear;
