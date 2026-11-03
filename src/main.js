@@ -100,7 +100,7 @@ const canvas = document.getElementById('game-container');
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xdfe9f3);
 
-const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 900);
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.5, 1400);
 const cameraManager = new CameraManager(camera, canvas);
 const worldBuilder = new World(scene);
 cameraManager.setCollidables([...worldBuilder.buildingMeshes, ...worldBuilder.treeMeshes]);
@@ -108,7 +108,7 @@ cameraManager.setCollidables([...worldBuilder.buildingMeshes, ...worldBuilder.tr
 cameraManager.setMode('bucket');
 document.querySelectorAll('.cam-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === 'bucket'));
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
@@ -133,11 +133,11 @@ if (worldBuilder.sunLight) {
     scene.add(worldBuilder.sunLight.target);
 }
 if (worldBuilder.hemiLight) {
-    worldBuilder.hemiLight.intensity = 0.55;
+    worldBuilder.hemiLight.intensity = 0.8;
     worldBuilder.hemiLight.color.set(0xbfd4ff);
-    worldBuilder.hemiLight.groundColor.set(0x445544);
+    worldBuilder.hemiLight.groundColor.set(0x7a8a66);
 }
-scene.fog = new THREE.FogExp2(0xdfe9f3, 0.0016);
+scene.fog = new THREE.FogExp2(0xdfe9f3, 0.0020);
 scene.background = new THREE.Color(0xdfe9f3);
 
 // ---- Quality system ----
@@ -567,6 +567,52 @@ function drawMinimap() {
     miniCtx.restore();
 }
 
+// ---- Keep the camera in front of buildings (no more wall blocking the view) ----
+const _camFocus = new THREE.Vector3();
+const _camDir = new THREE.Vector3();
+let camClearT = 1;
+function keepCameraClear(dt) {
+    if (!vehicle || !worldBuilder || !worldBuilder.buildingData) return;
+    if (cameraManager.currentMode === 'cab') { camClearT = 1; return; }
+    _camFocus.copy(vehicle.mesh.position);
+    _camFocus.y += 2.2;
+    _camDir.copy(camera.position).sub(_camFocus);
+    const len = _camDir.length();
+    if (len < 0.5) return;
+    const o = [_camFocus.x, _camFocus.y, _camFocus.z];
+    const d = [_camDir.x, _camDir.y, _camDir.z];
+    const margin = 0.6;
+    let tHit = 1;
+    const boxes = worldBuilder.buildingData;
+    for (let i = 0; i < boxes.length; i++) {
+        const b = boxes[i];
+        const c = [b.x, b.y, b.z];
+        const h = [b.w / 2 + margin, b.h / 2 + margin, b.d / 2 + margin];
+        let tmin = 0, tmax = 1, ok = true, inside = true;
+        for (let a = 0; a < 3; a++) {
+            const lo = c[a] - h[a], hi = c[a] + h[a];
+            if (o[a] < lo || o[a] > hi) inside = false;
+            if (Math.abs(d[a]) < 1e-8) {
+                if (o[a] < lo || o[a] > hi) { ok = false; break; }
+            } else {
+                let t1 = (lo - o[a]) / d[a], t2 = (hi - o[a]) / d[a];
+                if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
+                if (t1 > tmin) tmin = t1;
+                if (t2 < tmax) tmax = t2;
+                if (tmin > tmax) { ok = false; break; }
+            }
+        }
+        if (!ok || inside) continue;
+        if (tmin > 0 && tmin < tHit) tHit = tmin;
+    }
+    const want = tHit < 1 ? Math.max(0.12, tHit - 0.04) : 1;
+    if (want < camClearT) camClearT = want;
+    else camClearT += (want - camClearT) * Math.min(1, dt * 4);
+    if (camClearT < 0.999) {
+        camera.position.copy(_camFocus).addScaledVector(_camDir, camClearT);
+    }
+}
+
 const clock = new THREE.Clock();
 
 // ---- Fixed 60 Hz physics (same speed on 30, 60, 144, 165, 240 Hz screens) ----
@@ -666,6 +712,8 @@ function animate() {
         // physics step moved to the fixed-step loop above
         vehicle.updateVisuals(audio, dt);
         cameraManager.update(vehicle.mesh, dt, vehicle.currentSpeed);
+        keepCameraClear(dt);
+        if (worldBuilder.sky) worldBuilder.sky.position.copy(camera.position);
         drawMinimap();
 
         const speedValEl = document.getElementById('speed-val');
