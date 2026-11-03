@@ -2,6 +2,7 @@
 // All styles are injected here (class prefix "tf-"). No outside fonts, images or scripts.
 // Public API (used by main.js): setJob, setTimer, setCoins, setSpeed, toast, showLocked, setHint, reset.
 // The dial mounts into <div id="dial-slot"> from index.html (falls back to a fixed corner if missing).
+// Dial v3: big number in the exact centre, a glowing dot on the ring, ring and ticks go green -> yellow -> red.
 
 const SVGNS = 'http://www.w3.org/2000/svg';
 const MAX_KMH = 45;                    // dial scale end (top speed with all upgrades is 42)
@@ -10,7 +11,7 @@ const ARC = 2 * Math.PI * R_TRACK;     // full circle length
 const SWEEP = ARC * 0.75;              // 270 degrees
 
 const CSS = `
-:root{--tf-dial:clamp(112px,min(25vh,30vw),176px);}
+:root{--tf-dial:clamp(112px,min(26vh,30vw),184px);}
 @media (max-width:560px){:root{--tf-dial:112px;}}
 @media (max-height:420px){:root{--tf-dial:100px;}}
 .tf-card,.tf-dial,.tf-toasts,.tf-hint,.tf-locked{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;}
@@ -53,16 +54,22 @@ const CSS = `
  background:linear-gradient(180deg,#4a2730,#241217);border:2px solid #0a0f18;box-shadow:0 4px 0 #070b12,0 12px 30px rgba(0,0,0,.55);animation:tf-lock 2.2s ease both;}
 .tf-locked svg{width:24px;height:24px;flex:none;}
 
-.tf-dial{position:relative;width:var(--tf-dial);height:var(--tf-dial);flex:none;pointer-events:none;z-index:4;filter:drop-shadow(0 6px 8px rgba(0,0,0,.6));}
+.tf-dial{position:relative;width:var(--tf-dial);height:var(--tf-dial);flex:none;pointer-events:none;z-index:4;filter:drop-shadow(0 7px 9px rgba(0,0,0,.65));}
 .tf-dial.tf-float{position:fixed;right:10px;bottom:10px;}
 .tf-dial svg{width:100%;height:100%;display:block;overflow:visible;}
-.tf-prog{filter:drop-shadow(0 0 5px rgba(251,191,36,.75));}
-.tf-needle{filter:drop-shadow(0 2px 2px rgba(0,0,0,.7));}
-.tf-lbl{font-size:18px;font-weight:700;fill:#cbd5e1;}
-.tf-num{font-size:36px;font-weight:800;fill:#fff;}
-.tf-unit{font-size:18px;font-weight:700;fill:#94a3b8;letter-spacing:.06em;}
+.tf-prog{filter:drop-shadow(0 0 6px rgba(255,255,255,.35));}
+.tf-dot{filter:drop-shadow(0 0 5px rgba(255,255,255,.95));}
+.tf-num{font-size:56px;font-weight:800;fill:#fff;font-variant-numeric:tabular-nums;stroke:#000;stroke-opacity:.55;stroke-width:3px;paint-order:stroke;}
+.tf-unit{font-size:17px;font-weight:700;fill:#9fb0c6;letter-spacing:.08em;}
 
-@media (max-height:520px),(max-width:560px){ .tf-lbl,.tf-unit{display:none;} }
+@media (max-height:520px),(max-width:560px){ .tf-unit{display:none;} }
+@media (max-height:520px){
+ .tf-obj{display:none;}
+ .tf-body{padding:7px 12px 9px;}
+ .tf-stripe{height:6px;}
+ .tf-title{font-size:17px;}
+ .tf-bar{height:10px;margin-top:5px;}
+}
 @media (max-width:560px),(max-height:420px){
  .tf-card{top:var(--edge,8px);left:calc(var(--lc,92px) + var(--edge,8px) + 4px);right:calc(var(--mm,84px) + var(--edge,8px) + 8px);transform:none;width:auto;min-width:0;max-width:440px;margin:0 auto;}
  .tf-title{font-size:16px;white-space:normal;line-height:1.1;overflow:visible;}
@@ -103,11 +110,12 @@ export class GameUI {
     this._speedIn = 0;
     this._shown = 0;
     this._lastNum = -1;
-    this._lastColor = '';
+    this._lastKey = '';
     this._timerTxt = '';
     this._coinRaf = 0;
     this._speedEl = null;
     this._lastT = 0;
+    this._ticks = [];
 
     this._buildCard();
     this._buildDial();
@@ -167,66 +175,81 @@ export class GameUI {
     this.card = card;
   }
 
-  /* ---------- round speedometer ---------- */
+  /* ---------- round speedometer v3 ---------- */
   _buildDial() {
     const wrap = mk('div', 'tf-dial');
     const s = sv('svg', { viewBox: '0 0 200 200' });
     const defs = sv('defs', {});
     const g1 = sv('linearGradient', { id: 'tfBez', x1: '0', y1: '0', x2: '0', y2: '1' });
-    g1.appendChild(sv('stop', { offset: '0', 'stop-color': '#e3eaf4' }));
-    g1.appendChild(sv('stop', { offset: '.45', 'stop-color': '#8793aa' }));
-    g1.appendChild(sv('stop', { offset: '1', 'stop-color': '#2f3a4e' }));
-    const g2 = sv('radialGradient', { id: 'tfFace', cx: '.5', cy: '.4', r: '.65' });
-    g2.appendChild(sv('stop', { offset: '0', 'stop-color': '#2d3e58' }));
-    g2.appendChild(sv('stop', { offset: '1', 'stop-color': '#0a111c' }));
+    g1.appendChild(sv('stop', { offset: '0', 'stop-color': '#f1f5fb' }));
+    g1.appendChild(sv('stop', { offset: '.4', 'stop-color': '#94a0b6' }));
+    g1.appendChild(sv('stop', { offset: '1', 'stop-color': '#2a3447' }));
+    const g2 = sv('radialGradient', { id: 'tfFace', cx: '.5', cy: '.35', r: '.75' });
+    g2.appendChild(sv('stop', { offset: '0', 'stop-color': '#35507a' }));
+    g2.appendChild(sv('stop', { offset: '.6', 'stop-color': '#16233a' }));
+    g2.appendChild(sv('stop', { offset: '1', 'stop-color': '#090f1a' }));
     const g3 = sv('linearGradient', { id: 'tfGlass', x1: '0', y1: '0', x2: '0', y2: '1' });
-    g3.appendChild(sv('stop', { offset: '0', 'stop-color': '#ffffff', 'stop-opacity': '.2' }));
+    g3.appendChild(sv('stop', { offset: '0', 'stop-color': '#ffffff', 'stop-opacity': '.26' }));
     g3.appendChild(sv('stop', { offset: '1', 'stop-color': '#ffffff', 'stop-opacity': '0' }));
+    const g4 = sv('radialGradient', { id: 'tfWell', cx: '.5', cy: '.6', r: '.6' });
+    g4.appendChild(sv('stop', { offset: '0', 'stop-color': '#0b1322', 'stop-opacity': '.95' }));
+    g4.appendChild(sv('stop', { offset: '1', 'stop-color': '#050912', 'stop-opacity': '.95' }));
     defs.appendChild(g1);
     defs.appendChild(g2);
     defs.appendChild(g3);
+    defs.appendChild(g4);
     s.appendChild(defs);
 
-    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 99, fill: '#05080d' }));
-    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 95, fill: 'url(#tfBez)' }));
-    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 87, fill: '#0a0f18' }));
-    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 84, fill: 'url(#tfFace)' }));
+    // rim and face
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 99, fill: '#04070c' }));
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 96, fill: 'url(#tfBez)' }));
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 89, fill: '#070b12' }));
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 86, fill: 'url(#tfFace)' }));
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 86, fill: 'none', stroke: 'rgba(0,0,0,.55)', 'stroke-width': 4 }));
 
+    // ring track and live arc
     const rot = 'rotate(135 100 100)';
-    s.appendChild(sv('circle', { cx: 100, cy: 100, r: R_TRACK, fill: 'none', stroke: 'rgba(255,255,255,.1)', 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-dasharray': SWEEP + ' ' + ARC, transform: rot }));
-    this._prog = sv('circle', { cx: 100, cy: 100, r: R_TRACK, fill: 'none', stroke: '#fbbf24', 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-dasharray': '0.01 ' + ARC, transform: rot, class: 'tf-prog' });
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: R_TRACK, fill: 'none', stroke: 'rgba(0,0,0,.5)', 'stroke-width': 13, 'stroke-linecap': 'round', 'stroke-dasharray': SWEEP + ' ' + ARC, transform: rot }));
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: R_TRACK, fill: 'none', stroke: 'rgba(255,255,255,.12)', 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-dasharray': SWEEP + ' ' + ARC, transform: rot }));
+    this._prog = sv('circle', { cx: 100, cy: 100, r: R_TRACK, fill: 'none', stroke: '#22c55e', 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-dasharray': '0.01 ' + ARC, transform: rot, class: 'tf-prog' });
     s.appendChild(this._prog);
 
+    // ticks (no numbers): they light up with the speed
+    this._ticks = [];
     for (let v = 0; v <= MAX_KMH; v += 5) {
       const a = ((135 + 270 * v / MAX_KMH) * Math.PI) / 180;
       const major = v % 10 === 0;
-      const r1 = 66, r2 = major ? 58 : 61;
-      s.appendChild(sv('line', {
+      const r1 = 66, r2 = major ? 56 : 60;
+      const base = major ? '#cbd5e1' : '#64748b';
+      const ln = sv('line', {
         x1: 100 + r1 * Math.cos(a), y1: 100 + r1 * Math.sin(a),
         x2: 100 + r2 * Math.cos(a), y2: 100 + r2 * Math.sin(a),
-        stroke: major ? '#e2e8f0' : '#64748b', 'stroke-width': major ? 3 : 2, 'stroke-linecap': 'round',
-      }));
-      if (major) {
-        const t = sv('text', { x: 100 + 44 * Math.cos(a), y: 100 + 44 * Math.sin(a) + 6, 'text-anchor': 'middle', class: 'tf-lbl' });
-        t.textContent = String(v);
-        s.appendChild(t);
-      }
+        stroke: base, 'stroke-width': major ? 3.2 : 2.4, 'stroke-linecap': 'round',
+      });
+      s.appendChild(ln);
+      this._ticks.push({ el: ln, v: v, base: base });
     }
 
-    this._num = sv('text', { x: 100, y: 152, 'text-anchor': 'middle', class: 'tf-num' });
+    // sunken well for the number
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 49, fill: 'url(#tfWell)', stroke: 'rgba(255,255,255,.14)', 'stroke-width': 2 }));
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 46, fill: 'none', stroke: 'rgba(0,0,0,.6)', 'stroke-width': 3 }));
+
+    // the number: exact centre
+    this._num = sv('text', { x: 100, y: 116, 'text-anchor': 'middle', class: 'tf-num' });
     this._num.textContent = '0';
-    const unit = sv('text', { x: 100, y: 173, 'text-anchor': 'middle', class: 'tf-unit' });
+    const unit = sv('text', { x: 100, y: 141, 'text-anchor': 'middle', class: 'tf-unit' });
     unit.textContent = 'km/h';
     s.appendChild(this._num);
     s.appendChild(unit);
 
-    this._needle = sv('g', { transform: 'rotate(135 100 100)', class: 'tf-needle' });
-    this._needle.appendChild(sv('path', { d: 'M84 100 L96 95 L156 99 L156 101 L96 105 Z', fill: '#ef4444', stroke: '#7f1d1d', 'stroke-width': 0.8 }));
-    s.appendChild(this._needle);
-    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 9, fill: '#1b2638', stroke: '#fbbf24', 'stroke-width': 2 }));
-    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 3, fill: '#fbbf24' }));
+    // glowing dot that runs on the ring
+    this._dot = sv('g', { transform: 'rotate(135 100 100)' });
+    this._dotC = sv('circle', { cx: 100 + R_TRACK, cy: 100, r: 7.5, fill: '#ffffff', stroke: '#22c55e', 'stroke-width': 3, class: 'tf-dot' });
+    this._dot.appendChild(this._dotC);
+    s.appendChild(this._dot);
+
     // glass shine over the top half
-    s.appendChild(sv('ellipse', { cx: 100, cy: 58, rx: 60, ry: 32, fill: 'url(#tfGlass)' }));
+    s.appendChild(sv('ellipse', { cx: 100, cy: 56, rx: 62, ry: 34, fill: 'url(#tfGlass)' }));
 
     wrap.appendChild(s);
     const slot = document.getElementById('dial-slot');
@@ -258,12 +281,25 @@ export class GameUI {
       this._lastNum = rounded;
       this._num.textContent = String(rounded);
     }
-    this._needle.setAttribute('transform', 'rotate(' + (135 + 270 * v / MAX_KMH).toFixed(2) + ' 100 100)');
+    const ang = 135 + 270 * v / MAX_KMH;
+    this._dot.setAttribute('transform', 'rotate(' + ang.toFixed(2) + ' 100 100)');
     this._prog.setAttribute('stroke-dasharray', Math.max(0.01, SWEEP * v / MAX_KMH).toFixed(2) + ' ' + ARC.toFixed(2));
-    const col = v >= 36 ? '#f97316' : '#fbbf24';
-    if (col !== this._lastColor) {
-      this._lastColor = col;
+
+    // colour: green (low) -> yellow -> orange -> red (top speed)
+    const hue = Math.round(120 * (1 - Math.min(1, v / MAX_KMH)));
+    let lit = 0;
+    if (v > 0.3) {
+      for (let i = 0; i < this._ticks.length; i++) if (this._ticks[i].v <= v) lit = i + 1;
+    }
+    const key = hue + ':' + lit;
+    if (key !== this._lastKey) {
+      this._lastKey = key;
+      const col = 'hsl(' + hue + ',92%,54%)';
       this._prog.setAttribute('stroke', col);
+      this._dotC.setAttribute('stroke', col);
+      for (let i = 0; i < this._ticks.length; i++) {
+        this._ticks[i].el.setAttribute('stroke', i < lit ? col : this._ticks[i].base);
+      }
     }
   }
 
