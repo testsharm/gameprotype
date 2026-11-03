@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 
+// Cab camera settings (positions are local to the vehicle)
+const CAB_EYE = new THREE.Vector3(0, 2.4, -0.2);
+const CAB_LOOK = new THREE.Vector3(0, 1.4, 20);
+const CAB_NEAR = 0.15;
+
 export class CameraManager {
     constructor(camera, domElement) {
         this.camera = camera;
@@ -8,23 +13,36 @@ export class CameraManager {
 
         this.spherical = new THREE.Spherical();
         this.spherical.radius = 14;
-        this.spherical.phi = Math.PI / 2.2; 
-        this.spherical.theta = Math.PI;    
+        this.spherical.phi = Math.PI / 2.2;
+        this.spherical.theta = Math.PI;
 
         this.isDragging = false;
         this.previousMousePosition = { x: 0, y: 0 };
 
         this.raycaster = new THREE.Raycaster();
         this.collidableMeshes = [];
-        this.minDistance = 3.0; 
+        this.minDistance = 3.0;
 
         this.currentLookAt = new THREE.Vector3();
+
+        // cab view helpers
+        this._vehicle = null;
+        this._hidden = [];
+        this._cabReady = false;
+        this._baseNear = 0.5;
+
+        // reusable vectors (no new objects every frame)
+        this._headPos = new THREE.Vector3();
+        this._idealPos = new THREE.Vector3();
+        this._offset = new THREE.Vector3();
+        this._focus = new THREE.Vector3();
+        this._rayDir = new THREE.Vector3();
 
         this.setupInputs();
     }
 
     setCollidables(meshes) {
-        this.collidableMeshes = meshes;
+        this.collidableMeshes = meshes || [];
     }
 
     setupInputs() {
@@ -45,29 +63,32 @@ export class CameraManager {
             this.previousMousePosition = { x: e.clientX, y: e.clientY };
         });
 
-        window.addEventListener('pointerup', () => {
-            this.isDragging = false;
-        });
+        const stopDrag = () => { this.isDragging = false; };
+        window.addEventListener('pointerup', stopDrag);
+        window.addEventListener('pointercancel', stopDrag);
+        window.addEventListener('blur', stopDrag);
 
         this.domElement.addEventListener('wheel', (e) => {
             if (this.currentMode !== 'orbit') return;
             this.spherical.radius += e.deltaY * 0.02;
             this.spherical.radius = Math.max(8, Math.min(60, this.spherical.radius));
         }, { passive: true });
-        
+
         document.querySelectorAll('.cam-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const mode = e.target.dataset.mode;
+                const target = e.currentTarget;
+                const mode = target && target.dataset ? target.dataset.mode : null;
+                if (!mode) return;
                 this.setMode(mode);
                 document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
+                target.classList.add('active');
             });
         });
     }
 
     setMode(mode) {
         if (this.currentMode === mode) return;
-        
+
         if (mode === 'orbit') {
             this.spherical.theta = Math.PI;
             this.spherical.phi = Math.PI / 2.2;
@@ -76,78 +97,138 @@ export class CameraManager {
         this.currentMode = mode;
     }
 
+    // ---- Cab view: hide the parts that would be around / above the camera ----
+    _prepareCab(root) {
+        this._restoreCab();
+        root.updateMatrixWorld(true);
+        const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+        const rel = new THREE.Matrix4();
+        const box = new THREE.Box3();
+        const size = new THREE.Vector3();
+        const eye = CAB_EYE;
+
+        root.traverse((o) => {
+            if (!o.isMesh || !o.visible || !o.geometry || o.isInstancedMesh) return;
+            if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+            rel.multiplyMatrices(inv, o.matrixWorld);
+            box.copy(o.geometry.boundingBox).applyMatrix4(rel);
+            box.getSize(size);
+
+            // 1) anything above the driver's eyes (roof, roof lights, vent), but not the boom area in front
+            const aboveEye = box.min.y > eye.y - 0.3 && box.min.z < 1.0;
+
+            // 2) small or medium parts that surround the eye (cab glass box)
+            const pad = 0.2;
+            const surrounds =
+                box.min.x - pad < eye.x && box.max.x + pad > eye.x &&
+                box.min.y - pad < eye.y && box.max.y + pad > eye.y &&
+                box.min.z - pad < eye.z && box.max.z + pad > eye.z &&
+                size.x < 4 && size.y < 4 && size.z < 6;
+
+            if (aboveEye || surrounds) {
+                o.visible = false;
+                this._hidden.push(o);
+            }
+        });
+        this._cabReady = true;
+    }
+
+    _restoreCab() {
+        for (let i = 0; i < this._hidden.length; i++) {
+            this._hidden[i].visible = true;
+        }
+        this._hidden.length = 0;
+        this._cabReady = false;
+    }
+
     update(vehicleMesh, deltaTime, currentSpeed) {
         if (!vehicleMesh) return;
-        const vehiclePos = vehicleMesh.position;
-        const headPos = vehiclePos.clone().add(new THREE.Vector3(0, 2, 0)); 
 
+        // time based smoothing: same feel at 60, 144 and 165 fps
+        const dt = Math.min(Math.max(deltaTime || 0.016, 0.001), 0.1);
+        const k = (rate) => 1 - Math.exp(-rate * dt);
+
+        if (this._vehicle !== vehicleMesh) {
+            this._restoreCab();
+            this._vehicle = vehicleMesh;
+        }
+
+        const inCab = this.currentMode === 'cab';
+        if (inCab && !this._cabReady) this._prepareCab(vehicleMesh);
+        else if (!inCab && this._cabReady) this._restoreCab();
+
+        // near plane: small in the cab so nothing is cut, normal outside
+        if (!inCab && this.camera.near !== CAB_NEAR) this._baseNear = this.camera.near;
+        const wantNear = inCab ? CAB_NEAR : this._baseNear;
+        if (this.camera.near !== wantNear) this.camera.near = wantNear;
+
+        const vehiclePos = vehicleMesh.position;
+        const headPos = this._headPos.copy(vehiclePos);
+        headPos.y += 2;
+
+        // speed zoom (km/h): a little wider when fast
         const baseFov = 70;
-        const maxFovBonus = 15;
-        const speedRatio = Math.min(currentSpeed / 100, 1); 
+        const maxFovBonus = 12;
+        const speedRatio = Math.min(Math.abs(currentSpeed || 0) / 40, 1);
         const targetFov = baseFov + (speedRatio * maxFovBonus);
-        this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, 0.05);
+        this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, k(3));
         this.camera.updateProjectionMatrix();
 
-        let idealPos = new THREE.Vector3();
+        const idealPos = this._idealPos;
+        const offset = this._offset;
 
         if (this.currentMode === 'orbit') {
-            const idealOffset = new THREE.Vector3().setFromSpherical(this.spherical);
-            idealPos = headPos.clone().add(idealOffset);
-            
-            this.camera.position.lerp(idealPos, 0.15);
-            this.currentLookAt.lerp(headPos, 0.2);
+            offset.setFromSpherical(this.spherical);
+            idealPos.copy(headPos).add(offset);
+
+            this.camera.position.lerp(idealPos, k(10));
+            this.currentLookAt.lerp(headPos, k(13));
             this.camera.lookAt(this.currentLookAt);
 
         } else if (this.currentMode === 'chase') {
-            const idealOffset = new THREE.Vector3(0, 4, 9);
-            idealOffset.applyQuaternion(vehicleMesh.quaternion);
-            idealPos = vehiclePos.clone().add(idealOffset);
-            
-            this.camera.position.lerp(idealPos, 0.1);
-            this.currentLookAt.lerp(headPos, 0.15);
+            offset.set(0, 4, 9).applyQuaternion(vehicleMesh.quaternion);
+            idealPos.copy(vehiclePos).add(offset);
+
+            this.camera.position.lerp(idealPos, k(6.5));
+            this.currentLookAt.lerp(headPos, k(10));
             this.camera.lookAt(this.currentLookAt);
 
         } else if (this.currentMode === 'cab') {
-            // FIX: Raised and pushed back to see over the hood and bucket
-            const idealOffset = new THREE.Vector3(0, 2.4, -0.2);
-            idealOffset.applyQuaternion(vehicleMesh.quaternion);
-            idealPos = vehiclePos.clone().add(idealOffset);
-            this.camera.position.copy(idealPos);
-            
-            // Look further down the road
-            const lookAtPos = new THREE.Vector3(0, 1.5, 20);
-            lookAtPos.applyQuaternion(vehicleMesh.quaternion);
-            this.camera.lookAt(lookAtPos.add(vehiclePos));
+            // eye is fixed to the vehicle, looks far down the road
+            offset.copy(CAB_EYE).applyQuaternion(vehicleMesh.quaternion);
+            this.camera.position.copy(vehiclePos).add(offset);
+
+            const look = this._focus.copy(CAB_LOOK).applyQuaternion(vehicleMesh.quaternion).add(vehiclePos);
+            this.camera.lookAt(look);
+            this.currentLookAt.copy(look);
 
         } else if (this.currentMode === 'bucket') {
-            const bucketOffset = new THREE.Vector3(0, 1, 4);
-            bucketOffset.applyQuaternion(vehicleMesh.quaternion);
-            const bucketFocus = vehiclePos.clone().add(bucketOffset);
+            const bucketFocus = this._focus.set(0, 1, 4).applyQuaternion(vehicleMesh.quaternion).add(vehiclePos);
 
-            const idealOffset = new THREE.Vector3(0, 5, -12); 
-            idealOffset.applyQuaternion(vehicleMesh.quaternion);
-            idealPos = bucketFocus.clone().add(idealOffset);
-            
-            this.camera.position.lerp(idealPos, 0.1);
-            this.currentLookAt.lerp(bucketFocus, 0.2);
+            offset.set(0, 5, -12).applyQuaternion(vehicleMesh.quaternion);
+            idealPos.copy(bucketFocus).add(offset);
+
+            this.camera.position.lerp(idealPos, k(6.5));
+            this.currentLookAt.lerp(bucketFocus, k(13));
             this.camera.lookAt(this.currentLookAt);
         }
 
-        if (this.currentMode !== 'cab') {
-            const rayDir = this.camera.position.clone().sub(headPos);
+        // building / tree collision (works only if meshes were given with setCollidables)
+        if (!inCab && this.collidableMeshes.length > 0) {
+            const rayDir = this._rayDir.copy(this.camera.position).sub(headPos);
             const distance = rayDir.length();
-            rayDir.normalize();
+            if (distance > 0.001) {
+                rayDir.normalize();
+                this.raycaster.set(headPos, rayDir);
+                this.raycaster.far = distance;
 
-            this.raycaster.set(headPos, rayDir);
-            this.raycaster.far = distance; 
-            
-            const intersects = this.raycaster.intersectObjects(this.collidableMeshes, false);
-
-            if (intersects.length > 0) {
-                const hitDist = intersects[0].distance;
-                if (hitDist < distance) {
-                    const safeDist = Math.max(this.minDistance, hitDist - 0.5);
-                    this.camera.position.copy(headPos).add(rayDir.multiplyScalar(safeDist));
+                const intersects = this.raycaster.intersectObjects(this.collidableMeshes, false);
+                if (intersects.length > 0) {
+                    const hitDist = intersects[0].distance;
+                    if (hitDist < distance) {
+                        const safeDist = Math.max(this.minDistance, hitDist - 0.5);
+                        this.camera.position.copy(headPos).add(rayDir.multiplyScalar(safeDist));
+                    }
                 }
             }
         }

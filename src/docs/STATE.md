@@ -1,56 +1,43 @@
-# STATE (live status)
+# TerraForm 3D - STATE (live status)
 
-Updated: 2026-11-03 (M3a passed. M3b step 1 applied, awaiting test)
-Branch: clean-v1. Repo: testsharm/gameprotype (Codespace).
-Ports: 3002 Executor, 5173 live game, 4173 preview.
+Last update: M3b-2 delivered (camera polish). Branch clean-v1, repo testsharm/gameprotype.
 
 ## Milestones
-| ID | Name | Status |
-|----|------|--------|
-| M0 | Baseline restored | DONE, saved (4495a5e) |
-| M1 | Stability pack | DONE, saved (ba986e2) |
-| M2 | Audio hub | ACCEPTED WITH NOTES. Engine too loud and tractor-like (parked to M8). |
-| M3a | City, roads, sky, anti-flicker, camera clear, garage opened | PASSED (syntax OK, 24 files OK, 144 fps, no road flicker, pile refills after R). Save to GitHub requested. |
-| M3b-1 | Machine model v2 (Vehicle.js only) | APPLIED? awaiting your test |
-| M3b-2 | Camera polish (CameraManager.js uses building boxes, remove duplicate cam-btn binding) | NEXT. Needs CameraManager.js |
-| M3b-3 | Dig animation tweaks | DigAnimator.js already eased 3 s, only touch if user asks |
-| M4 | HUD and screens, slim index.html, mobile layout | NOT STARTED |
-| M5 | Input and mobile touch controls | NOT STARTED |
-| M6 | Portal minimal | NOT STARTED |
-| M7 | Jobs, economy, shop, daily bonus, tutorial | NOT STARTED |
-| M8 | Skill course, quality tiers, performance and size, engine sound polish | NOT STARTED |
-| M9 | Submission pack | NOT STARTED |
+- M0 baseline: DONE
+- M1 stability pack: DONE, saved (ba986e2)
+- M2 audio hub (Audio.js v2, 971 lines): ACCEPTED with notes. Engine too loud and tractor-like (parked to M8)
+- M3a city, roads, sky, anti-flicker, camera clear, garage opened: PASSED (World.js 1328 lines)
+- M3b-1 machine model v2 (Vehicle.js, 538 lines): APPLIED and saved by user. User reports in CAB view: black bar at the top, flicker, smoke origin looks different inside and outside
+- M3b-2 camera polish (CameraManager.js): APPLIED? awaiting your test
+- M3b-3 dig animation tweaks: only if the user asks (DigAnimator already eased 3 s)
+- M4 HUD and screens, slim index.html, mobile layout: TODO
+- M5 input and mobile touch controls: TODO
+- M6 Portal minimal (read /sdk/game and /sdk/data first): TODO
+- M7 jobs, economy, shop, daily bonus, tutorial, top speed 32: TODO
+- M8 skill course, quality tiers, performance, engine sound polish: TODO
+- M9 submission pack: TODO
 
-## M3b-1: what changed
-- Vehicle.js fully replaced. Physics, controller, dig helpers, particles and updateVisuals are copied unchanged.
-- Only createMesh is new. New import: RoundedBoxGeometry from three/examples/jsm (part of three, no new package).
-- Same public names kept: mesh, chassisBody, boomPivot (0,1.0,2.0), bucketPivot (0,-0.2,2.8), bucketDirtGroup, wheelMeshes {group, baseY}, exhaustTip, beaconMesh.
-- Model: rounded body and hood, cab with 4 pillars + transparent glass + seat + steering wheel, roof lights and vent, beacon, exhaust, mirrors, steps, tool boxes, fenders, mudguards, counterweight with hazard band, tail lights, stabiliser legs, thick boom with pins and hydraulic cylinders, bigger bucket with thick walls, edge and 6 teeth, wheels with tread blocks, rims and hubs.
-- No transmission glass (cheaper). All materials are MeshStandardMaterial.
+## M3b-2 changes
+- Cab mode hides the roof, roof lights and glass that surround or sit above the camera (restored when leaving cab)
+- Cab mode near plane 0.15, other modes keep the main.js value
+- Camera smoothing is time based (same feel at 60 and 144 fps)
+- Speed zoom uses km/h (max +12 degrees at 40 km/h)
+- Building collision is still done by keepCameraClear in main.js
 
-## M3b-1 acceptance (user reports)
-1. Syntax passed and Check project OK (RoundedBoxGeometry import resolves).
-2. No new red errors in the F12 console.
-3. Machine looks deeper and rounder from behind (Bucket) and from the front (Orbit). No flicker on the body.
-4. Driving feels the same as before.
-5. Scoop and dump still work, dirt shows in the bucket.
-6. CAB camera view is not blocked by the new cab.
-7. fps still about 60 or more.
+## Open issues
+- Smoke origin looks different in cab and orbit view (code is in Vehicle.js, not seen again yet)
+- Engine sound too loud (M8)
+- Top speed 40, spec 32 (M7)
+- Two coin counters, stray mission text, speed dial over key hints, layout not mobile friendly (M4)
+- Google Fonts import in index.html (M4)
+- Reverse beeper, duck 0.50 during dump, silence when tab hidden: not yet reported by user
 
-## Known issues (later milestones)
-- Engine too loud, tractor-like: M8.
-- Google Fonts import in index.html (M4).
-- Top speed 40 km/h, spec says 32 (M7).
-- Mission card text clipped, stray "Clear" and "truck." text outside the card (duplicate HUD), speed dial overlaps WASD keys (M4).
-- Camera buttons bound twice: CameraManager.js and main.js (M4).
-- Two coin counters (HUD and JobEffects) (M4).
-- Not mobile friendly (M4 and M5). Test later in F12 device mode (Ctrl+Shift+M).
-- main.js still holds old HUD code and unconnected systems (M4 to M8).
-- Red console lines: favicon 404 (M9), extension message (probably Brave).
-- Old audio files unused on disk: AudioManager.js, SoundFX.js, Sfx2.js, DigSound.js, Music.js. One delete command at the end.
-- WorldPolish.js is not imported anywhere (unused). Remove later.
+## Console
+- Only 2 known red lines: favicon.ico 404 and Could not establish connection (browser extension)
 
-## Next
-1. User applies M3b-1, tests, reports the points above with 2 screenshots (behind and front).
-2. User clicks Save to GitHub.
-3. User sends CameraManager.js (one file). Then M3b-2.
+## Save status
+- M3b-1 saved to GitHub by user
+- M3a and M2 v2 save: user says all saved
+
+## Cleanup at the very end (one terminal command)
+- Unused old files: AudioManager.js, SoundFX.js, Sfx2.js, DigSound.js, Music.js, WorldPolish.js
