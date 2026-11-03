@@ -1,41 +1,43 @@
-// GameUI.js - mission card, round speedometer, toasts, hint, coin counter.
+// GameUI.js - mission card, round speedometer (bottom right), toasts, hint, coin counter.
 // All styles are injected here (class prefix "tf-"). No outside fonts, images or scripts.
 // Public API (used by main.js): setJob, setTimer, setCoins, setSpeed, toast, showLocked, setHint, reset.
+// The dial mounts into <div id="dial-slot"> from index.html (falls back to a fixed corner if missing).
 
 const SVGNS = 'http://www.w3.org/2000/svg';
-const MAX_KMH = 50;                    // dial scale end
+const MAX_KMH = 45;                    // dial scale end (top speed with all upgrades is 42)
 const R_TRACK = 76;
 const ARC = 2 * Math.PI * R_TRACK;     // full circle length
 const SWEEP = ARC * 0.75;              // 270 degrees
 
 const CSS = `
-:root{--tf-dial:clamp(104px,min(26vh,34vw),190px);}
+:root{--tf-dial:clamp(112px,min(25vh,30vw),176px);}
+@media (max-width:560px){:root{--tf-dial:112px;}}
+@media (max-height:420px){:root{--tf-dial:100px;}}
 .tf-card,.tf-dial,.tf-toasts,.tf-hint,.tf-locked{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;}
-.speedometer-ui{visibility:hidden !important;}
 
-.tf-card{position:fixed;top:12px;left:50%;transform:translateX(-50%);width:min(440px,calc(100vw - 360px));min-width:230px;z-index:4;pointer-events:none;border-radius:14px;overflow:hidden;color:#fff;
- background:linear-gradient(180deg,rgba(46,60,82,.95),rgba(14,22,34,.95));border:1px solid rgba(255,255,255,.12);
- box-shadow:0 12px 30px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.16);}
+.tf-card{position:fixed;top:calc(var(--edge,10px) + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(440px,calc(100vw - 380px));min-width:240px;z-index:4;pointer-events:none;border-radius:12px;overflow:hidden;color:#fff;
+ background:linear-gradient(180deg,#2b384e,#18212f);border:2px solid #0a0f18;
+ box-shadow:0 4px 0 #070b12,0 12px 24px rgba(0,0,0,.42),inset 0 2px 0 rgba(255,255,255,.13);}
 .tf-stripe{height:7px;background:repeating-linear-gradient(-45deg,#fbbf24 0 10px,#151b27 10px 20px);}
 .tf-body{padding:10px 14px 12px;}
 .tf-row{display:flex;align-items:center;gap:10px;}
 .tf-ico{width:22px;height:22px;flex:none;}
-.tf-title{flex:1;min-width:0;font-size:18px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fbbf24;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 2px 4px rgba(0,0,0,.5);}
-.tf-timer{flex:none;display:flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.14);font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;color:#e2e8f0;}
+.tf-title{flex:1;min-width:0;font-size:18px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#fbbf24;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 2px 0 rgba(0,0,0,.5);}
+.tf-timer{flex:none;display:flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:#0a1019;border:1px solid rgba(255,255,255,.16);font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;color:#e2e8f0;}
 .tf-timer svg{width:16px;height:16px;}
-.tf-timer.warn{color:#fbbf24;border-color:rgba(251,191,36,.65);}
-.tf-timer.danger{color:#fca5a5;border-color:rgba(239,68,68,.85);animation:tf-pulse .8s ease-in-out infinite;}
+.tf-timer.warn{color:#fbbf24;border-color:rgba(251,191,36,.7);}
+.tf-timer.danger{color:#fca5a5;border-color:rgba(239,68,68,.9);animation:tf-pulse .8s ease-in-out infinite;}
 .tf-timer.off{display:none;}
 .tf-obj{margin:6px 0 8px;font-size:16px;color:#cbd5e1;line-height:1.3;}
 .tf-stepline{display:flex;justify-content:space-between;align-items:baseline;font-size:16px;font-weight:700;}
 .tf-count{color:#fbbf24;font-variant-numeric:tabular-nums;}
-.tf-bar{margin-top:6px;height:10px;border-radius:6px;background:rgba(0,0,0,.45);box-shadow:inset 0 2px 3px rgba(0,0,0,.6);overflow:hidden;}
+.tf-bar{margin-top:6px;height:12px;border-radius:7px;background:#0a1019;box-shadow:inset 0 2px 3px rgba(0,0,0,.7);overflow:hidden;border:1px solid rgba(255,255,255,.08);}
 .tf-fill{height:100%;width:0;border-radius:6px;background:linear-gradient(180deg,#fde68a,#f59e0b 55%,#d97706);box-shadow:0 0 10px rgba(251,191,36,.6);transition:width .45s cubic-bezier(.2,.8,.2,1);}
 
-.tf-toasts{position:fixed;left:50%;top:calc(var(--tf-card-h,130px) + 24px);transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;}
+.tf-toasts{position:fixed;left:50%;top:calc(var(--tf-card-h,130px) + 28px);transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;}
 .tf-toast{display:flex;align-items:center;gap:10px;padding:8px 16px 8px 12px;border-radius:12px;font-size:18px;font-weight:700;color:#fff;max-width:90vw;text-align:center;
- background:linear-gradient(180deg,rgba(46,60,82,.96),rgba(16,24,37,.96));border:1px solid rgba(255,255,255,.14);border-left:5px solid #fbbf24;
- box-shadow:0 8px 22px rgba(0,0,0,.45);animation:tf-in .28s cubic-bezier(.2,.9,.3,1.2) both;}
+ background:linear-gradient(180deg,#2b384e,#18212f);border:2px solid #0a0f18;border-left:6px solid #fbbf24;
+ box-shadow:0 4px 0 #070b12,0 10px 22px rgba(0,0,0,.45);animation:tf-in .28s cubic-bezier(.2,.9,.3,1.2) both;}
 .tf-toast::before{content:"";width:12px;height:12px;border-radius:50%;background:#fbbf24;flex:none;box-shadow:0 0 10px #fbbf24;}
 .tf-toast.tf-success{border-left-color:#22c55e;}
 .tf-toast.tf-success::before{background:#22c55e;box-shadow:0 0 10px #22c55e;}
@@ -43,28 +45,31 @@ const CSS = `
 .tf-toast.tf-warn::before{background:#f97316;box-shadow:0 0 10px #f97316;}
 .tf-toast.out{animation:tf-out .3s ease-in both;}
 
-.tf-hint{position:fixed;left:50%;bottom:calc(var(--tf-dial) + 22px);transform:translateX(-50%);z-index:4;padding:6px 16px;border-radius:999px;font-size:18px;font-weight:700;
- background:rgba(10,16,26,.82);border:1px solid rgba(251,191,36,.5);color:#fde68a;pointer-events:none;max-width:90vw;text-align:center;}
+.tf-hint{position:fixed;left:50%;bottom:calc(var(--edge,10px) + 112px);transform:translateX(-50%);z-index:4;padding:6px 16px;border-radius:999px;font-size:18px;font-weight:700;
+ background:#0a1019;border:2px solid rgba(251,191,36,.6);color:#fde68a;pointer-events:none;max-width:90vw;text-align:center;box-shadow:0 4px 0 #070b12;}
 .tf-hint.off{display:none;}
 
 .tf-locked{position:fixed;left:50%;top:42%;z-index:7;display:flex;align-items:center;gap:10px;padding:12px 22px;border-radius:14px;font-size:20px;font-weight:800;color:#fff;pointer-events:none;
- background:linear-gradient(180deg,rgba(60,32,38,.97),rgba(26,14,18,.97));border:1px solid rgba(239,68,68,.6);box-shadow:0 12px 30px rgba(0,0,0,.55);animation:tf-lock 2.2s ease both;}
+ background:linear-gradient(180deg,#4a2730,#241217);border:2px solid #0a0f18;box-shadow:0 4px 0 #070b12,0 12px 30px rgba(0,0,0,.55);animation:tf-lock 2.2s ease both;}
 .tf-locked svg{width:24px;height:24px;flex:none;}
 
-.tf-dial{position:fixed;left:50%;bottom:8px;width:var(--tf-dial);height:var(--tf-dial);transform:translateX(-50%);z-index:4;pointer-events:none;filter:drop-shadow(0 8px 14px rgba(0,0,0,.55));}
+.tf-dial{position:relative;width:var(--tf-dial);height:var(--tf-dial);flex:none;pointer-events:none;z-index:4;filter:drop-shadow(0 6px 8px rgba(0,0,0,.6));}
+.tf-dial.tf-float{position:fixed;right:10px;bottom:10px;}
 .tf-dial svg{width:100%;height:100%;display:block;overflow:visible;}
-.tf-prog{filter:drop-shadow(0 0 5px rgba(251,191,36,.7));}
-.tf-lbl{font-size:20px;font-weight:700;fill:#cbd5e1;}
-.tf-num{font-size:34px;font-weight:800;fill:#fff;}
-.tf-unit{font-size:18px;font-weight:700;fill:#94a3b8;letter-spacing:.08em;}
+.tf-prog{filter:drop-shadow(0 0 5px rgba(251,191,36,.75));}
+.tf-needle{filter:drop-shadow(0 2px 2px rgba(0,0,0,.7));}
+.tf-lbl{font-size:18px;font-weight:700;fill:#cbd5e1;}
+.tf-num{font-size:36px;font-weight:800;fill:#fff;}
+.tf-unit{font-size:18px;font-weight:700;fill:#94a3b8;letter-spacing:.06em;}
 
 @media (max-height:520px),(max-width:560px){ .tf-lbl,.tf-unit{display:none;} }
 @media (max-width:560px),(max-height:420px){
- .tf-card{top:8px;left:64px;right:104px;transform:none;width:auto;min-width:0;max-width:440px;margin:0 auto;}
- .tf-title{font-size:16px;}
+ .tf-card{top:var(--edge,8px);left:calc(var(--lc,92px) + var(--edge,8px) + 4px);right:calc(var(--mm,84px) + var(--edge,8px) + 8px);transform:none;width:auto;min-width:0;max-width:440px;margin:0 auto;}
+ .tf-title{font-size:16px;white-space:normal;line-height:1.1;overflow:visible;}
  .tf-timer{font-size:16px;padding:2px 8px;}
  .tf-obj{display:none;}
  .tf-body{padding:8px 10px 10px;}
+ .tf-ico{display:none;}
 }
 @keyframes tf-in{from{opacity:0;transform:translateY(-12px) scale(.94);}to{opacity:1;transform:none;}}
 @keyframes tf-out{to{opacity:0;transform:translateY(-8px) scale(.96);}}
@@ -88,12 +93,13 @@ export class GameUI {
   constructor() {
     // remove leftovers (hot reload safety)
     document.querySelectorAll('.tf-card,.tf-dial,.tf-toasts,.tf-hint,.tf-locked').forEach((n) => n.remove());
-    if (!document.getElementById('tf-ui-css')) {
-      const st = document.createElement('style');
-      st.id = 'tf-ui-css';
-      st.textContent = CSS;
-      document.head.appendChild(st);
-    }
+    const oldCss = document.getElementById('tf-ui-css');
+    if (oldCss) oldCss.remove();
+    const st = document.createElement('style');
+    st.id = 'tf-ui-css';
+    st.textContent = CSS;
+    document.head.appendChild(st);
+
     this._speedIn = 0;
     this._shown = 0;
     this._lastNum = -1;
@@ -167,56 +173,70 @@ export class GameUI {
     const s = sv('svg', { viewBox: '0 0 200 200' });
     const defs = sv('defs', {});
     const g1 = sv('linearGradient', { id: 'tfBez', x1: '0', y1: '0', x2: '0', y2: '1' });
-    g1.appendChild(sv('stop', { offset: '0', 'stop-color': '#8190a8' }));
-    g1.appendChild(sv('stop', { offset: '.5', 'stop-color': '#27344a' }));
-    g1.appendChild(sv('stop', { offset: '1', 'stop-color': '#0d1420' }));
-    const g2 = sv('radialGradient', { id: 'tfFace', cx: '.5', cy: '.42', r: '.62' });
-    g2.appendChild(sv('stop', { offset: '0', 'stop-color': '#26364d' }));
+    g1.appendChild(sv('stop', { offset: '0', 'stop-color': '#e3eaf4' }));
+    g1.appendChild(sv('stop', { offset: '.45', 'stop-color': '#8793aa' }));
+    g1.appendChild(sv('stop', { offset: '1', 'stop-color': '#2f3a4e' }));
+    const g2 = sv('radialGradient', { id: 'tfFace', cx: '.5', cy: '.4', r: '.65' });
+    g2.appendChild(sv('stop', { offset: '0', 'stop-color': '#2d3e58' }));
     g2.appendChild(sv('stop', { offset: '1', 'stop-color': '#0a111c' }));
+    const g3 = sv('linearGradient', { id: 'tfGlass', x1: '0', y1: '0', x2: '0', y2: '1' });
+    g3.appendChild(sv('stop', { offset: '0', 'stop-color': '#ffffff', 'stop-opacity': '.2' }));
+    g3.appendChild(sv('stop', { offset: '1', 'stop-color': '#ffffff', 'stop-opacity': '0' }));
     defs.appendChild(g1);
     defs.appendChild(g2);
+    defs.appendChild(g3);
     s.appendChild(defs);
 
-    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 98, fill: 'url(#tfBez)' }));
-    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 92, fill: '#0b1220', stroke: '#fbbf24', 'stroke-opacity': '.55', 'stroke-width': 2 }));
-    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 89, fill: 'url(#tfFace)' }));
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 99, fill: '#05080d' }));
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 95, fill: 'url(#tfBez)' }));
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 87, fill: '#0a0f18' }));
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: 84, fill: 'url(#tfFace)' }));
 
     const rot = 'rotate(135 100 100)';
-    s.appendChild(sv('circle', { cx: 100, cy: 100, r: R_TRACK, fill: 'none', stroke: 'rgba(255,255,255,.1)', 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-dasharray': SWEEP + ' ' + ARC, transform: rot }));
-    this._prog = sv('circle', { cx: 100, cy: 100, r: R_TRACK, fill: 'none', stroke: '#fbbf24', 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-dasharray': '0.01 ' + ARC, transform: rot, class: 'tf-prog' });
+    s.appendChild(sv('circle', { cx: 100, cy: 100, r: R_TRACK, fill: 'none', stroke: 'rgba(255,255,255,.1)', 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-dasharray': SWEEP + ' ' + ARC, transform: rot }));
+    this._prog = sv('circle', { cx: 100, cy: 100, r: R_TRACK, fill: 'none', stroke: '#fbbf24', 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-dasharray': '0.01 ' + ARC, transform: rot, class: 'tf-prog' });
     s.appendChild(this._prog);
 
     for (let v = 0; v <= MAX_KMH; v += 5) {
       const a = ((135 + 270 * v / MAX_KMH) * Math.PI) / 180;
       const major = v % 10 === 0;
-      const r1 = 66, r2 = major ? 56 : 60;
+      const r1 = 66, r2 = major ? 58 : 61;
       s.appendChild(sv('line', {
         x1: 100 + r1 * Math.cos(a), y1: 100 + r1 * Math.sin(a),
         x2: 100 + r2 * Math.cos(a), y2: 100 + r2 * Math.sin(a),
         stroke: major ? '#e2e8f0' : '#64748b', 'stroke-width': major ? 3 : 2, 'stroke-linecap': 'round',
       }));
       if (major) {
-        const t = sv('text', { x: 100 + 44 * Math.cos(a), y: 100 + 44 * Math.sin(a) + 7, 'text-anchor': 'middle', class: 'tf-lbl' });
+        const t = sv('text', { x: 100 + 44 * Math.cos(a), y: 100 + 44 * Math.sin(a) + 6, 'text-anchor': 'middle', class: 'tf-lbl' });
         t.textContent = String(v);
         s.appendChild(t);
       }
     }
 
-    this._num = sv('text', { x: 100, y: 150, 'text-anchor': 'middle', class: 'tf-num' });
+    this._num = sv('text', { x: 100, y: 152, 'text-anchor': 'middle', class: 'tf-num' });
     this._num.textContent = '0';
-    const unit = sv('text', { x: 100, y: 172, 'text-anchor': 'middle', class: 'tf-unit' });
+    const unit = sv('text', { x: 100, y: 173, 'text-anchor': 'middle', class: 'tf-unit' });
     unit.textContent = 'km/h';
     s.appendChild(this._num);
     s.appendChild(unit);
 
-    this._needle = sv('g', { transform: 'rotate(135 100 100)' });
-    this._needle.appendChild(sv('path', { d: 'M86 100 L98 95.5 L150 99 L150 101 L98 104.5 Z', fill: '#ef4444', stroke: '#7f1d1d', 'stroke-width': 0.8 }));
+    this._needle = sv('g', { transform: 'rotate(135 100 100)', class: 'tf-needle' });
+    this._needle.appendChild(sv('path', { d: 'M84 100 L96 95 L156 99 L156 101 L96 105 Z', fill: '#ef4444', stroke: '#7f1d1d', 'stroke-width': 0.8 }));
     s.appendChild(this._needle);
     s.appendChild(sv('circle', { cx: 100, cy: 100, r: 9, fill: '#1b2638', stroke: '#fbbf24', 'stroke-width': 2 }));
     s.appendChild(sv('circle', { cx: 100, cy: 100, r: 3, fill: '#fbbf24' }));
+    // glass shine over the top half
+    s.appendChild(sv('ellipse', { cx: 100, cy: 58, rx: 60, ry: 32, fill: 'url(#tfGlass)' }));
 
     wrap.appendChild(s);
-    document.body.appendChild(wrap);
+    const slot = document.getElementById('dial-slot');
+    if (slot) {
+      slot.innerHTML = '';
+      slot.appendChild(wrap);
+    } else {
+      wrap.classList.add('tf-float');
+      document.body.appendChild(wrap);
+    }
     this.dial = wrap;
   }
 
@@ -240,7 +260,7 @@ export class GameUI {
     }
     this._needle.setAttribute('transform', 'rotate(' + (135 + 270 * v / MAX_KMH).toFixed(2) + ' 100 100)');
     this._prog.setAttribute('stroke-dasharray', Math.max(0.01, SWEEP * v / MAX_KMH).toFixed(2) + ' ' + ARC.toFixed(2));
-    const col = v >= 40 ? '#f97316' : '#fbbf24';
+    const col = v >= 36 ? '#f97316' : '#fbbf24';
     if (col !== this._lastColor) {
       this._lastColor = col;
       this._prog.setAttribute('stroke', col);
