@@ -114,6 +114,7 @@ export class World {
     this.buildingData = [];
     this.buildingMeshes = [];
     this.treeMeshes = [];
+    this.propColliders = [];
     this.dirtPileGroup = null;
     this.allDirtClods = [];
     this._masterClods = [];
@@ -1017,7 +1018,7 @@ export class World {
         carGroup.rotation.y = isPositiveDir ? Math.PI : 0;
       }
       this.scene.add(carGroup);
-      const baseSpeed = 20 + R() * 15;
+      const baseSpeed = 7 + R() * 6;
       this.trafficCars.push({
         mesh: carGroup,
         wheels: wheels,
@@ -1264,6 +1265,22 @@ export class World {
     }
 
     // --- far skyline (windowed buildings, fade into the fog) ---
+    // solid props: boxes only for physics (one fixed body is made in createPhysicsColliders)
+    const pc = this.propColliders;
+    poles.forEach((p) => pc.push({ x: p.x, y: 4, z: p.z, w: 0.5, h: 8, d: 0.5 }));
+    tl.forEach((p) => pc.push({ x: p.x, y: 2.5, z: p.z, w: 0.5, h: 5, d: 0.5 }));
+    benches.forEach((p) => {
+      const sw = Math.abs(Math.sin(p.rot)) > 0.5;
+      pc.push({ x: p.x, y: 0.4, z: p.z, w: sw ? 0.8 : 1.8, h: 0.8, d: sw ? 1.8 : 0.8 });
+    });
+    bins.forEach((p) => pc.push({ x: p.x, y: 0.45, z: p.z, w: 0.7, h: 0.9, d: 0.7 }));
+    hydrants.forEach((p) => pc.push({ x: p.x, y: 0.45, z: p.z, w: 0.7, h: 0.9, d: 0.7 }));
+    trees.forEach((p) => pc.push({ x: p.x, y: 1.5 * p.s, z: p.z, w: 0.8 * p.s, h: 3 * p.s, d: 0.8 * p.s }));
+    parked.forEach((p) => {
+      const sw = Math.abs(Math.sin(p.rot)) > 0.5;
+      pc.push({ x: p.x, y: 1.0, z: p.z, w: sw ? 4.5 : 2, h: 1.6, d: sw ? 2 : 4.5 });
+    });
+
     this.createFarSkyline();
   }
 
@@ -1423,6 +1440,13 @@ export class World {
     const groundBodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0, 0);
     const groundBody = world.createRigidBody(groundBodyDesc);
     const groundColliderDesc = RAPIER.ColliderDesc.cuboid(1000, 0.1, 1000);
+    const propBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
+    (this.propColliders || []).forEach((p) => {
+      world.createCollider(
+        RAPIER.ColliderDesc.cuboid(p.w / 2, p.h / 2, p.d / 2).setTranslation(p.x, p.y, p.z).setFriction(0.8).setRestitution(0),
+        propBody
+      );
+    });
     world.createCollider(groundColliderDesc, groundBody);
 
     this.buildingData.forEach((data) => {
