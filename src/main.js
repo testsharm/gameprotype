@@ -327,6 +327,7 @@ const hub = new AudioHub();
 const audio = hub; // old name kept: Vehicle.updateVisuals(audio, dt) still receives it
 function toggleMute() {
     const m = hub.toggleMute();
+    window.dispatchEvent(new CustomEvent('bh-mute', { detail: !!m }));
     safe(() => { if (ui) ui.toast(m ? 'Sound off (press M to turn on)' : 'Sound on', m ? 'warn' : 'success'); });
 }
 // (Sfx2 removed in M2)
@@ -356,11 +357,28 @@ const buyHydBtn = document.getElementById('buy-hydraulic-btn'); if(buyHydBtn) bu
 
 const input = { forward: false, backward: false, left: false, right: false, brake: false };
 
+// ---- Pause (P key and the Pause / Resume buttons). The shop has its own pause. ----
+let paused = false;
+function togglePause() {
+    const shop = document.getElementById('shop-overlay');
+    if (shop && shop.classList.contains('active')) return;
+    paused = !paused;
+    isGameRunning = !paused;
+    const ov = document.getElementById('pause-overlay');
+    if (ov) ov.classList.toggle('active', paused);
+    if (paused) {
+        input.forward = false; input.backward = false; input.left = false; input.right = false; input.brake = false;
+        safe(() => hub.setEngine(0, 0));
+    }
+}
+// tell the Sound button the saved mute state at start
+safe(() => window.dispatchEvent(new CustomEvent('bh-mute', { detail: !!hub.isMuted() })));
+
 // ---- Keys by physical position (event.code), so AZERTY and other layouts work ----
 const CODE_TO_KEY = {
     KeyW: 'w', ArrowUp: 'arrowup', KeyS: 's', ArrowDown: 'arrowdown',
     KeyA: 'a', ArrowLeft: 'arrowleft', KeyD: 'd', ArrowRight: 'arrowright',
-    Space: ' ', KeyE: 'e', KeyF: 'f', KeyC: 'c', KeyR: 'r', KeyM: 'm'
+    Space: ' ', KeyE: 'e', KeyF: 'f', KeyC: 'c', KeyR: 'r', KeyM: 'm', KeyP: 'p'
 };
 function normKey(ev) {
     let k = CODE_TO_KEY[ev.code];
@@ -388,6 +406,16 @@ window.addEventListener('keydown', (ev) => {
     if (e.key === ' ') input.brake = true;
     if (key === 'r') window.restartJob();
     if (key === 'm') toggleMute();
+    if (key === 'p') {
+      const wasPaused = paused;
+      togglePause();
+      if (paused !== wasPaused) {
+        try {
+          if (paused) { window.__muteBeforePause = hub.isMuted(); hub.setMuted(true); }
+          else { hub.setMuted(!!window.__muteBeforePause); }
+        } catch (e) { /* audio not ready */ }
+      }
+    }
     if (key === 'e' && vehicle) vehicle.toggleArm();
     if (key === 'f' && vehicle) vehicle.autoAction();
     if (key === 'c') {

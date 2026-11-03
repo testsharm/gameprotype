@@ -1,33 +1,25 @@
-# STATE (live status). Updated after the top speed fix and CONTINUE.md were delivered.
-Full deep handoff: src/docs/CONTINUE.md (read it first). Master spec: src/docs/HANDOFF.md.
+# STATE (live status) - after M4c
 
-## Project
-TerraForm 3D: browser backhoe-loader simulator for CrazyGames.
-Stack: Three.js, Rapier (rapier3d-compat), Vite, plain JS modules.
-Branch clean-v1, repo testsharm/gameprotype.
+## Done and saved to GitHub (branch clean-v1)
+M0, M1 timestep and input, M2 audio, M3a to M3e city, machine, camera, skyline, props, sky, fog, smoke, top speed 32/14 (commit 1dcde4d).
 
-## Done and saved to GitHub
-- M0, M1 (ba986e2), M2 audio hub, M3a city, M3b-1 machine, M3b-2 camera, M3b-2b, M3b-2c, M3c skyline (6109b67).
-- M3d (f3f7173): solid props, traffic collider and speed fix. User confirmed.
-- M3e (bac5f1c): 5 new building styles, bluer sky, own fog (FogExp2 0.0011, locked in World.js),
-  stronger smoke and dust. User screenshots confirm varied buildings, far view, dust trail.
-
-## Applied? awaiting test
-- Vehicle.js: top speed 32 km/h (+5 per engine level), reverse 14 km/h.
-- New file src/docs/CONTINUE.md (deep handoff for a new chat).
-Acceptance: the dial stops near 32 on a straight road. Apply and Check OK.
+## Applied, not yet saved
+- M4a/M4b: index.html rewrite, GameUI.js, Pause (P key and button). Tested by user: Pause works, console clean.
+- M4c: pause now mutes all sound; GameUI.js rewritten with round speedometer, new mission card, toasts. Awaiting user test.
 
 ## Next
-- Test the speed. Then ask the user: M3f (car variety, garage detail) or M4 (HUD and mobile layout).
-- The user is moving to a new chat: paste CONTINUE.md first, then HANDOFF.md.
+1. User tests M4c at 1910x900, 800x450, phone size, then clicks Save to GitHub.
+2. Restyle side buttons and panels (need index.html).
+3. M7 jobs, economy, shop upgrades, daily bonus.
+4. M6 CrazyGames SDK and optional rewarded ads (need SDK pages from user).
+5. M8 quality tiers, skill course, delete old files. M9 submission pack.
 
 ## Open issues
-- Traffic cars all look alike. Plain driver seat. Plain garage and yard.
-- Engine sound too loud (M8).
-- M4 layout: duplicate HUD, two coin counters, stray text, speed dial over key hints, camera buttons, Google Fonts,
-  fog override in main.js (ignored now), duplicate camera-button binding.
-- M2 acceptance not reported: duck 0.50 in dump, silence when tab hidden, reverse beeper (probably never fires).
-- main.js passes empty arrays to cameraManager.setCollidables (keepCameraClear is the workaround).
-- Old unused files to delete at the end: AudioManager.js, SoundFX.js, Sfx2.js, DigSound.js, Music.js, WorldPolish.js.
-- Internal names mode = 'jcb' and jcbGroup in Vehicle.js (not shown to players). Clean at the end.
-- vite.config.js ESM warning, chunk size warning (low priority).
+- Side buttons and key cards still look flat (index.html).
+- Job card text always says Scoop dirt (until M7).
+- Only 1 job, MAX_LOADS = 3 and 150 coins are hardcoded.
+- Similar traffic cars. Plain driver seat, garage and yard.
+- Engine sound too loud. Reverse beeper probably never fires.
+- Pause: need to check the job timer stops while paused.
+- Double camera button binding. Empty setCollidables arrays. Fog lock in World.js.
+- Old files to delete at the end. Internal jcb names in Vehicle.js. Vite warnings.
