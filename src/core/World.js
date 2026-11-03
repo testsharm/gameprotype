@@ -672,7 +672,7 @@ export class World {
     winG.forEach((g, v) => {
       if (g.empty) return;
       const mat = new THREE.MeshStandardMaterial({
-        map: this.makeFacadeTexture(v), vertexColors: true,
+        map: this._facadeTex(v), vertexColors: true,
         roughness: v === 2 ? 0.45 : 0.8, metalness: 0.0
       });
       const m = new THREE.Mesh(g.build(), mat);
@@ -984,7 +984,7 @@ export class World {
     const bodyMats = {};
     const getBody = (c) => bodyMats[c] || (bodyMats[c] = new THREE.MeshStandardMaterial({ color: c, roughness: 0.4, metalness: 0.4 }));
 
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 70; i++) {
       const color = carColors[Math.floor(R() * carColors.length)];
       const carGroup = new THREE.Group();
       const body = new THREE.Mesh(bodyGeo, getBody(color));
@@ -1263,21 +1263,129 @@ export class World {
       this.scene.add(cabinMesh);
     }
 
-    // --- far skyline (fades into the fog) ---
-    const skylineCount = 140;
-    const skylineMesh = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({ color: 0x7f93b0, roughness: 0.9, metalness: 0.0 }),
-      skylineCount
-    );
-    for (let i = 0; i < skylineCount; i++) {
-      const angle = (i / skylineCount) * Math.PI * 2 + R() * 0.1;
-      const radius = 760 + R() * 240;
-      const w = 30 + R() * 50, h = 80 + R() * 160, d = 30 + R() * 50;
-      setM(skylineMesh, i, Math.cos(angle) * radius, h / 2, Math.sin(angle) * radius, R() * Math.PI, w, h, d);
+    // --- far skyline (windowed buildings, fade into the fog) ---
+    this.createFarSkyline();
+  }
+
+  // One cached window texture per facade variant (shared by city + skyline).
+  _facadeTex(v) {
+    if (!this._facadeCache) this._facadeCache = [];
+    if (!this._facadeCache[v]) this._facadeCache[v] = this.makeFacadeTexture(v);
+    return this._facadeCache[v];
+  }
+
+  // Far ring of buildings: never on a road, never inside the city square.
+  // Merged into 4 window meshes + 1 roof mesh + 1 instanced antenna mesh.
+  createFarSkyline() {
+    const R = this.rand;
+    const G = [new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf()];
+    const roofG = new GeoBuf();
+    const warm = [0xf0e6d2, 0xe8d8c0, 0xd9c7b0, 0xe3b9a0, 0xc9d4de, 0xdbe3d0, 0xe9d3c4, 0xd7d9dd].map((h) => new THREE.Color(h));
+    const glass = [0xb7d4ea, 0x9fc3d8, 0xc4d0d8, 0xa7d0c8, 0xd0d8e0].map((h) => new THREE.Color(h));
+    const roofColors = [0x8d8d8a, 0x7e7f7c, 0x9b9a95, 0x6f716f].map((h) => new THREE.Color(h));
+    const dummy = new THREE.Object3D();
+    const antennas = [];
+    const placed = [];
+    const target = 260;
+    let tries = 0;
+
+    while (placed.length < target && tries < 14000) {
+      tries++;
+      const ang = R() * Math.PI * 2;
+      const r = 280 + R() * 620;
+      const x = Math.cos(ang) * r;
+      const z = Math.sin(ang) * r;
+      const w = Math.round((18 + R() * 36) / BAY_W) * BAY_W;
+      const d = Math.round((18 + R() * 36) / BAY_W) * BAY_W;
+      const hw = w / 2, hd = d / 2;
+      // outside the city square
+      if (Math.max(Math.abs(x) - hw, Math.abs(z) - hd) < 266) continue;
+      // inside the world edge
+      if (Math.abs(x) + hw > 975 || Math.abs(z) + hd > 975) continue;
+      // not on any road
+      let ok = true;
+      for (let k = 0; k < ROAD_POS.length; k++) {
+        const p = ROAD_POS[k];
+        if (Math.abs(x - p) < ROAD_HALF + hw + 3 || Math.abs(z - p) < ROAD_HALF + hd + 3) { ok = false; break; }
+      }
+      if (!ok) continue;
+      // not on another far building
+      for (let k = 0; k < placed.length; k++) {
+        const o = placed[k];
+        if (Math.abs(x - o.x) < hw + o.hw + 6 && Math.abs(z - o.z) < hd + o.hd + 6) { ok = false; break; }
+      }
+      if (!ok) continue;
+      placed.push({ x, z, hw, hd });
+
+      const far = (r - 280) / 620;
+      let floors = 4 + Math.floor(R() * 8);
+      if (R() < 0.28 + far * 0.25) floors = 14 + Math.floor(R() * (16 + far * 26));
+      floors = Math.min(floors, 52);
+
+      const tiers = [];
+      if (floors >= 14) {
+        const f1 = Math.max(4, Math.round(floors * 0.62));
+        const w2 = Math.max(9, Math.round(w * 0.7 / BAY_W) * BAY_W);
+        const d2 = Math.max(9, Math.round(d * 0.7 / BAY_W) * BAY_W);
+        tiers.push({ w: w, d: d, f: f1 });
+        tiers.push({ w: w2, d: d2, f: floors - f1 });
+      } else {
+        tiers.push({ w: w, d: d, f: floors });
+      }
+
+      const pool = floors >= 14 ? [2, 2, 3, 1] : [0, 0, 1, 1, 3, 0];
+      const variant = pool[Math.floor(R() * pool.length)];
+      const tints = variant === 2 ? glass : warm;
+      const tint = tints[Math.floor(R() * tints.length)];
+      const roofCol = roofColors[Math.floor(R() * roofColors.length)];
+      const uBase = Math.floor(R() * 4) * 0.25;
+      const vOff = Math.floor(R() * 4) * 0.25;
+
+      let y = Y0;
+      tiers.forEach((t) => {
+        const h = t.f * FLOOR_H;
+        const yb = y + h;
+        boxWalls(G[variant], x, z, t.w, t.d, y, yb, tint, uBase, vOff, 12, FLOOR_H * 4);
+        upQuad(roofG, x - t.w / 2, z - t.d / 2, x + t.w / 2, z + t.d / 2, yb,
+          [0, 0], [1, 0], [1, 1], [0, 1], roofCol);
+        this.buildingData.push({ x: x, y: y + h / 2, z: z, w: t.w, h: h, d: t.d });
+        y = yb;
+      });
+
+      if (floors >= 20 && R() < 0.5) {
+        const ah = 8 + R() * 12;
+        dummy.position.set(x, y + ah / 2, z);
+        dummy.scale.set(0.7, ah, 0.7);
+        dummy.rotation.set(0, 0, 0);
+        dummy.updateMatrix();
+        antennas.push(dummy.matrix.clone());
+      }
     }
-    skylineMesh.instanceMatrix.needsUpdate = true;
-    this.scene.add(skylineMesh);
+
+    G.forEach((g, v) => {
+      if (g.empty) return;
+      const mesh = new THREE.Mesh(g.build(), new THREE.MeshStandardMaterial({
+        map: this._facadeTex(v), vertexColors: true,
+        roughness: v === 2 ? 0.45 : 0.85, metalness: 0.0
+      }));
+      this.scene.add(mesh);
+    });
+    if (!roofG.empty) {
+      this.scene.add(new THREE.Mesh(roofG.build(), new THREE.MeshStandardMaterial({
+        vertexColors: true, roughness: 0.95, metalness: 0.0, side: THREE.DoubleSide
+      })));
+    }
+    if (antennas.length) {
+      const am = new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(1, 1, 1, 6),
+        new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.5 }),
+        antennas.length
+      );
+      antennas.forEach((mx, i) => am.setMatrixAt(i, mx));
+      am.instanceMatrix.needsUpdate = true;
+      this.scene.add(am);
+    }
+    this.farBuildingCount = placed.length;
   }
 
   // ---------------------------------------------------------- game functions

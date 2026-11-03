@@ -258,8 +258,8 @@ export class Vehicle {
 
         // ---------- exhaust ----------
         this.exhaustTip = new THREE.Object3D(); this.exhaustTip.position.set(0.9, 3.55, 1.15); jcbGroup.add(this.exhaustTip);
-        cyl(jcbGroup, 0.15, 1.8, 'y', darkSteel, 0.9, 2.3, 1.15, 12);
-        cyl(jcbGroup, 0.2, 0.3, 'y', steel, 0.9, 3.3, 1.15, 12);
+        cyl(jcbGroup, 0.15, 1.8, 'y', darkSteel, 0.9, 2.3, 1.15, 12).userData.cabHide = true;
+        cyl(jcbGroup, 0.2, 0.3, 'y', steel, 0.9, 3.3, 1.15, 12).userData.cabHide = true;
 
         // ---------- mirrors ----------
         [-1, 1].forEach((s) => {
@@ -345,8 +345,8 @@ export class Vehicle {
         this.particles.push(particle);
     }
 
-    spawnExhaust() { const pos = new THREE.Vector3(); this.exhaustTip.getWorldPosition(pos); const vel = new THREE.Vector3((Math.random() - 0.5) * 1.5, Math.random() * 2 + 1, (Math.random() - 0.5) * 1.5); this.spawnPuff(pos, vel.multiplyScalar(0.5), 0x4d4d4d, 1.4 + Math.random() * 0.6, 0.45, 2.4, 0.55); }
-    spawnTireDust(wheelIndex) { const pos = new THREE.Vector3(); this.wheelMeshes[wheelIndex].group.getWorldPosition(pos); pos.y = 0.2; const vel = new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 1.5, (Math.random() - 0.5) * 2); this.spawnPuff(pos, vel.multiplyScalar(0.4), 0xa89070, 0.9 + Math.random() * 0.5, 0.5, 1.9, 0.4); }
+    spawnExhaust() { const pos = new THREE.Vector3(); this.exhaustTip.getWorldPosition(pos); const vel = new THREE.Vector3((Math.random() - 0.5) * 1.5, Math.random() * 2 + 1, (Math.random() - 0.5) * 1.5); const k = this._smokePower || 0; const g = Math.round(154 - k * 70); this.spawnPuff(pos, vel.multiplyScalar(0.35), g * 65793, 1.0 + Math.random() * 0.5, 0.18, 0.9 + k * 0.5, 0.16 + k * 0.2); }
+    spawnTireDust(wheelIndex) { const pos = new THREE.Vector3(); this.wheelMeshes[wheelIndex].group.getWorldPosition(pos); pos.y = 0.2; const vel = new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 1.5, (Math.random() - 0.5) * 2); this.spawnPuff(pos, vel.multiplyScalar(0.4), 0xb5a58a, 0.7 + Math.random() * 0.4, 0.3, 1.2, 0.22); }
     spawnDirtBurst() { if (!this.hasDirt) return; const pos = new THREE.Vector3(); this.bucketPivot.getWorldPosition(pos); for (let i = 0; i < 15; i++) { const vel = new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 4, (Math.random() - 0.5) * 6); this.spawnParticle(pos, vel, 0x5c3a21, 0.8 + Math.random() * 0.4, 2.0); } }
 
     _makePuffTexture() {
@@ -596,11 +596,11 @@ export class Vehicle {
         this.currentSpeed = Math.round(this.smoothedSpeed);
         
         // exhaust smoke is counted by time (same at 60 and 144 fps): a little at idle, more when working
-        this._smokeAcc += Math.min(dt, 0.05) * (this.currentSpeed > 5 ? 14 : 5 + Math.abs(this.throttleState) * 9);
+        this._smokePower = Math.min(1, Math.abs(this.throttleState)); this._smokeAcc += Math.min(dt, 0.05) * (3 + this._smokePower * 7);
         while (this._smokeAcc >= 1) { this._smokeAcc -= 1; this.spawnExhaust(); }
         if (this.currentSpeed > 5) {
             // (exhaust smoke is spawned above)
-            this._dustAcc += Math.min(dt, 0.05) * 10; while (this._dustAcc >= 1) { this._dustAcc -= 1; this.spawnTireDust(2); this.spawnTireDust(3); }
+            this._dustAcc += Math.min(dt, 0.05) * 6; while (this._dustAcc >= 1) { this._dustAcc -= 1; this.spawnTireDust(2); this.spawnTireDust(3); }
         }
         this.updateParticles(dt);
     }
