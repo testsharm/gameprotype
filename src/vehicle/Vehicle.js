@@ -486,8 +486,8 @@ export class Vehicle {
         }
         
         // === Governor (top speed caps) ===
-        const maxForwardSpeed = Math.min(40 + (this.engineMultiplier - 1) * 10, 60) / 3.6;
-        const maxReverseSpeed = Math.min(18 + (this.engineMultiplier - 1) * 5.0, 28) / 3.6;
+        const maxForwardSpeed = Math.min(32 + (this.engineMultiplier - 1) * 10, 60) / 3.6;
+        const maxReverseSpeed = Math.min(14 + (this.engineMultiplier - 1) * 2.0, 28) / 3.6;
         
         const currentFwdSpeed = this.getForwardSpeedMps();
         
