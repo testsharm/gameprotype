@@ -345,8 +345,8 @@ export class Vehicle {
         this.particles.push(particle);
     }
 
-    spawnExhaust() { const pos = new THREE.Vector3(); this.exhaustTip.getWorldPosition(pos); const vel = new THREE.Vector3((Math.random() - 0.5) * 1.5, Math.random() * 2 + 1, (Math.random() - 0.5) * 1.5); const k = this._smokePower || 0; const g = Math.round(154 - k * 70); this.spawnPuff(pos, vel.multiplyScalar(0.35), g * 65793, 1.0 + Math.random() * 0.5, 0.2, 1.1 + k * 0.6, 0.3 + k * 0.22); }
-    spawnTireDust(wheelIndex) { const pos = new THREE.Vector3(); this.wheelMeshes[wheelIndex].group.getWorldPosition(pos); pos.y = 0.2; const vel = new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 1.5, (Math.random() - 0.5) * 2); this.spawnPuff(pos, vel.multiplyScalar(0.4), 0xb5a58a, 0.7 + Math.random() * 0.4, 0.3, 1.2, 0.22); }
+    spawnExhaust() { const pos = new THREE.Vector3(); this.exhaustTip.getWorldPosition(pos); const vel = new THREE.Vector3((Math.random() - 0.5) * 1.5, Math.random() * 2 + 1, (Math.random() - 0.5) * 1.5); const k = this._smokePower || 0; const g = Math.round(154 - k * 70); this.spawnPuff(pos, vel.multiplyScalar(0.55), g * 65793, 1.4 + Math.random() * 0.8, 0.3, 1.7 + k * 1.0, 0.5 + k * 0.25); }
+    spawnTireDust(wheelIndex) { const pos = new THREE.Vector3(); this.wheelMeshes[wheelIndex].group.getWorldPosition(pos); pos.y = 0.2; const vel = new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 1.5, (Math.random() - 0.5) * 2); this.spawnPuff(pos, vel.multiplyScalar(0.4), 0xb5a58a, 0.8 + Math.random() * 0.5, 0.4, 1.8, 0.32); }
     spawnDirtBurst() { if (!this.hasDirt) return; const pos = new THREE.Vector3(); this.bucketPivot.getWorldPosition(pos); for (let i = 0; i < 15; i++) { const vel = new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 4, (Math.random() - 0.5) * 6); this.spawnParticle(pos, vel, 0x5c3a21, 0.8 + Math.random() * 0.4, 2.0); } }
 
     _makePuffTexture() {
@@ -596,7 +596,7 @@ export class Vehicle {
         this.currentSpeed = Math.round(this.smoothedSpeed);
         
         // exhaust smoke is counted by time (same at 60 and 144 fps): a little at idle, more when working
-        this._smokePower = Math.min(1, Math.abs(this.throttleState)); this._smokeAcc += Math.min(dt, 0.05) * (3 + this._smokePower * 7);
+        this._smokePower = Math.min(1, Math.abs(this.throttleState)); this._smokeAcc += Math.min(dt, 0.05) * (7 + this._smokePower * 15);
         while (this._smokeAcc >= 1) { this._smokeAcc -= 1; this.spawnExhaust(); }
         if (this.currentSpeed > 5) {
             // (exhaust smoke is spawned above)

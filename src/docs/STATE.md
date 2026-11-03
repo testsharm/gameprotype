@@ -1,48 +1,41 @@
-# STATE (live status) - TerraForm 3D
+# STATE (live status). Updated after M3e was delivered.
 
-Updated after M3d was delivered.
+## Project
+TerraForm 3D: browser backhoe-loader simulator for CrazyGames.
+Stack: Three.js, Rapier (rapier3d-compat), Vite, plain JS modules.
+Branch clean-v1, repo testsharm/gameprotype.
 
-## Environment
-- Branch clean-v1, repo testsharm/gameprotype, Codespace.
-- Ports: 3002 Executor, 5173 game, 4173 preview.
-- User: non-technical, Brave on Windows, QWERTY, 144 fps screen.
-- One code box per reply. One file request at a time.
+## Done and saved to GitHub
+- M0, M1 (fixed timestep, keys by event.code), M2 (audio hub), M3a (city), M3b-1 (machine model).
+- M3b-2 camera, M3b-2b, M3b-2c (cab view, smoke), M3c (far skyline).
+- M3d (commit f3f7173): solid props (trees, poles, benches, bins, hydrants, parked cars),
+  traffic collider centred correctly, traffic speed 25 to 47 km/h, stronger smoke.
+  User confirmed: props stop the machine, no balloon bounce, cars slower.
 
-## Milestones
-- M0 done.
-- M1 done and saved (ba986e2): fixed physics step, keys by event.code, debug overlay (backquote key).
-- M2 audio done (AudioHub, v2 accepted with notes).
-- M3a city done and passed (World.js).
-- M3b-1 machine model done and saved (Vehicle.js).
-- M3b-2, M3b-2b, M3c, M3b-2c: applied, Check OK, SAVED to GitHub (6109b67).
-  - CAB view is free of the black pipe (user screenshot). Far buildings have windows.
-- M3d solid props and traffic fix: DELIVERED, applied? awaiting your test.
-  - Trees, poles, traffic light poles, benches, bins, hydrants and parked cars get solid boxes (World.propColliders, one fixed body).
-  - Traffic car collider moved up (centre y 1.0) so the machine does not ride on it (TrafficPhysics.js is in src/core).
-  - Traffic speed lowered from 72-126 km/h to about 25-47 km/h.
-  - Smoke made a little stronger (it was too faint to see).
+## Applied? awaiting test: M3e
+- World.js: 5 new facade styles (variant 2 glass, 4 brick, 5 concrete strips, 6 sandstone arches,
+  7 fins) with their own colour sets (_pickTint). 8 window meshes in city and in skyline.
+- World.js: bluer sky, fewer clouds, own FogExp2 density 0.0011 (colour 0xcfe2f3).
+  The fog is locked on scene.fog with defineProperty so main.js cannot override it. Tidy in M4.
+- Vehicle.js: exhaust smoke much stronger (rate 7 to 22 per s, bigger, thicker), tyre dust stronger.
 
-## NEXT
-- Test M3d. If the machine still bounces off cars, check whether main.js calls trafficPhysics.update() every physics step.
-- Then M3b-3 dig tweaks only if the user asks.
-- Then M4 HUD and mobile layout.
+## M3e acceptance (user reports)
+1. Apply and Check OK, no new red errors in F12.
+2. Buildings clearly differ in style and colour.
+3. Sky bluer, view farther (about 1 km).
+4. More visible smoke at the hood pipe.
+5. fps still about 60 or more at 144 Hz.
+
+## Next
+- Test M3e. Then: car variety (vans, trucks) if the user asks, M3b-3 only if asked, then M4 (HUD, mobile).
 
 ## Open issues
-- Vanishing machine: not confirmed. It was probably fast traffic cars driving away.
-- Driver seat looks plain through the cab glass (later polish).
-- Engine sound too loud and tractor-like (M8).
-- Top speed is 40, spec says 32 (M7).
-- M4 layout: stray "Clear" and "truck." beside the mission card, two coin counters, speed dial over key hints, camera buttons hard to read, not mobile friendly.
-- Google Fonts import in index.html (M4).
-- M2 acceptance not reported: duck 0.50 on dump, silence when tab hidden, reverse beeper, dig sounds.
-- Old unused files: AudioManager.js, SoundFX.js, Sfx2.js, DigSound.js, Music.js, WorldPolish.js. One delete command at the very end.
-- Check at the end: internal names jcb / jcbGroup in Vehicle.js (player must never see JCB).
+- Traffic cars all look alike (one body shape). Collider is one fixed size.
+- Plain driver seat (later polish).
+- Engine sound too loud (M8). Top speed 40 vs spec 32 (M7).
+- M4 layout: duplicate HUD, two coin counters, speed dial over key hints, camera buttons, Google Fonts.
+- M2 acceptance not yet reported: duck 0.50 during dump, silence when tab hidden, reverse beeper.
+- main.js passes empty arrays to cameraManager.setCollidables (keepCameraClear is the workaround).
+- Old unused files to delete at the end: AudioManager.js, SoundFX.js, Sfx2.js, DigSound.js, Music.js, WorldPolish.js.
+- Internal names mode = 'jcb' and jcbGroup in Vehicle.js (not shown to players). Check at the end.
 - vite.config.js ESM warning, chunk size warning (low priority).
-
-## Save status
-- Saved: everything up to M3b-2c (6109b67).
-- M3d: NOT saved yet.
-
-## Open decisions for the user
-- Keep the game name?
-- Keep or drop the daily bonus and paint colors?

@@ -159,8 +159,8 @@ export class World {
     const skyGeo = new THREE.SphereGeometry(1000, 32, 16);
     const skyMat = new THREE.ShaderMaterial({
       uniforms: {
-        topColor: { value: new THREE.Color(0x3f7fc4) },
-        bottomColor: { value: new THREE.Color(0xdfe9f3) },
+        topColor: { value: new THREE.Color(0x2f77c8) },
+        bottomColor: { value: new THREE.Color(0xcfe2f3) },
         sunColor: { value: new THREE.Color(0xfff2cc) },
         sunDirection: { value: new THREE.Vector3(100, 200, 100).normalize() },
         exponent: { value: 0.6 }
@@ -205,9 +205,9 @@ export class World {
           float h = max(dir.y, 0.0);
           vec3 sky = mix(bottomColor, topColor, pow(h, exponent));
           vec2 cp = dir.xz / (dir.y + 0.18) * 1.1;
-          float cl = smoothstep(0.50, 0.85, fbm(cp));
+          float cl = smoothstep(0.56, 0.90, fbm(cp));
           cl *= smoothstep(0.02, 0.22, dir.y);
-          sky = mix(sky, vec3(1.0), cl * 0.7);
+          sky = mix(sky, vec3(1.0), cl * 0.6);
           float sunDot = max(dot(dir, normalize(sunDirection)), 0.0);
           float disc = smoothstep(0.9992, 0.9997, sunDot);
           float glow = pow(sunDot, 120.0) * 0.5;
@@ -224,7 +224,11 @@ export class World {
     this.sky.renderOrder = -10;
     this.scene.add(this.sky);
 
-    this.scene.fog = new THREE.Fog(0xdfe9f3, 200, 1200);
+    // Our own fog (clear blue day, you can see about 1 km). Fog colour = sky horizon colour.
+    // main.js may try to set another fog later: we keep this one. (To be tidied in M4.)
+    const worldFog = new THREE.FogExp2(0xcfe2f3, 0.0011);
+    this.scene.fog = worldFog;
+    Object.defineProperty(this.scene, 'fog', { get: () => worldFog, set: () => {}, configurable: true });
   }
 
   // ------------------------------------------------------------------ ground
@@ -406,6 +410,7 @@ export class World {
   // --------------------------------------------------------------- facades
 
   makeFacadeTexture(variant) {
+    if (variant === 2 || variant >= 4) return this._facadeTexB(variant);
     const R = this.rand;
     const W = 512, H = 512, cw = 128, ch = 128;
     const cv = makeCanvas(W, H);
@@ -557,7 +562,7 @@ export class World {
     this.scene.add(plates);
 
     // geometry groups
-    const winG = [new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf()];
+    const winG = [new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf()];
     const storeG = new GeoBuf();
     const roofG = new GeoBuf();
 
@@ -599,11 +604,11 @@ export class World {
           let tiers, variants, tintList;
           if (roll < 0.4) {
             tiers = [{ f: 3 + Math.floor(R() * 3), s: 1 }];
-            variants = [0, 1];
+            variants = [0, 1, 4, 4, 5, 6, 7, 6];
             tintList = tintsWarm;
           } else if (roll < 0.85) {
             tiers = [{ f: 5 + Math.floor(R() * 4), s: 1 }, { f: 3 + Math.floor(R() * 3), s: 0.7 }];
-            variants = [0, 1, 2];
+            variants = [0, 1, 2, 4, 5, 6, 7];
             tintList = tintsWarm;
           } else {
             tiers = [
@@ -611,11 +616,11 @@ export class World {
               { f: 5 + Math.floor(R() * 4), s: 0.78 },
               { f: 3 + Math.floor(R() * 3), s: 0.55 }
             ];
-            variants = [2, 3, 1];
+            variants = [2, 2, 3, 5, 7, 1];
             tintList = tintsGlass;
           }
           const variant = variants[Math.floor(R() * variants.length)];
-          const tint = (variant === 2 ? tintsGlass : tintList)[Math.floor(R() * (variant === 2 ? tintsGlass : tintList).length)];
+          const tint = this._pickTint(variant, R, tintList);
           const roofCol = roofColors[Math.floor(R() * roofColors.length)];
           const uBase = Math.floor(R() * 4) * 0.25;
           const vOff = Math.floor(R() * 4) * 0.25;
@@ -1284,6 +1289,142 @@ export class World {
     this.createFarSkyline();
   }
 
+  // Colour choices per facade style (brick, concrete, sandstone, strips, glass).
+  _pickTint(variant, R, list) {
+    const sets = {
+      2: [0xb7d4ea, 0x9fc3d8, 0xa7d0c8, 0xc8dcea, 0xb8c8e8],
+      4: [0xffffff, 0xe9c9b6, 0xd8a58c, 0xf0d6c2, 0xc98d70],
+      5: [0xffffff, 0xe0e4e8, 0xd9dcc9, 0xe8e0d4],
+      6: [0xffffff, 0xf0e0c0, 0xe6c9a0, 0xe8d0c0],
+      7: [0xffffff, 0xf4d9a6, 0xc8e0c8, 0xd8c8e8, 0xf0c8c0]
+    };
+    const s = sets[variant];
+    if (s) return new THREE.Color(s[Math.floor(R() * s.length)]);
+    return list[Math.floor(R() * list.length)];
+  }
+
+  // Extra facade styles. 2 = glass curtain wall, 4 = brick, 5 = concrete + window strips,
+  // 6 = sandstone + arches, 7 = vertical glass fins. 4 x 4 cells: one cell = one floor, 3 m wide.
+  _facadeTexB(variant) {
+    const R = this.rand;
+    const W = 512, H = 512, cw = 128, ch = 128;
+    const cv = makeCanvas(W, H);
+    const ctx = cv.getContext('2d');
+    const bases = { 2: '#dfe8ee', 4: '#d8cdc2', 5: '#d2d2cd', 6: '#dcc9a2', 7: '#eceae4' };
+    ctx.fillStyle = bases[variant];
+    ctx.fillRect(0, 0, W, H);
+
+    if (variant === 4) {
+      // bricks: 16 px courses, 2 px mortar, a different shade per brick
+      for (let y = 0; y < H; y += 16) {
+        const off = (y / 16) % 2 ? 16 : 0;
+        for (let x = -32; x < W; x += 32) {
+          const k = 0.86 + R() * 0.26;
+          ctx.fillStyle = 'rgb(' + Math.round(192 * k) + ',' + Math.round(116 * k) + ',' + Math.round(88 * k) + ')';
+          ctx.fillRect(x + off, y, 30, 14);
+        }
+      }
+    } else if (variant === 6) {
+      ctx.fillStyle = 'rgba(100,80,40,0.14)';
+      for (let y = 0; y < H; y += 32) ctx.fillRect(0, y, W, 2);
+    } else {
+      for (let i = 0; i < 2500; i++) {
+        const g = R() < 0.5 ? 0 : 255;
+        ctx.fillStyle = 'rgba(' + g + ',' + g + ',' + g + ',0.05)';
+        ctx.fillRect(R() * W, R() * H, 2 + R() * 5, 2 + R() * 5);
+      }
+    }
+
+    const litP = { 2: 0.06, 4: 0.3, 5: 0.14, 6: 0.28, 7: 0.14 }[variant];
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 4; c++) {
+        const x0 = c * cw, y0 = r * ch;
+        const lit = R() < litP;
+        const fillGlass = (x, y, w, h) => {
+          const g = ctx.createLinearGradient(0, y, 0, y + h);
+          if (lit) { g.addColorStop(0, '#ffe6a6'); g.addColorStop(1, '#e9a845'); }
+          else if (variant === 2) { g.addColorStop(0, '#b4dcf5'); g.addColorStop(0.5, '#5b93bf'); g.addColorStop(1, '#2f6591'); }
+          else { g.addColorStop(0, '#86a3bd'); g.addColorStop(0.5, '#41586f'); g.addColorStop(1, '#212e3d'); }
+          ctx.fillStyle = g;
+          ctx.fillRect(x, y, w, h);
+        };
+
+        if (variant === 2) {
+          const gx = x0 + 3, gy = y0 + 4, gw = cw - 6, gh = ch - 26;
+          fillGlass(gx, gy, gw, gh);
+          ctx.fillStyle = '#e7eef3';
+          ctx.fillRect(x0 + cw / 2 - 2, gy, 4, gh);
+          ctx.fillStyle = '#7f98ab';
+          ctx.fillRect(x0, y0 + ch - 20, cw, 20);
+          if (!lit) {
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.beginPath();
+            ctx.moveTo(gx, gy + gh * 0.7);
+            ctx.lineTo(gx + gw * 0.55, gy);
+            ctx.lineTo(gx + gw * 0.8, gy);
+            ctx.lineTo(gx, gy + gh);
+            ctx.closePath();
+            ctx.fill();
+          }
+        } else if (variant === 4) {
+          const ww = cw * 0.4, wh = ch * 0.62, wx = x0 + (cw - ww) / 2, wy = y0 + ch * 0.18;
+          ctx.fillStyle = '#e9e4da';
+          ctx.fillRect(wx - 6, wy - 8, ww + 12, wh + 14);
+          fillGlass(wx, wy, ww, wh);
+          ctx.fillStyle = '#e9e4da';
+          ctx.fillRect(wx + ww / 2 - 2, wy, 4, wh);
+          ctx.fillRect(wx, wy + wh * 0.4, ww, 3);
+          ctx.fillStyle = '#cfc8ba';
+          ctx.fillRect(wx - 9, wy + wh + 6, ww + 18, 6);
+        } else if (variant === 5) {
+          const wy = y0 + ch * 0.18, wh = ch * 0.5;
+          fillGlass(x0, wy, cw, wh);
+          ctx.fillStyle = '#d7d8d3';
+          ctx.fillRect(x0 + cw / 2 - 2, wy, 4, wh);
+          ctx.fillStyle = '#c0c0ba';
+          ctx.fillRect(x0, wy + wh, cw, 8);
+          ctx.fillStyle = 'rgba(0,0,0,0.14)';
+          ctx.fillRect(x0, wy + wh + 8, cw, 4);
+          ctx.fillStyle = 'rgba(0,0,0,0.10)';
+          ctx.fillRect(x0, y0, 2, ch);
+        } else if (variant === 6) {
+          const ww = cw * 0.42, wh = ch * 0.6, wx = x0 + (cw - ww) / 2, wy = y0 + ch * 0.26;
+          const arch = (pad) => {
+            ctx.beginPath();
+            ctx.arc(wx + ww / 2, wy, ww / 2 + pad, Math.PI, 0);
+            ctx.lineTo(wx + ww + pad, wy + wh + pad);
+            ctx.lineTo(wx - pad, wy + wh + pad);
+            ctx.closePath();
+          };
+          arch(5);
+          ctx.fillStyle = '#b39a6e';
+          ctx.fill();
+          ctx.save();
+          arch(0);
+          ctx.clip();
+          fillGlass(wx, wy - ww / 2, ww, wh + ww / 2);
+          ctx.restore();
+          ctx.fillStyle = '#b39a6e';
+          ctx.fillRect(wx + ww / 2 - 1.5, wy - ww / 2, 3, wh + ww / 2);
+          ctx.fillStyle = '#efe6d2';
+          ctx.fillRect(wx - 8, wy + wh + 5, ww + 16, 6);
+        } else {
+          for (let k = 0; k < 3; k++) {
+            const sx = x0 + 11 + k * 38;
+            fillGlass(sx, y0 + 8, 26, ch - 44);
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(sx, y0 + 8, 3, ch - 44);
+          }
+          ctx.fillStyle = '#c9c7c0';
+          ctx.fillRect(x0, y0 + ch - 24, cw, 24);
+          ctx.fillStyle = 'rgba(0,0,0,0.12)';
+          ctx.fillRect(x0, y0 + ch - 24, cw, 3);
+        }
+      }
+    }
+    return finishTexture(cv);
+  }
+
   // One cached window texture per facade variant (shared by city + skyline).
   _facadeTex(v) {
     if (!this._facadeCache) this._facadeCache = [];
@@ -1295,7 +1436,7 @@ export class World {
   // Merged into 4 window meshes + 1 roof mesh + 1 instanced antenna mesh.
   createFarSkyline() {
     const R = this.rand;
-    const G = [new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf()];
+    const G = [new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf(), new GeoBuf()];
     const roofG = new GeoBuf();
     const warm = [0xf0e6d2, 0xe8d8c0, 0xd9c7b0, 0xe3b9a0, 0xc9d4de, 0xdbe3d0, 0xe9d3c4, 0xd7d9dd].map((h) => new THREE.Color(h));
     const glass = [0xb7d4ea, 0x9fc3d8, 0xc4d0d8, 0xa7d0c8, 0xd0d8e0].map((h) => new THREE.Color(h));
@@ -1350,10 +1491,10 @@ export class World {
         tiers.push({ w: w, d: d, f: floors });
       }
 
-      const pool = floors >= 14 ? [2, 2, 3, 1] : [0, 0, 1, 1, 3, 0];
+      const pool = floors >= 14 ? [2, 2, 3, 1, 5, 7, 2] : [0, 0, 1, 4, 4, 5, 6, 7, 3];
       const variant = pool[Math.floor(R() * pool.length)];
       const tints = variant === 2 ? glass : warm;
-      const tint = tints[Math.floor(R() * tints.length)];
+      const tint = this._pickTint(variant, R, tints);
       const roofCol = roofColors[Math.floor(R() * roofColors.length)];
       const uBase = Math.floor(R() * 4) * 0.25;
       const vOff = Math.floor(R() * 4) * 0.25;
