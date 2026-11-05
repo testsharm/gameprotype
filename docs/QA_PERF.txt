@@ -1,0 +1,14 @@
+REAL CHROMIUM PERFORMANCE (headless software WebGL - lower than a real GPU)
+
+START MENU                 fps   66.2 | draw calls  246 | tris   25990 | frames 23
+LEVEL 1                    fps   49.1 | draw calls  252 | tris   26232 | frames 34
+LEVEL 11                   fps   50.4 | draw calls  356 | tris   30492 | frames 40
+LEVEL 15                   fps   44.7 | draw calls  305 | tris   28672 | frames 47
+FREE PLAY                  fps   41.2 | draw calls  158 | tris   62420 | frames 54
+PASS reverse beeper beeps while reversing  beeps 0 -> 3 | speed -4.83
+PASS stage sound bed active  bed=birds
+PASS all five states actually render geometry  [246,252,356,305,158]
+PASS Free Play draw calls under 200  calls=158
+PASS 0 red console errors  []
+
+PERF CHECK: PASS
