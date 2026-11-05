@@ -2,6 +2,8 @@
 // Pure logic plus its own small window system (briefing, result, fail, job picker).
 // No THREE needed. main.js connects to it in M7a part 2.
 // Coins stay in main.js (saveData.coins). This file only tells main.js how many to add.
+// Round 2: the 15 real levels live in Levels.js; this file keeps economy, save and windows.
+import { LEVELS, chapterOf } from './Levels.js';
 
 const SAVE_KEY = 'terraform_jobs_v1';
 const ROAD_POS = [-240, -160, -80, 80, 160, 240];
@@ -42,62 +44,8 @@ export const UPGRADES = {
 };
 
 // bearing: 0 = north (-z), 90 = east. dist = metres from the garage. gap = pile to truck distance.
-export const JOBS = [
-  {
-    id: 1, name: 'Clear the Highway', theme: 'Storm clean-up',
-    story: 'A storm dumped dirt across the highway. Clear it before rush hour!',
-    loads: 3, time: 180, reward: 150, tutorial: true, needs: {},
-    scoopText: 'Scoop dirt from the pile', dumpText: 'Dump it in the blue truck',
-    hints: { scoop: 'Drive to the dirt pile, then press F to scoop.', dump: 'Now drive to the blue truck and press F to dump.' },
-    env: { id: 'day', sun: 1, hemi: 1, fog: 0.0011, fogColor: 0xcfe2f3 },
-    site: { keep: true }
-  },
-  {
-    id: 2, name: 'Park Clean-up', theme: 'Landslide',
-    story: 'A landslide buried the paths of the city park. Move the dirt to the truck.',
-    loads: 4, time: 210, reward: 220, needs: { job: 1 },
-    scoopText: 'Scoop the landslide dirt', dumpText: 'Dump it in the park truck',
-    hints: { scoop: 'New place, longer drive. Follow the arrow on the map.', dump: 'Truck is close. Line up and press F.' },
-    env: { id: 'day', sun: 1, hemi: 1, fog: 0.0011, fogColor: 0xcfe2f3 },
-    site: { bearing: 90, dist: 170, spread: 55, gap: 18 }
-  },
-  {
-    id: 3, name: 'Bridge Repair', theme: 'Busy streets',
-    story: 'The bridge approach is covered in dirt. Work fast, the streets are busy.',
-    loads: 5, time: 270, reward: 300, needs: { job: 2 },
-    scoopText: 'Scoop dirt at the bridge', dumpText: 'Dump it in the truck',
-    hints: { scoop: 'Watch the cars when you cross a road.', dump: 'Do not rush into traffic. A crash costs time.' },
-    env: { id: 'dusk', sun: 0.7, hemi: 0.8, fog: 0.0014, fogColor: 0xe8c9a8 },
-    site: { bearing: 270, dist: 190, spread: 55, gap: 24 }
-  },
-  {
-    id: 4, name: 'Night Shift', theme: 'Dark city',
-    story: 'The city sleeps but the road crew works. Lights on, eyes open.',
-    loads: 5, time: 250, reward: 380, needs: { job: 3 },
-    scoopText: 'Scoop dirt in the dark', dumpText: 'Dump it in the truck',
-    hints: { scoop: 'It is dark. Use the map arrow to find the pile.', dump: 'Find the truck. Its lights are on.' },
-    env: { id: 'night', sun: 0.16, hemi: 0.32, fog: 0.0024, fogColor: 0x0a1020, lights: true },
-    site: { bearing: 180, dist: 150, spread: 55, gap: 20 }
-  },
-  {
-    id: 5, name: 'Storm Rescue', theme: 'Heavy fog',
-    story: 'Fog and rain cut the city off. Dig a way through for the rescue trucks.',
-    loads: 6, time: 320, reward: 480, needs: { job: 4 },
-    scoopText: 'Scoop dirt in the fog', dumpText: 'Dump it in the rescue truck',
-    hints: { scoop: 'You cannot see far. Slow down and use the map.', dump: 'The truck is near. Go slow in the fog.' },
-    env: { id: 'storm', sun: 0.45, hemi: 0.7, fog: 0.0055, fogColor: 0x8e9aa6 },
-    site: { bearing: 315, dist: 220, spread: 55, gap: 26 }
-  },
-  {
-    id: 6, name: 'Skyline Foundation', theme: 'Big build',
-    story: 'The new tower needs a flat base. Move a mountain of dirt, load by load.',
-    loads: 8, time: 450, reward: 600, needs: { job: 5, engine: 2 },
-    scoopText: 'Scoop dirt for the foundation', dumpText: 'Dump it in the big truck',
-    hints: { scoop: 'The farthest site. A stronger engine helps a lot.', dump: 'Keep a steady rhythm: scoop, drive, dump.' },
-    env: { id: 'dawn', sun: 0.85, hemi: 0.9, fog: 0.0016, fogColor: 0xf0d9bd },
-    site: { bearing: 45, dist: 250, spread: 55, gap: 30 }
-  }
-];
+// LEVELS (Levels.js) is the single source of truth for all 15 jobs: goals, rules, mood and site.
+export const JOBS = LEVELS;
 
 // ---------- helpers ----------
 function fmtTime(s) {
@@ -526,7 +474,7 @@ export class JobPanels {
     clearTimeout(this._briefTimer);
     const el = document.createElement('div');
     el.className = 'tf-jb-brief';
-    el.innerHTML = '<span class="tf-jb-tag">Job ' + job.id + ' - ' + job.theme + '</span><div class="tf-jb-h">' + job.name + '</div><p class="tf-jb-sub">' + job.story + '</p>';
+    el.innerHTML = '<span class="tf-jb-tag">Level ' + job.id + ' - ' + chapterOf(job.id).name + ' - ' + job.type + '</span><div class="tf-jb-h">' + job.name + '</div><p class="tf-jb-sub">' + job.story + '</p><p class="tf-jb-sub">' + (job.rule || '') + '</p>';
     this.root.appendChild(el);
     this.brief = el;
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
@@ -539,9 +487,11 @@ export class JobPanels {
   showResult(r, h) {
     h = h || {};
     const rows = [];
-    rows.push(['Job reward' + (r.firstClear ? '' : ' (repeat 40%)'), '+' + r.base, '']);
+    rows.push(['Level reward' + (r.firstClear ? '' : ' (repeat 40%)'), '+' + r.base, '']);
     if (r.starBonus) rows.push([r.stars + '-star bonus', '+' + r.starBonus, '']);
     if (r.rankBonus) rows.push(['Rank bonus (' + r.rankBefore.name + ')', '+' + r.rankBonus, '']);
+    if (r.bonus) rows.push([r.bonus.got ? 'Bonus: ' + r.bonus.text : 'Bonus missed: ' + r.bonus.text,
+      r.bonus.got ? '+' + r.bonus.coins : '+0', r.bonus.got ? 'good' : 'dim']);
     rows.push(['Load tips (already paid)', '+' + r.tips, 'dim']);
     rows.push(['Time used', fmtTime(r.timeUsed) + (r.newBest ? '  NEW BEST' : ''), r.newBest ? 'good' : 'dim']);
     rows.push(['Total reward', '+' + r.coins + ' coins', 'total']);
@@ -553,7 +503,7 @@ export class JobPanels {
     const unlock = r.newlyUnlocked.length ? '<p class="tf-jb-up">New job unlocked: ' + r.newlyUnlocked.map(j => j.name).join(', ') + '</p>' : '';
     const rankTxt = (r.rankUp ? '<span class="tf-jb-up">RANK UP! </span>' : '') + after.name + (after.next ? ' - ' + after.into + '/' + after.need + ' XP to ' + after.next : ' - top rank') + ' (+' + r.xpGain + ' XP)';
     const html =
-      '<span class="tf-jb-tag">Job ' + r.job.id + ' complete</span>' +
+      '<span class="tf-jb-tag">Level ' + r.job.id + ' complete</span>' +
       '<div class="tf-jb-h">' + r.job.name + '</div>' +
       '<div class="tf-jb-stars">' + stars + '</div>' +
       '<div class="tf-jb-rows">' + rowHtml + '</div>' +
@@ -578,7 +528,7 @@ export class JobPanels {
   showFail(job, loads, h) {
     h = h || {};
     const html =
-      '<span class="tf-jb-tag">Job ' + job.id + '</span>' +
+      '<span class="tf-jb-tag">Level ' + job.id + '</span>' +
       '<div class="tf-jb-h">Time is up</div>' +
       '<p class="tf-jb-sub">You delivered ' + loads + ' of ' + job.loads + ' loads. Try again, you can do it.</p>' +
       '<div class="tf-jb-btns">' +
@@ -604,12 +554,13 @@ export class JobPanels {
       const rec = sys.record(j.id);
       const stars = [1, 2, 3].map(n => starSvg(rec.stars >= n, 18, -1)).join('');
       const cur = sys.current.id === j.id;
+      const chapter = chapterOf(j.id);
       cards +=
         '<button type="button" class="tf-jb-job' + (why ? ' lock' : '') + (cur ? ' cur' : '') + '" data-id="' + j.id + '">' +
-        '<span class="tf-jb-tag">Job ' + j.id + '</span>' +
+        '<span class="tf-jb-tag">Level ' + j.id + ' - ' + chapter.name + '</span>' +
         '<h3>' + j.name + '</h3>' +
-        '<p>' + (why ? LOCK_SVG + ' ' + why : j.theme + ' - ' + j.story) + '</p>' +
-        '<span class="tf-jb-meta"><span class="tf-jb-chip">' + j.loads + ' loads</span><span class="tf-jb-chip">' + fmtTime(j.time) + '</span><span class="tf-jb-chip">+' + j.reward + '</span></span>' +
+        '<p>' + (why ? LOCK_SVG + ' ' + why : (j.rule || j.story)) + '</p>' +
+        '<span class="tf-jb-meta"><span class="tf-jb-chip">' + j.type + '</span><span class="tf-jb-chip">' + j.loads + ' goals</span><span class="tf-jb-chip">' + fmtTime(j.time) + '</span><span class="tf-jb-chip">+' + j.reward + '</span></span>' +
         '<span class="tf-jb-stars sm">' + stars + '</span>' +
         '</button>';
     }
@@ -620,7 +571,7 @@ export class JobPanels {
     const html =
       '<span class="tf-jb-tag">City Rescue</span>' +
       '<div class="tf-jb-h">Choose a job</div>' +
-      '<p class="tf-jb-sub">Finish jobs to unlock the next one. More stars, more coins.</p>' +
+      '<p class="tf-jb-sub">15 levels in 3 chapters. Each level has its own goal. More stars, more coins.</p>' +
       rankBar + daily +
       '<div class="tf-jb-grid">' + cards + '</div>' +
       '<div class="tf-jb-btns"><button class="tf-jb-btn alt" data-act="close">Back to game</button></div>';
@@ -691,7 +642,7 @@ JobPanels.prototype.showShop = function (getCtx, h, again) {
     '<span class="tf-jb-tag">Workshop</span>' +
     '<div class="tf-jb-h">Upgrades</div>' +
     '<p class="tf-jb-sub">Better machine, faster jobs, more coins.</p>' +
-    '<div class="tf-jb-bar"><span>Your coins: <b>' + c.coins + '</b></span><span>Job 6 needs Engine level 2</span></div>' +
+    '<div class="tf-jb-bar"><span>Your coins: <b>' + c.coins + '</b></span><span>Faster machine = faster levels</span></div>' +
     '<div class="tf-jb-grid">' + cards + '</div>' +
     '<div class="tf-jb-btns"><button class="tf-jb-btn alt" data-act="close">Back to game</button></div>';
   const veil = this._open(html, true, (t) => {
@@ -712,6 +663,8 @@ JobPanels.prototype.showShop = function (getCtx, h, again) {
 
 // ---------- site dressing: visual only, built once per job site ----------
 export function buildSiteDressing(THREE, id, pile, truck) {
+  const job = JOBS.find(j => j.id === id) || JOBS[0];
+  const dress = job.dressing || 'yard';
   const g = new THREE.Group();
   g.name = 'jobSite' + id;
   let seed = id * 7919 + 13;
@@ -806,12 +759,19 @@ export function buildSiteDressing(THREE, id, pile, truck) {
   };
 
   const T = {
-    2: { a: 0x6b7a47, b: 0x8a8272 },
-    3: { a: 0x8d8d88, b: 0x7d7d79 },
-    4: { a: 0x4f4338, b: 0x5d5a55 },
-    5: { a: 0x4b4842, b: 0x5a5852 },
-    6: { a: 0x8f7f6a, b: 0x9a9388 }
-  }[id] || { a: 0x7a6a55, b: 0x7d7468 };
+    yard:   { a: 0x7a6a55, b: 0x7d7468 },
+    course: { a: 0x9aa4ad, b: 0x4b5563 },
+    road:   { a: 0x8d8d88, b: 0x7d7d79 },
+    park:   { a: 0x6b7a47, b: 0x8a8272 },
+    city:   { a: 0x6f7681, b: 0x4b5563 },
+    trench: { a: 0x7a6a55, b: 0x8a8272 },
+    pipes:  { a: 0x6b7280, b: 0x4b5563 },
+    night:  { a: 0x4f4338, b: 0x5d5a55 },
+    bridge: { a: 0x8d8d88, b: 0x6b7280 },
+    storm:  { a: 0x4b4842, b: 0x5a5852 },
+    crane:  { a: 0x8f7f6a, b: 0x9a9388 },
+    mega:   { a: 0x8d7a5c, b: 0x6b7280 }
+  }[dress] || { a: 0x7a6a55, b: 0x7d7468 };
   pad(pile, 13, T.a, 0.12);
   pad(truck, 9.5, T.b, 0.13);
 
@@ -827,10 +787,9 @@ export function buildSiteDressing(THREE, id, pile, truck) {
     if (!onCorridor(x, z)) cone(x, z);
   }
 
-  const job = JOBS.find(j => j.id === id);
-  if (job) sign('JOB ' + id + ' - ' + job.name.toUpperCase(), job.theme);
+  sign('LEVEL ' + id + ' - ' + job.name.toUpperCase(), (job.type || '') + ' - ' + chapterOf(id).name);
 
-  if (id === 2) { // park landslide
+  if (dress === 'park') { // park landslide
     for (let i = 0; i < 10; i++) { const a = R() * 6.28, r = 7 + R() * 6; rock(pile.x + Math.cos(a) * r, pile.z + Math.sin(a) * r); }
     for (let i = 0; i < 12; i++) {
       const a = R() * 6.28, r = 19 + R() * 9;
@@ -842,7 +801,7 @@ export function buildSiteDressing(THREE, id, pile, truck) {
       box(2.6, 0.4, 0.9, p.x, 0.75, p.z, 0x8a5a2b, yawU);
       box(2.6, 0.9, 0.35, p.x + vx * k * 0.4, 1.25, p.z + vz * k * 0.4, 0x8a5a2b, yawU);
     }
-  } else if (id === 3) { // bridge repair
+  } else if (dress === 'bridge' || dress === 'road' || dress === 'city') { // road / bridge / city works
     for (let b = -12; b <= 12.1; b += 3.6) {
       const p = P(-12, b);
       box(3.2, 1.1, 0.9, p.x, 0.55, p.z, 0xb9b9b3, yawU + Math.PI / 2);
@@ -854,12 +813,12 @@ export function buildSiteDressing(THREE, id, pile, truck) {
     }
     { const p = P(dl + 8, 0); box(0.45, 0.45, 28.5, p.x, 1.35, p.z, 0xd1d5db, yawU + Math.PI / 2); }
     for (const k of [-14, 14]) { const p = P(-12, k); box(1.7, 1.7, 0.35, p.x, 1.9, p.z, 0xf59e0b, yawU + Math.PI / 4); beacon(p.x, 3.1, p.z); }
-  } else if (id === 4) { // night shift
+  } else if (dress === 'night') { // night shift
     const a = P(-8, -12), b = P(-8, 12), c = P(dl + 6, 0);
     lamp(a.x, a.z, 9.5, 260); lamp(b.x, b.z, 9.5, 260); lamp(c.x, c.z, 9.5, 240);
     for (let i = 0; i < 5; i++) { const p = P(R() * 14 - 4, R() * 20 - 10, pile); box(1.3, 1.3, 1.3, p.x, 0.65, p.z, 0x6b7280, R() * 3); }
     for (let k = -1; k <= 1; k += 2) { const p = P(dl * 0.5, k * 10); beacon(p.x, 1.3, p.z); cyl(0.3, 0.3, 0.9, p.x, 0.45, p.z, 0x334155); }
-  } else if (id === 5) { // storm rescue
+  } else if (dress === 'storm') { // storm rescue
     for (let i = 0; i < 4; i++) {
       const a = R() * 6.28, r = 12 + R() * 6;
       const x = pile.x + Math.cos(a) * r, z = pile.z + Math.sin(a) * r;
@@ -876,7 +835,7 @@ export function buildSiteDressing(THREE, id, pile, truck) {
       m.rotation.x = -Math.PI / 2; m.position.set(truck.x + Math.cos(a) * r, 0.14, truck.z + Math.sin(a) * r); g.add(m);
     }
     for (let row = 0; row < 2; row++) for (let i = 0; i < 6; i++) { const p = P(dl - 7 + row * 0.8, -4 + i * 1.3, pile); box(1.2, 0.5, 0.8, p.x, 0.3 + row * 0.5, p.z, 0xb6a27a, yawU + Math.PI / 2); }
-  } else if (id === 6) { // skyline foundation with a tower crane
+  } else if (dress === 'crane' || dress === 'mega' || dress === 'pipes') { // tower crane / final site / pipe yard
     const base = P(-2, 11);
     box(3.4, 1.0, 3.4, base.x, 0.5, base.z, 0x6b7280);
     box(1.2, 26, 1.2, base.x, 13.5, base.z, 0xf5b301);
@@ -888,6 +847,21 @@ export function buildSiteDressing(THREE, id, pile, truck) {
     for (let i = 0; i < 3; i++) { const p = P(dl - 6, -6 + i * 6, pile); box(0.55, 0.55, 8, p.x, 0.4 + (i % 2) * 0.55, p.z, 0xc2410c, yawU + 0.2 * i); }
     for (let i = 0; i < 3; i++) { const p = P(-6, -9 + i * 1.4); box(7, 0.5, 0.5, p.x, 0.3, p.z, 0x374151, yawU + Math.PI / 2); }
     for (let k = -1; k <= 1; k += 2) { const p = P(-10, k * 11); beacon(p.x, 1.4, p.z); cyl(0.3, 0.3, 1, p.x, 0.5, p.z, 0x334155); }
+  }
+  if (dress === 'course' || dress === 'trench' || dress === 'pipes') {
+    for (let i = 0; i < 6; i++) {
+      const p = P(-12 + i * (dl + 20) / 5, 0);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.32, 0.7), M(dress === 'course' ? 0xf1f5f9 : 0xfbbf24, { emissive: 0x3a2a05, emissiveIntensity: 0.3 }));
+      m.position.set(p.x, 0.16, p.z);
+      m.rotation.y = yawU + Math.PI / 2;
+      m.receiveShadow = true;
+      g.add(m);
+    }
+    for (const k of [-1, 1]) {
+      const p = P(dl * 0.5, k * 13);
+      cyl(0.22, 0.3, 7, p.x, 3.5, p.z, 0x5b6573);
+      box(1.8, 0.8, 0.6, p.x, 7.2, p.z, 0xfff4c9, yawU, { emissive: 0xffe9a8, emissiveIntensity: 2.2 });
+    }
   }
   return g;
 }

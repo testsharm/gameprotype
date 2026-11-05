@@ -390,7 +390,7 @@ export default class GameUI {
     const el = this.el;
     if (!job) return;
     el.story.innerHTML = '<b></b><span></span>';
-    el.story.querySelector('b').textContent = 'JOB ' + job.id;
+    el.story.querySelector('b').textContent = 'LEVEL ' + job.id + (job.chapter ? ' / ' + ['', 'ROOKIE YARD', 'CONTRACTOR', 'SITE BOSS'][job.chapter] : '');
     el.story.querySelector('span').textContent = job.story || job.objective || '';
     el.card.classList.add('big');
     clearTimeout(this._annT);

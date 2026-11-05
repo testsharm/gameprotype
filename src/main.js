@@ -14,10 +14,17 @@ import GameUI from './ui/GameUI.js';
 // (Music removed in M2)
 import TrafficPhysics from './core/TrafficPhysics.js';
 import { JobSystem, JobPanels, buildSiteDressing, upgradeCost } from './gameplay/Jobs.js';
+import { LevelEngine } from './gameplay/Levels.js';
 
 let fx = null, guide = null, sfx = null, tutStep = 0, lastTarget = 'none';
 function safe(f) { try { return f(); } catch (e) { console.warn('[fx]', e); } }
-let ui = null, music = null, trafficPhys = null, jm = null, currentJob = 1, lastLoads = 0, lastCoinsShown = -1;
+let lastHasDirt = false;
+const START_LEVEL = (() => {
+    try { const n = parseInt(new URLSearchParams(location.search).get('job'), 10); return n >= 1 && n <= 15 ? n : 1; }
+    catch (e) { return 1; }
+})();
+let ui = null, music = null, trafficPhys = null, jm = null, currentJob = START_LEVEL, lastLoads = 0, lastCoinsShown = -1;
+let level = null;
 const JOB_TITLE = 'Clear the Highway', JOB_OBJ = 'Load the blue truck with dirt';
 let dig = null, digSound = null;
 const dm = { fill: 1, drop: -1, b: 0, k: 0, was: false };
@@ -61,7 +68,7 @@ function initUi() {
         jm.onTick = (t) => { if (ui) ui.setTimer(Math.ceil(t)); };
         jm.onFail = onJobFail;
         jm.start(currentJob);
-        ui.setJob(JOB_TITLE, JOB_OBJ, 'Scoop dirt 0/3');
+        refreshCard();
         ui.setCoins(saveData.coins);
         music.start(); music.startAmbience();
         window.addEventListener('bh-hint', e => { if (ui) ui.toast(e.detail, 'warn'); });
@@ -75,12 +82,10 @@ function updateUi(dt) {
         if (ui) {
             ui.setSpeed(vehicle.currentSpeed);
             if (saveData.coins !== lastCoinsShown) { lastCoinsShown = saveData.coins; ui.setCoins(saveData.coins); }
-            const lv = lastLoads;
-            if (lv !== lastLoads) {
-                if (lv > lastLoads && jm) jm.addLoad();
-                lastLoads = lv;
-                ui.setJob(JOB_TITLE, JOB_OBJ, 'Scoop dirt ' + lv + '/3');
-                if (lv > 0 && lv < 3) ui.toast('Nice! Load ' + lv + ' of 3 delivered', 'success');
+            // Keep the mission card in sync when the bucket fills or empties.
+            if (level && level.job) {
+                const hd = !!vehicle.hasDirt;
+                if (hd !== lastHasDirt) { lastHasDirt = hd; refreshCard(); }
             }
         }
         if (jm && !jobCompleted) jm.update(dt);
@@ -618,6 +623,13 @@ function ensureJobs() {
         jm = new JobSystem();
         panels = new JobPanels();
         jm.layout(worldBuilder.buildingData, worldBuilder.propColliders);
+        level = new LevelEngine(scene, worldBuilder, siteNow, {
+            onCount: (tip) => engineProgress(tip),
+            onToast: (msg, kind) => safe(() => { if (ui) ui.toast(msg, kind || 'info'); }),
+            onCombo: (n) => safe(() => { if (ui && n > 1) ui.toast('Combo x' + n + '!', 'success'); hub.coin(); }),
+            onChange: () => refreshCard(),
+            truckSolid: (on, x, z) => syncTruckCollider(!!on, x || siteNow.truck.x, z || siteNow.truck.z)
+        });
     }
     return jm;
 }
@@ -629,7 +641,11 @@ function syncCoins() {
     });
 }
 function refreshCard() {
-    safe(() => { if (ui && jm) ui.setJob(jm.current.name, jm.objective(), jm.stepText()); });
+    safe(() => {
+        if (!ui || !jm) return;
+        if (level && level.job) ui.setJob(jm.current.name, level.objective(vehicle && vehicle.hasDirt), level.stepText());
+        else ui.setJob(jm.current.name, jm.objective(), jm.stepText());
+    });
 }
 function openModalState() {
     modalOpen = true;
@@ -670,6 +686,7 @@ function syncTruckCollider(moved, tx, tz) {
     }
 }
 function placeSite(id) {
+    ensureJobs();
     safe(() => {
         const job = jm.get(id) || jm.get(1);
         setEnv(job.env, !envGoal);
@@ -685,18 +702,20 @@ function placeSite(id) {
         pg.updateMatrixWorld(true); tg.updateMatrixWorld(true);
         siteNow.pile.x = px; siteNow.pile.z = pz; siteNow.truck.x = tx; siteNow.truck.z = tz;
         syncTruckCollider(moved, tx, tz);
+        if (worldBuilder.jobSiteBase) worldBuilder.jobSiteBase.position.set(px, 0, pz);
         siteGroups.forEach((g, k) => { g.visible = (k === id); });
-        if (moved && !siteGroups.has(id)) {
-            const g = buildSiteDressing(THREE, id, lay.pile, lay.truck);
+        if (!job.site.keep && !siteGroups.has(id)) {
+            const g = buildSiteDressing(THREE, id, { x: px, z: pz }, { x: tx, z: tz });
             scene.add(g);
             siteGroups.set(id, g);
         }
+        if (level) level.start(job, { pile: { x: px, z: pz }, truck: { x: tx, z: tz } });
     });
 }
 
 // ---- sky, light, fog and rain for each job ----
-const ENV_EXPO = { day: 1.0, dusk: 0.92, night: 0.62, storm: 0.8, dawn: 0.97 };
-const ENV_TINT = { day: 0, dusk: 0.35, night: 0.5, storm: 0.6, dawn: 0.3 };
+const ENV_EXPO = { morning: 1.0, day: 1.0, dusk: 0.92, night: 0.62, storm: 0.8, dawn: 0.97, golden: 0.95 };
+const ENV_TINT = { morning: 0, day: 0, dusk: 0.35, night: 0.5, storm: 0.6, dawn: 0.3, golden: 0.25 };
 const envCur = { sun: 2.2, hemi: 0.8, fog: 0.0011, r: 0.62, g: 0.76, b: 0.9, expo: 1, tint: 0, bright: 1, light: 0 };
 let envGoal = null;
 let skyU = null;
@@ -706,7 +725,7 @@ function setEnv(e, instant) {
     envGoal = {
         sun: 2.2 * e.sun, hemi: 0.8 * e.hemi, fog: e.fog, r: c.r, g: c.g, b: c.b,
         expo: ENV_EXPO[e.id] || 1, tint: ENV_TINT[e.id] || 0, bright: 0.5 + 0.5 * e.sun,
-        light: e.lights ? 230 : (e.id === 'storm' ? 70 : 0), rain: e.id === 'storm'
+        light: e.lights ? 230 : (e.rain ? 70 : 0), rain: !!e.rain
     };
     if (instant) Object.assign(envCur, envGoal);
 }
@@ -786,8 +805,9 @@ function startJobNow() {
     jm.start(currentJob);
     const j = jm.current;
     refreshCard();
-    safe(() => { if (ui) ui.setHint(jm.hint()); });
+    safe(() => { if (ui) ui.setHint(level && level.job ? level.hint() : jm.hint()); });
     safe(() => { if (ui) ui.announce(j); });
+    refreshCard();
 }
 function goJob(id) {
     ensureJobs();
@@ -795,21 +815,43 @@ function goJob(id) {
     currentJob = id;
     window.restartJob();
 }
+// A gate / trench / debris goal counts as one load, without a dump.
+function engineProgress(tip) {
+    if (jobCompleted || !jm || !jm.state.running) return;
+    const done = deliverLoad(tip);
+    if (done) {
+        jobCompleted = true;
+        finishJob();
+        safe(() => { if (ui) { ui.setTimer(null); ui.toast('Job complete!', 'success'); } });
+        writeSave();
+        audio.playSuccess();
+        try { window.CrazyGames.SDK.game.happytime(); } catch (e) {}
+    }
+}
 function onScooped() {
     if (!jm) return;
     jm.setPhase('dump');
     refreshCard();
-    if (ui) ui.setHint(jm.hint());
+    safe(() => {
+        if (level && level.job && vehicle) {
+            const bp = new THREE.Vector3(); vehicle.bucketPivot.getWorldPosition(bp);
+            const r = level.onScoop(bp, vehicle);
+            if (r.msg && ui) ui.toast(r.msg, r.ok ? 'success' : 'warn');
+            if (r.count) engineProgress(0);
+        }
+    });
+    if (ui) ui.setHint(level && level.job ? level.hint() : jm.hint());
 }
-function deliverLoad() {
+function deliverLoad(tipOverride) {
     ensureJobs();
     const r = jm.addLoad(jobCtx());
     if (!r) return false;
-    saveData.coins += r.tip;
+    const tip = (typeof tipOverride === 'number') ? tipOverride : r.tip;
+    saveData.coins += tip;
     writeSave();
     safe(() => {
         if (ui) {
-            if (!r.complete) ui.toast('Load ' + r.loads + ' of ' + r.total + ' delivered  +' + r.tip + ' coins', 'success');
+            if (!r.complete) ui.toast('Goal ' + r.loads + ' of ' + r.total + ' complete' + (tip ? '  +' + tip + ' coins' : ''), 'success');
             ui.setCoins(saveData.coins); lastCoinsShown = saveData.coins;
         }
         refreshCard();
@@ -829,6 +871,11 @@ function deliverLoad() {
 function finishJob() {
     ensureJobs();
     const r = jm.complete(jobCtx());
+    if (level && level.job) {
+        const b = level.bonus();
+        r.bonus = b;
+        r.coins += b.coins;
+    }
     saveData.coins += r.coins;
     writeSave();
     setTimeout(() => safe(() => {
@@ -911,6 +958,67 @@ function advanceAccumulator(acc, frameDt) {
     return { acc, steps };
 }
 
+// QA helper: type __levelInfo() in the F12 console to see the current level, goal and site finder results.
+window.__levelInfo = function () {
+    const sites = jm ? [...jm.layout(worldBuilder.buildingData, worldBuilder.propColliders).entries()]
+        .map(([id, v]) => ({ id, ok: !!v.ok, keep: !!v.keep })) : [];
+    return { current: currentJob, job: jm && jm.current ? jm.current.name : null,
+        level: level ? level.info() : null, sitesOk: sites.filter(x => x.ok).length, sites };
+};
+// Headless QA only (?qadebug): walk a level through every goal without driving.
+if (new URLSearchParams(location.search).has('qadebug')) {
+    window.__qaLevel = {
+        info: () => (level ? level.info() : null),
+        objects: () => {
+            if (!level || !level.group) return 0;
+            let n = 0; level.group.traverse(o => { if (o.isMesh) n++; }); return n;
+        },
+        dbg: () => {
+            if (!level || !level.active()) return null;
+            const g = level.active(), m = vehicle.mesh.position;
+            const bp = new THREE.Vector3(); vehicle.bucketPivot.getWorldPosition(bp);
+            return { kind: g.kind, x: g.x, z: g.z, nx: g.nx, nz: g.nz, width: g.width,
+                prev: level._prevSide.get(g), mx: m.x, mz: m.z, bpy: bp.y,
+                side: (m.x - g.x) * g.nx + (m.z - g.z) * g.nz,
+                lat: Math.abs((m.x - g.x) * -g.nz + (m.z - g.z) * g.nx) };
+        },
+        objective: () => (level ? level.objective(vehicle.hasDirt) : ''),
+        gateTest: (x, z, bpy) => {
+            if (!level || !level.active() || level.active().kind !== 'gate') return null;
+            const fake = { mesh: { position: new THREE.Vector3(x, 0, z) },
+                bucketPivot: { getWorldPosition: (v) => { v.set(0, bpy === undefined ? 2 : bpy, 0); return v; } } };
+            level.update(0.016, fake);
+            return level.info();
+        },
+        site: () => (level ? { pile: { x: level.site.pile.x, z: level.site.pile.z },
+            truck: { x: level.site.truck.x, z: level.site.truck.z },
+            goal: level.active() ? { x: level.active().x, z: level.active().z, kind: level.active().kind } : null } : null),
+        teleport: (x, z) => {
+            try {
+                const t = vehicle.chassisBody.translation();
+                vehicle.chassisBody.setTranslation({ x, y: t.y, z }, true);
+                vehicle.chassisBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+                vehicle.chassisBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
+                if (vehicle.resetInterpolation) vehicle.resetInterpolation();
+                return true;
+            } catch (e) { return String(e.message); }
+        },
+        step: () => {
+            if (!level || !level.job) return null;
+            const g = level.active();
+            if (!g) return level.info();
+            if (g.kind === 'gate') { level._advance(); level.hooks.onCount(0); }
+            else if (g.kind === 'trench' || g.kind === 'debris') {
+                const r = level.onScoop(new THREE.Vector3(g.x, 2, g.z), vehicle);
+                if (r.count) engineProgress(0);
+            } else {
+                const r = level.onDump(new THREE.Vector3(level.site.truck.x, 2, level.site.truck.z), vehicle);
+                if (r.count) engineProgress();
+            }
+            return level.info();
+        }
+    };
+}
 // Console test: type __testTimestep() in the F12 console. Every row must show 60.0
 window.__testTimestep = function () {
     const rates = [30, 60, 75, 120, 144, 165, 240];
@@ -954,7 +1062,8 @@ function initFx() {
         fx = new JobEffects(scene, camera, worldBuilder, vehicle);
         guide = new Guidance(scene, camera, renderer);
         sfx = { scoop() {}, complete() {}, coin() { hub.coin(); } };
-        guide.startTutorial(); tutStep = 1;
+        // Tutorial belongs to Level 1 only; other levels have their own hints.
+        if (jm && jm.current && jm.current.tutorial) { guide.startTutorial(); tutStep = 1; }
         const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 60, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide, fog: false }));
         beam.visible = false; scene.add(beam); scene.userData.beam = beam;
         const maxA = renderer.capabilities.getMaxAnisotropy();
@@ -1033,29 +1142,35 @@ function animate() {
 
             if (hasScoopedDirt && !vehicle.hasDirt) {
                 const truckBedPos = worldBuilder.truckGroup.position.clone().add(new THREE.Vector3(0, 2, -1));
-                if (hasScoopedDirt && !vehicle.hasDirt && bucketPos.distanceTo(truckBedPos) >= 10) { hasScoopedDirt = false; safe(() => { if (ui) { ui.toast('Missed the truck - scoop again', 'warn'); if (jm) jm.setPhase('scoop'); refreshCard(); } }); }
-                if (bucketPos.distanceTo(truckBedPos) < 10) {
+                const near = bucketPos.distanceTo(truckBedPos) < 10;
+                if (!near) {
+                    hasScoopedDirt = false;
+                    safe(() => { if (level) level.onMiss(); if (ui) { ui.toast('Missed the target - scoop again', 'warn'); if (jm) jm.setPhase('scoop'); refreshCard(); } });
+                } else {
                     hasScoopedDirt = false;
                     worldBuilder.addDirtToTruck();
                     audio.playDumpThud();
                     safe(() => { if (fx) fx.onDump(worldBuilder.truckGroup.position.clone(), bucketPos.clone()); if (sfx) sfx.coin(); if (guide && tutStep === 3) { guide.nextTutorialStep(); tutStep = 4; } });
                     cameraShake = 0.5;
-                    
-                    if (!deliverLoad()) {
-                        const statusVal = document.getElementById('job-status-val'); 
-                        if(statusVal) statusVal.textContent = `SCOOP DIRT (${worldBuilder.truckDirtLevel}/3)`;
+                    const lv = (level && level.job) ? level.onDump(bucketPos, vehicle) : { ok: true, count: true, msg: '' };
+                    if (lv.msg && ui) ui.toast(lv.msg, lv.ok ? 'success' : 'warn');
+                    if (!lv.ok) {
+                        refreshCard();
+                        audio.playScoop();
+                    } else if (!lv.count) {
+                        // Trench / debris goals already counted on the scoop; this dump just clears the bucket.
+                        refreshCard();
+                        audio.playScoop();
+                    } else if (!deliverLoad()) {
                         audio.playScoop();
                     } else {
-                        jobCompleted = true; 
+                        jobCompleted = true;
                         finishJob();
-                        safe(() => { if (ui) { const r = null; ui.setTimer(null); ui.toast('Job complete!' + (r && r.stars ? '  ' + r.stars + ' star(s)' : ''), 'success'); } }); 
+                        safe(() => { if (ui) { ui.setTimer(null); ui.toast('Job complete!', 'success'); } });
                         writeSave();
-                        const coinCount = document.getElementById('coin-count'); if(coinCount) coinCount.textContent = saveData.coins;
-                        const statusVal = document.getElementById('job-status-val'); if(statusVal) statusVal.textContent = 'COMPLETE!';
-                        const overlay = document.getElementById('victory-overlay'); /* old victory overlay is off: Jobs.js shows the result window */
                         audio.playSuccess();
-                        safe(() => { if (fx) void 0; if (sfx) sfx.complete(); });
-                        try { window.CrazyGames.SDK.game.happytime(); } catch(e) {}
+                        safe(() => { if (sfx) sfx.complete(); });
+                        try { window.CrazyGames.SDK.game.happytime(); } catch (e) {}
                     }
                 }
             }
@@ -1063,6 +1178,7 @@ function animate() {
         updateSunShadow();
         trackFPS(dt);
         updateFx(dt);
+        safe(() => { if (level && level.job) level.update(dt, vehicle); });
         vehicle.pilePos = worldBuilder.dirtPileGroup.position;
         if (!vehicle.truckPos) vehicle.truckPos = new THREE.Vector3();
         vehicle.truckPos.copy(worldBuilder.truckGroup.position).add(_truckOff);

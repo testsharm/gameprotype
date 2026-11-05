@@ -886,9 +886,15 @@ export class World {
         polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3
       }));
     patch.rotation.x = -Math.PI / 2;
-    patch.position.set(jobX, 0.04, jobZ);
+    patch.position.set(0, 0.04, 0);
     patch.receiveShadow = true;
-    this.scene.add(patch);
+    // The dirt patch and the 16 cones belong to one group, so a moving job site
+    // takes them along (they used to stay behind at 0,-120 forever).
+    this.jobSiteBase = new THREE.Group();
+    this.jobSiteBase.name = 'jobSiteBase';
+    this.jobSiteBase.position.set(jobX, 0, jobZ);
+    this.scene.add(this.jobSiteBase);
+    this.jobSiteBase.add(patch);
 
     // dirt pile: cone shape, highest clods are removed first
     this.dirtPileGroup = new THREE.Group();
@@ -971,8 +977,8 @@ export class World {
       cone.position.y = 1.0;
       cone.castShadow = true;
       g.add(cone);
-      g.position.set(jobX + Math.cos(angle) * 12, 0.04, jobZ + Math.sin(angle) * 12);
-      this.scene.add(g);
+      g.position.set(Math.cos(angle) * 12, 0.04, Math.sin(angle) * 12);
+      this.jobSiteBase.add(g);
     }
   }
 
