@@ -1,3 +1,4 @@
+import { crazySDKReady } from './Ads.js';
 export class Portal {
   constructor() {
     this.available = false;
@@ -21,38 +22,17 @@ export class Portal {
     this._installAutoPause();
   }
 
+  // A3: init() lives in ONE place (src/core/Ads.js). Portal queues behind it.
   async init() {
     if (this._initialized) return this.available;
     this._initialized = true;
-
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      this.available = false;
-      return false;
-    }
-
-    if (!window.CrazyGames) {
-      await this._injectSDK();
-    }
-
-    const start = Date.now();
-    while (!window.CrazyGames && Date.now() - start < 3000) {
-      await this._sleep(50);
-    }
-
-    if (window.CrazyGames && window.CrazyGames.SDK) {
-      try {
-        await window.CrazyGames.SDK.init();
-        this.SDK = window.CrazyGames.SDK;
-        this.available = true;
-      } catch (e) {
-        this.available = false;
-        this.SDK = null;
-      }
-    } else {
-      this.available = false;
-    }
+    const S = await crazySDKReady();
+    this.SDK = S || null;
+    this.available = !!S;
     return this.available;
   }
+  // Other modules can await this before reading any SDK property.
+  waitReady() { return crazySDKReady(); }
 
   _injectSDK() {
     return new Promise((resolve) => {

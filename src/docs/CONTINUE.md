@@ -1,5 +1,33 @@
 # CONTINUE.md - FULL HANDOFF FOR A NEW AI CHAT (zero context needed)
 
+## >>> QUALITY PASS v3 UPDATE (2026-11-05) - READ FIRST <<<
+
+The long handoff below describes an earlier phase. For the CURRENT state read
+`README.md` (repo root) and `docs/DEPTH_REPORT.md`. Summary of what changed:
+
+- **A real browser IS available.** `@sparticuz/chromium@153.0.0` +
+  `playwright-core@1.64.1` are devDependencies. `scripts/browser.mjs` exports
+  `serve()`, `newContext()`, `openGame()`, `shoot()`, `redErrors()`, `closeAll()`.
+  Run harnesses from the repo root against the *built* `dist/`; always
+  `npm run build` after a source edit or screenshots will show stale CSS.
+- HUD v8 replaced HUD v7; `Menus.js` is steel/amber with a square site map;
+  `Stages.js` provides 15 distinct environments; `CameraManager.snapTo()` fixes
+  post-teleport camera fly-in; `Jobs.UPGRADES` has six 4-step upgrades.
+- Real-browser evidence is in `docs/QA_EVIDENCE.txt`, `docs/QA_PERF.txt`,
+  `docs/QA_SESSION_LOG.txt` and 48 PNGs in `docs/screenshots/`.
+- Tier A/B/C/D are committed on `arena/154f02b1-gameprotype`. PR #1/#2/#3 are
+  MERGED; do not recreate them and do not touch `main`.
+- `redErrors()` filters SDK network noise; the unfiltered proof is
+  `scripts/sdk-check.mjs`. Do not treat `RED ERRORS []` as full proof.
+- Honest open gaps: 60 fps on real hardware, true mobile emulation, real
+  CrazyGames portal ad playback, Free Play timer HUD (cosmetic).
+
+Everything below is preserved as historical spec/context.
+
+---
+
+
+
 Written at the end of a very long chat, after M3e was saved (commit bac5f1c).
 If this file and HANDOFF.md disagree, ask the user. The opening master prompt wins over both
 (the user may paste it again; if the user does not have it, HANDOFF.md sections 3 to 6 are the spec).

@@ -1,109 +1,101 @@
-// TIER 2 / QA layout model - run: node scripts/layout-check.mjs
-// This is a CSS GEOMETRY MODEL, not a browser measurement: boxes are taken
-// from the exact px values written in src/ui/GameUI.js. No browser is available.
-// It reports overlaps, small touch targets, off-screen boxes and text clipping.
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const css = fs.readFileSync(path.join(ROOT, 'src/ui/GameUI.js'), 'utf8');
+// TIER B EVIDENCE - REAL Chromium DOM measurements, not a CSS model.
+// Sizes: 1920x1080, 1280x720, 844x390, 440x956, 390x844.
+// Reports overlaps, off-screen boxes, touch targets <48px, clipped text.
+import { serve, newContext, openGame, closeAll, url } from './browser.mjs';
 
-// x,y,w,h in CSS px. y is measured from the TOP of the viewport.
-// right/bottom anchored values are resolved against the viewport size.
-function desktop(W, H, missionW, missionH) {
-  return {
-    timer:   { x: 16, y: 16, w: 150, h: 52 },
-    mission: { x: (W - missionW) / 2, y: 16, w: missionW, h: missionH },
-    coins:   { x: W - 80 - 132, y: 16, w: 132, h: 52 },
-    pause:   { x: W - 16 - 56, y: 16, w: 56, h: 56 },
-    minimap: { x: 16, y: 80, w: 140, h: 140 },
-    tools:   { x: 16, y: 236, w: 52, h: 4 * 52 + 3 * 8 },
-    keypad:  { x: 16, y: H - 16 - (3 * 56 + 2 * 6 + 20), w: 200, h: 3 * 56 + 2 * 6 + 20 },
-    speed:   { x: W - 16 - 150, y: H - 16 - 150, w: 150, h: 150 }
-  };
-}
-function landscape(W, H) {
-  return {
-    timer:   { x: 10, y: 8, w: 96, h: 36 },
-    mission: { x: (W - 300) / 2, y: 8, w: 300, h: 44 },
-    coins:   { x: W - 62 - 96, y: 8, w: 96, h: 36 },
-    pause:   { x: W - 10 - 48, y: 8, w: 48, h: 48 },
-    tools:   { x: 10, y: 50, w: 4 * 48 + 3 * 6, h: 48 },
-    minimap: { x: 10, y: 104, w: 76, h: 76 },
-    drive:   { x: W - 16 - 130, y: H - 12 - 130, w: 130, h: 130 },
-    action:  { x: 16, y: H - 18 - 84, w: 84, h: 84 },
-    brake:   { x: W - 24 - 56, y: H - 152 - 56, w: 56, h: 56 },
-    speed:   { x: (W - 64) / 2, y: H - 6 - 64, w: 64, h: 64 }
-  };
-}
-function portrait(W, H) {
-  return {
-    timer:   { x: 12, y: 12, w: 104, h: 40 },
-    coins:   { x: W - 68 - 112, y: 12, w: 112, h: 40 },
-    pause:   { x: W - 12 - 48, y: 12, w: 48, h: 48 },
-    mission: { x: 12, y: 60, w: W - 24, h: 52 },
-    minimap: { x: 12, y: 124, w: 88, h: 88 },
-    tools:   { x: 12, y: 224, w: 48, h: 4 * 48 + 3 * 8 },
-    drive:   { x: W - 20 - 150, y: H - 28 - 150, w: 150, h: 150 },
-    action:  { x: 20, y: H - 40 - 92, w: 92, h: 92 },
-    brake:   { x: W - 34 - 56, y: H - 190 - 56, w: 56, h: 56 },
-    speed:   { x: (W - 64) / 2 - (W <= 400 ? 14 : 0), y: H - 24 - 64, w: 64, h: 64 }
-  };
-}
-// Targets the finger/keyboard can actually press.
-const TARGET = {
-  desktop: { pause: 56, minimap: 140, tools: 52, keypad: 56 },
-  landscape: { pause: 48, minimap: 76, tools: 48, drive: 130, action: 84, brake: 56 },
-  portrait: { pause: 48, minimap: 88, tools: 48, drive: 150, action: 92, brake: 56 }
-};
 const VIEWPORTS = [
-  ['1920x1080', 1920, 1080, () => desktop(1920, 1080, 560, 72), 'desktop'],
-  ['1280x720',  1280, 720,  () => desktop(1280, 720, 440, 64),  'desktop'],
-  ['844x390',   844,  390,  () => landscape(844, 390),          'landscape'],
-  ['440x956',   440,  956,  () => portrait(440, 956),           'portrait'],
-  ['390x844',   390,  844,  () => portrait(390, 844),           'portrait']
+  ['1920x1080', 1920, 1080],
+  ['1280x720',  1280, 720],
+  ['844x390',   844, 390],
+  ['440x956',   440, 956],
+  ['390x844',   390, 844]
 ];
-function overlap(a, b) {
+
+// Solid HUD boxes that must never overlap each other.
+const BOXES = {
+  timer:   '#tf-timer',
+  mission: '#tf-mission',
+  coins:   '#tf-coins',
+  pause:   '#tf-pause',
+  minimap: '#tf-mini',
+  tools:   '#tf-tools',
+  speed:   '#tf-speed',
+  joy:     '#tf-joy',
+  scoop:   '#tf-f',
+  dump:    '#tf-g',
+  brake:   '#tf-brk'
+};
+
+const overlap = (a, b) => {
   const x = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
   const y = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
-  return x > 0 && y > 0 ? `${x}x${y}px` : null;
-}
+  return x > 1 && y > 1 ? `${Math.round(x)}x${Math.round(y)}px` : null;
+};
+
+console.log('REAL BROWSER LAYOUT CHECK (Chromium 153, actual getBoundingClientRect)\n');
+console.log('VIEWPORT     BOXES  OVERLAPS  OFFSCREEN  TARGETS<48  CLIPPED  RESULT');
 let bad = 0;
-console.log('TIER 2 LAYOUT MODEL (CSS geometry, NOT a browser screenshot)\n');
-console.log('VIEWPORT     BOXES  OVERLAPS  OFFSCREEN  TARGETS<48  CLIPPED TEXT');
-for (const [name, W, H, make, kind] of VIEWPORTS) {
-  const boxes = make();
-  const keys = Object.keys(boxes);
-  const ov = [];
+await serve();
+const ctx = await newContext({ viewport: { width: 1280, height: 720 } });
+const page = await openGame(ctx, { settle: 1200 });
+
+for (const [name, W, H] of VIEWPORTS) {
+  await page.setViewportSize({ width: W, height: H });
+  await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+  await page.goto(url(), { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForTimeout(1700);
+  await page.click('.tf-play', { timeout: 20000 });
+  await page.waitForTimeout(900);
+
+  const data = await page.evaluate((sel) => {
+    const out = { boxes: {}, targets: [], clipped: [], fonts: [] };
+    for (const [k, s] of Object.entries(sel)) {
+      const n = document.querySelector(s);
+      if (!n) { out.boxes[k] = null; continue; }
+      const r = n.getBoundingClientRect();
+      const cs = getComputedStyle(n);
+      out.boxes[k] = { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
+        display: cs.display, bg: cs.backgroundColor };
+      if (n.tagName === 'BUTTON' && cs.display !== 'none' && r.width > 0)
+        out.targets.push({ k, w: Math.round(r.width), h: Math.round(r.height) });
+    }
+    for (const n of document.querySelectorAll('#tf-hud button, #tf-mission .nm, #tf-mission .st')) {
+      if (getComputedStyle(n).display === 'none') continue;
+      if (n.scrollWidth > n.clientWidth + 1 && n.clientWidth > 0)
+        out.clipped.push((n.id || n.className || n.tagName) + ' ' + n.scrollWidth + '>' + n.clientWidth);
+      out.fonts.push(parseFloat(getComputedStyle(n).fontSize));
+    }
+    // All visible HUD buttons, including the icon stack.
+    for (const n of document.querySelectorAll('#tf-hud button')) {
+      const cs = getComputedStyle(n);
+      if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+      const r = n.getBoundingClientRect();
+      if (r.width < 1) continue;
+      if (!n.id) out.targets.push({ k: (n.textContent || n.getAttribute('aria-label') || 'btn').trim().slice(0, 14), w: Math.round(r.width), h: Math.round(r.height) });
+    }
+    return out;
+  }, BOXES);
+
+  const keys = Object.keys(data.boxes).filter(k => data.boxes[k]);
+  const ovs = [];
   for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
-    const o = overlap(boxes[keys[i]], boxes[keys[j]]);
-    if (o) ov.push(`${keys[i]}/${keys[j]} ${o}`);
+    const o = overlap(data.boxes[keys[i]], data.boxes[keys[j]]);
+    if (o) ovs.push(`${keys[i]}/${keys[j]} ${o}`);
   }
-  const off = keys.filter(k => boxes[k].x < 0 || boxes[k].y < 0 ||
-    boxes[k].x + boxes[k].w > W || boxes[k].y + boxes[k].h > H);
-  const small = Object.entries(TARGET[kind]).filter(([, s]) => s < 48);
-  // Text clipping: mission card has a one-line goal, name and pips.
-  const m = boxes.mission;
-  const avail = m.w - 6 - 12 - 12 - (3 * 12 + 2 * 5) - 10;
-  const clipped = avail < 120 ? ['mission text'] : [];
-  if (ov.length || off.length || small.length || clipped.length) bad++;
-  console.log(name.padEnd(12) + ' ' + String(keys.length).padEnd(6) + ' ' +
-    String(ov.length).padEnd(9) + ' ' + String(off.length).padEnd(10) + ' ' +
-    String(small.length).padEnd(11) + ' ' + (clipped.length || 0));
-  if (ov.length) ov.forEach(x => console.log('   OVERLAP ' + x));
-  if (off.length) console.log('   OFFSCREEN ' + off.join(','));
-  console.log('   mission text width ' + Math.max(0, Math.round(avail)) + 'px | min font ' +
-    (kind === 'desktop' ? 16 : 14) + 'px');
+  const off = keys.filter(k => { const b = data.boxes[k]; return b.x < -1 || b.y < -1 || b.x + b.w > W + 1 || b.y + b.h > H + 1; });
+  const small = data.targets.filter(t => t.w < 48 || t.h < 48);
+  const clipped = data.clipped;
+  const isBad = ovs.length || off.length || small.length || clipped.length;
+  if (isBad) bad++;
+  console.log(name.padEnd(12) + ' ' + String(keys.length).padEnd(6) + ' ' + String(ovs.length).padEnd(9) + ' ' +
+    String(off.length).padEnd(10) + ' ' + String(small.length).padEnd(11) + ' ' + String(clipped.length).padEnd(8) + ' ' +
+    (isBad ? 'FAIL' : 'PASS'));
+  if (ovs.length) ovs.forEach(x => console.log('   OVERLAP ' + x));
+  if (off.length) console.log('   OFFSCREEN ' + off.map(k => k + ' ' + JSON.stringify(data.boxes[k])).join(' | '));
+  if (small.length) console.log('   SMALL ' + JSON.stringify(small));
+  if (clipped.length) console.log('   CLIPPED ' + clipped.join(' | '));
+  console.log('   min font ' + (data.fonts.length ? Math.min(...data.fonts) : '-') + 'px | targets ' + data.targets.length);
 }
-const ok = [
-  css.includes('width:150px;height:150px;right:calc(20px + ${SAFE_R})'),
-  css.includes('width:92px;height:92px;left:calc(20px + ${SAFE_L})'),
-  css.includes('width:88px;height:88px'),
-  css.includes('width:440px;height:64px'),
-  css.includes('#tf-hud.tf-lefty .tf-drive'),
-  !/rotate your phone|orientation.?lock/i.test(css)
-];
-console.log('\nexact CSS tokens: ' + ok.filter(Boolean).length + '/' + ok.length);
-if (ok.some(x => !x)) bad++;
-console.log(bad === 0 ? '\nTIER 2 LAYOUT MODEL: PASS' : '\nTIER 2 LAYOUT MODEL: FAIL');
+console.log('\n' + (bad === 0 ? 'LAYOUT CHECK: PASS (0 overlaps / 0 clipped / >=48px)' : 'LAYOUT CHECK: FAIL (' + bad + ' sizes)'));
+await closeAll();
 process.exit(bad ? 1 : 0);

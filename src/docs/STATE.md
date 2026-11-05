@@ -1,5 +1,42 @@
 # STATE - TerraForm 3D (live status)
 
+## LATEST - QUALITY PASS v3 (2026-11-05) - REAL BROWSER VERIFIED
+
+> **Read `docs/DEPTH_REPORT.md` first.** It is the current, honest report. The
+> "FINAL PRODUCT PUSH - BUILT, NOT VERIFIED" section below is HISTORICAL and its
+> claim that no browser/screenshots were available is FALSE for this session.
+
+- Active branch `arena/154f02b1-gameprotype`, base `clean-v1` merge `1793af7`.
+  `main` untouched. Commits: `d83a47a` Tier A, `26cd886` Tier B, `0428c15`
+  Tier C, `6da2fb1` Tier D (plus the final docs/QA commit).
+- Tooling: `@sparticuz/chromium@153.0.0`, `playwright-core@1.64.1`, `pngjs@7.0.0`.
+  Real Chromium 153.0.8010.0 serves built `dist/` at `127.0.0.1:4179`.
+- `docs/QA_EVIDENCE.txt`: contrast 0 failures; layout PASS at 5 sizes;
+  button-check 20/20 (52 clicks); level-walk **29/29** (15 levels, L1 exactly
+  3 held-F scoops + 3 held-G dumps, L4 wrong-truck / L7 pipe-drop / L9 fall-off
+  negatives); perf PASS; sdk-check 0 × `CrazySDK is not initialized yet`;
+  all 6 Node static harnesses PASS.
+- `docs/QA_PERF.txt`: start 65.5 fps/246 draws, L1 53.8/253, L11 57.5/355,
+  L15 53.6/305, Free Play 52.0/158 (<200). A11 reverse beeper `beeps 0→6`.
+  Draw-call counter fixed with `renderer.info.autoReset=false` + explicit reset.
+- `docs/QA_SESSION_LOG.txt`: 602 s real session, 108 clicks / 323 key holds /
+  16 level changes / 0 crashes / 0 red errors. Honest caveat: software WebGL
+  decays to ~5-8 fps over 10 min (avg 7.4); 60 fps on real hardware is NOT
+  verified.
+- `docs/screenshots/`: 18 named PNGs + 15 `level-XX.png` + 15 `-30s.png` +
+  `levels-contact-sheet.png`. Every one was opened and inspected.
+- 5 worst-looking things listed and **all 5 fixed**, including the Free Play
+  timer HUD (`#tf-hud .tf-timer.off{display:none}` — the `.off` class had no
+  CSS rule at all). See DEPTH_REPORT §2.
+- `src/gameplay/Stages.js` is NEW: 15 distinct grounds/skies/fog/skylines/
+  landmarks/yaws/verbs/3-line coaches/sound beds. `src/core/CameraManager.js`
+  gained `snapTo()`. `Jobs.js` now has six 4-step upgrades (was 3).
+- `README.md` at repo root is now a real project README.
+
+---
+
+
+
 ## LATEST - FINAL PRODUCT PUSH (2026-11-05) - BUILT, NOT VERIFIED
 
 - Branch `arena/66b14966-gameprotype`, based on `clean-v1` HEAD `8c57ed6` (PR #2 merge).

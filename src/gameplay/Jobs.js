@@ -25,23 +25,23 @@ export const RANKS = [
   { name: 'Legend', xp: 2200 }
 ];
 
+// TIER E: ONE source of truth for the SIX garage upgrades, four paid steps
+// (100 / 250 / 500 / 900). main.js GARAGE mirrors this table exactly.
 export const UPGRADES = {
-  engine: {
-    name: 'Engine Power',
-    prices: [100, 250, 500],
-    lines: ['Top speed 32 km/h', 'Top speed 37 km/h', 'Top speed 42 km/h', 'Top speed 47 km/h']
-  },
-  hydraulic: {
-    name: 'Hydraulics',
-    prices: [100, 250, 500],
-    lines: ['Arm speed 100%', 'Arm speed 160%', 'Arm speed 220%', 'Arm speed 280%']
-  },
-  bucket: {
-    name: 'Big Bucket',
-    prices: [150, 300, 600],
-    lines: ['Tip 10 coins per load', 'Tip 16 coins per load', 'Tip 24 coins per load', 'Tip 34 coins per load']
-  }
+  engine:    { name: 'Engine Power', prices: [100, 250, 500, 900],
+    lines: ['32 km/h', '37 km/h', '42 km/h', '47 km/h', '52 km/h'] },
+  hydraulic: { name: 'Hydraulics', prices: [100, 250, 500, 900],
+    lines: ['Arm speed 100%', 'Arm speed 160%', 'Arm speed 220%', 'Arm speed 280%', 'Arm speed 340%'] },
+  bucket:    { name: 'Big Bucket', prices: [100, 250, 500, 900],
+    lines: ['Tip 10 coins', 'Tip 16 coins', 'Tip 24 coins', 'Tip 34 coins', 'Tip 44 coins'] },
+  tyres:     { name: 'Tyres', prices: [100, 250, 500, 900],
+    lines: ['Grip 100%', 'Grip 115%', 'Grip 130%', 'Grip 145%', 'Grip 160%'] },
+  light:     { name: 'Work Light', prices: [100, 250, 500, 900],
+    lines: ['Night light 100%', 'Night light 125%', 'Night light 150%', 'Night light 175%', 'Night light 200%'] },
+  beacon:    { name: 'Beacon', prices: [100, 250, 500, 900],
+    lines: ['Coin bonus +0%', 'Coin bonus +3%', 'Coin bonus +6%', 'Coin bonus +10%', 'Coin bonus +15%'] }
 };
+export const UPGRADE_KEYS = Object.keys(UPGRADES);
 
 // bearing: 0 = north (-z), 90 = east. dist = metres from the garage. gap = pile to truck distance.
 // LEVELS (Levels.js) is the single source of truth for all 15 jobs: goals, rules, mood and site.
@@ -428,7 +428,7 @@ export function buildSiteDressing(THREE, id, pile, truck) {
   };
   const lamp = (x, z, h, power) => {
     cyl(0.28, 0.4, h, x, h / 2, z, 0x5b6573);
-    box(2.4, 1.0, 0.8, x, h + 0.3, z, 0xfff4c9, yawU, { emissive: 0xffe9a8, emissiveIntensity: 3, roughness: 0.4 });
+    box(1.8, 0.7, 0.6, x, h + 0.3, z, 0xfff4c9, yawU, { emissive: 0xffe9a8, emissiveIntensity: 0.75, roughness: 0.4 });
     if (power) {
       const L = new THREE.PointLight(0xfff0c8, power, 70, 2);
       L.position.set(x, h - 0.5, z);

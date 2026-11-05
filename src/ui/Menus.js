@@ -32,7 +32,7 @@ const ICON = {
   spark: '<path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/>'
 };
 const svg = (n, cls) => `<svg class="tf-ic ${cls || ''}" viewBox="0 0 24 24" aria-hidden="true">${ICON[n] || ''}</svg>`;
-const tile = (a, n, label, extra) => `<button class="tf-tile ${extra || ''}" data-a="${a}" aria-label="${label}">${svg(n)}<span>${label}</span></button>`;
+const tile = (a, n, label, extra) => `<button class="tf-tile tf-btn ${extra || ''}" data-a="${a}" aria-label="${label}">${svg(n)}<span>${label}</span></button>`;
 
 // A code-made backhoe silhouette for the start screen. No external artwork.
 const MACHINE_SVG = `<svg viewBox="0 0 460 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -58,94 +58,128 @@ const HELP_PAGES = [
 ];
 
 const CSS = `
-#tf-start,#tf-win{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#f1f5f9}
+/* Every colour comes from the ONE token block in index.html. */
+#tf-start,#tf-win{font-family:var(--font);color:var(--ink);font-weight:700;font-size:15px;line-height:1.25}
 #tf-start *,#tf-win *{box-sizing:border-box}
-#tf-start button,#tf-win button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;outline:none;margin:0}
-#tf-start button:focus-visible,#tf-win button:focus-visible{outline:3px solid #fbbf24;outline-offset:2px}
-#tf-start button:active,#tf-win button:active{transform:translateY(2px)}
+#tf-start button,#tf-win button{font-family:var(--font);
+  cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;outline:none}
+#tf-start button:focus-visible,#tf-win button:focus-visible{outline:3px solid var(--goal);outline-offset:2px}
+#tf-start button:active,#tf-win button:active{transform:translateY(2px);box-shadow:none}
 .tf-ic{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.tf-panel{background:linear-gradient(180deg,#34445f,#151d2b);border:2px solid #0a0f18;border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 4px 0 #0a0f18,0 18px 44px rgba(0,0,0,.6)}
-.tf-well{background:#0b111a;border-radius:10px}
-.tf-amber{background:linear-gradient(#fde68a,#f59e0b);color:#1a1204;border:2px solid #0a0f18;box-shadow:0 4px 0 #b45309;font-weight:900;letter-spacing:.04em}
-.tf-green{background:linear-gradient(#34d399,#059669);color:#052e21;border:2px solid #0a0f18;box-shadow:0 4px 0 #065f46;font-weight:900}
-.tf-red{background:linear-gradient(#f87171,#b91c1c);color:#fff;border:2px solid #0a0f18;box-shadow:0 4px 0 #7f1d1d;font-weight:900}
-.tf-sec{background:linear-gradient(180deg,#3a4c68,#1d2839);border:2px solid #0a0f18;box-shadow:0 4px 0 #0a0f18;color:#f1f5f9;font-weight:800}
-.tf-h2{font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#fbbf24;font-size:22px;margin:0 0 10px}
-.tf-mut{color:#94a3b8;font-size:14px}
+.tf-panel{background:var(--panel);border:2px solid var(--border);border-radius:var(--radius);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),var(--shadow),0 18px 44px rgba(0,0,0,.6)}
+.tf-well{background:var(--well);border-radius:10px}
+/* Secondary button - the DEFAULT for every tile that has no other look. */
+.tf-btn{font:900 15px/1 var(--font);letter-spacing:.04em;text-transform:uppercase;color:var(--ink);
+  background:var(--steel);border:2px solid var(--border);border-radius:12px;
+  box-shadow:0 3px 0 var(--border),inset 0 1px 0 rgba(255,255,255,.2)}
+.tf-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--border)}
+.tf-amber{background:var(--amber);color:#1a1204;border:2px solid var(--border);box-shadow:0 4px 0 var(--amber-dark);font-weight:900;letter-spacing:.04em}
+.tf-green{background:var(--green);color:#052e21;border:2px solid var(--border);box-shadow:0 4px 0 #065f46;font-weight:900}
+.tf-red{background:var(--red);color:#fff;border:2px solid var(--border);box-shadow:0 4px 0 #7f1d1d;font-weight:900}
+.tf-sec{background:var(--steel);border:2px solid var(--border);box-shadow:0 4px 0 var(--border);color:var(--ink);font-weight:800}
+.tf-h2{font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:var(--goal);font-size:22px;margin:0 0 10px}
+.tf-mut{color:var(--muted);font-size:14px}
 
-/* ---------------------------------------------------------------- start */
+/* ---------------------------------------------------------------- start (A2) */
+/* Semi-transparent: the REAL 3D backhoe + yard render behind the card. */
 #tf-start{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(circle at 50% 35%,#2b384e,#0b111a 75%);overflow:hidden}
+  background:linear-gradient(180deg,rgba(8,14,24,.42),rgba(8,14,24,.72));overflow:hidden}
 #tf-start.off{display:none}
-.tf-start-glow{position:absolute;inset:0;background:radial-gradient(circle at 50% 78%,rgba(251,191,36,.16),transparent 55%);pointer-events:none}
-.tf-machine{position:absolute;bottom:6%;left:50%;transform:translateX(-50%);width:min(560px,92vw);opacity:.28;pointer-events:none}
-.tf-machine svg{width:100%;height:auto}
-.tf-start-box{position:relative;z-index:2;width:min(430px,88vw);display:flex;flex-direction:column;align-items:center;gap:12px;
-  padding:22px 20px 18px;border-radius:18px;text-align:center}
-.tf-start-box h1{font-size:clamp(30px,6vw,48px);font-weight:900;letter-spacing:.06em;margin:0;color:#fbbf24;text-shadow:0 3px 0 #0a0f18,0 6px 0 #b45309}
-.tf-start-tag{font-size:13px;font-weight:800;letter-spacing:.28em;color:#94a3b8;margin-top:-6px}
-.tf-play{width:100%;height:64px;font-size:24px;border-radius:14px}
+.tf-start-glow{position:absolute;inset:0;background:radial-gradient(circle at 50% 78%,rgba(251,191,36,.12),transparent 55%);pointer-events:none}
+.tf-machine{display:none}   /* replaced by the live 3D turntable */
+.tf-start-box{position:relative;z-index:2;width:min(440px,90vw);max-width:440px;display:flex;flex-direction:column;
+  align-items:center;gap:12px;padding:22px 20px 18px;border-radius:18px;text-align:center;
+  background:linear-gradient(180deg,rgba(52,68,95,.95),rgba(21,29,43,.95));
+  border:2px solid var(--border);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),var(--shadow),0 18px 44px rgba(0,0,0,.6);
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.tf-start-box h1{font-size:clamp(26px,7vw,50px);font-weight:900;letter-spacing:.02em;line-height:1.05;
+  white-space:nowrap;margin:0;color:var(--goal);text-shadow:0 3px 0 var(--border),0 6px 0 var(--amber-dark)}
+.tf-start-tag{font-size:14px;font-weight:800;letter-spacing:.28em;color:var(--muted);margin-top:-6px}
+.tf-play{width:100%;height:64px;font-size:24px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:10px}
 .tf-start-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%}
-.tf-start-row button{height:74px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:800;letter-spacing:.04em}
-.tf-free{width:100%;height:48px;border-radius:12px;font-size:15px}
-.tf-start-foot{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:800;z-index:2}
-.tf-start-foot span{background:#0b111a;border:2px solid #0a0f18;border-radius:999px;padding:6px 12px;color:#94a3b8}
-.tf-start-foot b{color:#fbbf24}
-.tf-start-sound{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));width:48px;height:48px;border-radius:50%;z-index:3}
+.tf-start-row button{height:88px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;font-size:14px;font-weight:900;letter-spacing:.04em;color:var(--ink)}
+.tf-start-row button .tf-ic{width:28px;height:28px;color:var(--goal)}
+.tf-free{width:100%;height:48px;border-radius:12px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
+.tf-start-foot{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;display:flex;
+  justify-content:center;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:800;z-index:2}
+.tf-start-foot span{background:var(--well);border:2px solid var(--border);border-radius:999px;padding:6px 12px;color:var(--muted)}
+.tf-start-foot b{color:var(--goal)}
+.tf-start-sound{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));
+  width:48px;height:48px;border-radius:50%;z-index:3;display:flex;align-items:center;justify-content:center}
+@media (max-width:480px){
+  .tf-start-row{grid-template-columns:repeat(2,1fr)}
+  .tf-start-row button{height:76px}
+  .tf-start-box{gap:10px;padding:18px 16px 16px}
+}
 @media (max-height:470px){
-  .tf-start-box{gap:6px;padding:10px 16px}.tf-start-box h1{font-size:28px}
-  .tf-play{height:52px;font-size:20px}.tf-start-row button{height:56px;font-size:11px}
-  .tf-free{height:42px}.tf-machine{display:none}
+  .tf-start-box{gap:6px;padding:10px 16px}.tf-start-box h1{font-size:26px}
+  .tf-play{height:52px;font-size:20px}.tf-start-row button{height:56px;font-size:14px}
+  .tf-free{height:42px}
 }
 
 /* ---------------------------------------------------------------- windows */
-#tf-win{position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px))}
+#tf-win{position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;
+  padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px))}
 #tf-win.off{display:none}
 .tf-scrim{position:absolute;inset:0;background:rgba(6,10,16,.66);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
-.tf-winbox{position:relative;z-index:2;width:min(520px,94vw);max-height:calc(100vh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+.tf-winbox{position:relative;z-index:2;width:min(520px,94vw);
+  max-height:calc(100vh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
   display:flex;flex-direction:column;padding:18px 16px 16px;overflow:hidden}
-.tf-x{position:absolute;top:8px;right:8px;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:3}
+.tf-x{position:absolute;top:8px;right:8px;width:44px;height:44px;border-radius:50%;display:flex;color:#fff;
+  align-items:center;justify-content:center;z-index:3}
 .tf-x .tf-ic{width:22px;height:22px}
 .tf-winbody{overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
 .tf-winbody::-webkit-scrollbar{width:8px}.tf-winbody::-webkit-scrollbar-thumb{background:#3a4c68;border-radius:8px}
 .tf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.tf-tile{min-height:96px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:900;letter-spacing:.04em;text-transform:uppercase}
-.tf-tile .tf-ic{width:34px;height:34px}
-.tf-tile.tf-green{min-height:96px;font-size:16px}
+/* A1: tiles are ALWAYS dark steel. No browser-default white button can appear. */
+.tf-tile{min-height:96px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;font-size:14px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);
+  background:var(--steel);border:2px solid var(--border);box-shadow:0 3px 0 var(--border),inset 0 1px 0 rgba(255,255,255,.2)}
+.tf-tile .tf-ic{width:34px;height:34px;color:var(--goal)}
+.tf-tile.tf-green{min-height:96px;font-size:16px;color:#052e21;background:var(--green);border-color:var(--border);box-shadow:0 4px 0 #065f46}
+.tf-tile.tf-green .tf-ic{color:#052e21}
 .tf-title{margin:0 34px 12px 0}
 
 /* settings */
-.tf-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:4px 2px;border-bottom:1px solid rgba(148,163,184,.18)}
+.tf-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:4px 2px;
+  border-bottom:1px solid rgba(148,163,184,.18)}
 .tf-row label{font-size:15px;font-weight:800;flex:none;min-width:92px}
-.tf-row input[type=range]{flex:1;min-width:90px;height:32px;accent-color:#fbbf24}
-.tf-row .tf-val{width:38px;text-align:right;font-variant-numeric:tabular-nums;color:#fbbf24;font-weight:900;font-size:14px}
+.tf-row input[type=range]{flex:1;min-width:90px;height:32px;accent-color:var(--goal)}
+.tf-row .tf-val{width:38px;text-align:right;font-variant-numeric:tabular-nums;color:var(--goal);font-weight:900;font-size:14px}
 .tf-seg{display:flex;gap:4px;flex-wrap:wrap}
-.tf-seg button{min-width:56px;height:44px;padding:0 10px;border-radius:9px;font-size:13px;font-weight:900}
-.tf-seg button.on{background:linear-gradient(#fde68a,#f59e0b);color:#1a1204}
-.tf-tog{width:64px;height:40px;border-radius:999px;position:relative;flex:none}
-.tf-tog i{position:absolute;top:5px;left:5px;width:30px;height:30px;border-radius:50%;background:#94a3b8;transition:left .16s,background .16s}
-.tf-tog.on i{left:29px;background:#34d399}
+.tf-seg button{min-width:56px;height:44px;padding:0 10px;border-radius:9px;font-size:14px;font-weight:900;
+  background:var(--steel);border:2px solid var(--border);color:var(--ink)}
+.tf-seg button.on{background:var(--amber);color:#1a1204}
+.tf-tog{width:64px;height:40px;border-radius:999px;position:relative;flex:none;
+  background:var(--steel);border:2px solid var(--border)}
+.tf-tog i{position:absolute;top:5px;left:5px;width:30px;height:30px;border-radius:50%;background:var(--muted);transition:left .16s,background .16s}
+.tf-tog.on i{left:29px;background:var(--green-flat)}
 
 /* help */
-.tf-help-pic{height:150px;border-radius:10px;background:#0b111a;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.tf-help-pic{height:150px;border-radius:10px;background:var(--well);display:flex;align-items:center;justify-content:center;margin-bottom:10px}
 .tf-help-pic svg{width:min(280px,90%);height:auto}
 .tf-help-line{text-align:center;font-size:17px;font-weight:800;min-height:28px}
 .tf-help-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
-.tf-help-nav button{height:48px;min-width:96px;border-radius:10px;font-weight:900}
-.tf-dots{display:flex;gap:6px}.tf-dots i{width:9px;height:9px;border-radius:50%;background:#3a4c68}.tf-dots i.on{background:#fbbf24}
+.tf-help-nav button{height:48px;min-width:96px;border-radius:10px;font-weight:900;
+  background:var(--steel);border:2px solid var(--border);color:var(--ink)}
+.tf-dots{display:flex;gap:6px}.tf-dots i{width:9px;height:9px;border-radius:50%;background:#3a4c68}.tf-dots i.on{background:var(--goal)}
 
 /* level picker */
 .tf-tabs{display:flex;gap:6px;margin-bottom:10px}
-.tf-tabs button{flex:1;height:44px;border-radius:9px;font-size:12px;font-weight:900;letter-spacing:.04em}
-.tf-tabs button.on{background:linear-gradient(#fde68a,#f59e0b);color:#1a1204}
+.tf-tabs button{flex:1;height:44px;border-radius:9px;font-size:14px;font-weight:900;letter-spacing:.04em;
+  background:var(--steel);border:2px solid var(--border);color:var(--ink)}
+.tf-tabs button.on{background:var(--amber);color:#1a1204}
 .tf-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.tf-card{min-height:96px;text-align:left;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:3px;position:relative}
-.tf-card.sel{outline:3px solid #fbbf24}
+.tf-card{min-height:96px;text-align:left;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:3px;position:relative;
+  background:var(--steel);border:2px solid var(--border);color:var(--ink)}
+.tf-card.sel{outline:3px solid var(--goal)}
 .tf-card.lock{opacity:.55}
-.tf-card .n{font-size:11px;color:#94a3b8;font-weight:900;letter-spacing:.08em}
+.tf-card .n{font-size:14px;color:var(--muted);font-weight:900;letter-spacing:.08em}
 .tf-card .nm{font-size:15px;font-weight:900;line-height:1.15}
-.tf-card .st{font-size:13px;color:#fbbf24;letter-spacing:2px}
-.tf-card .tag{position:absolute;top:7px;right:8px;font-size:9px;font-weight:900;color:#0b111a;background:#94a3b8;border-radius:5px;padding:2px 5px}
+.tf-card .st{font-size:14px;color:var(--goal);letter-spacing:2px}
+.tf-card .tag{position:absolute;top:7px;right:8px;font-size:14px;font-weight:900;color:var(--well);background:var(--muted);border-radius:5px;padding:2px 5px}
 .tf-card .lk{position:absolute;top:8px;right:8px}.tf-card .lk .tf-ic{width:18px;height:18px}
 .tf-pick-foot{margin-top:10px;display:flex;flex-direction:column;gap:8px}
 .tf-pick-foot .desc{font-size:14px;color:#cbd5e1;min-height:20px}
@@ -153,34 +187,41 @@ const CSS = `
 
 /* garage */
 .tf-up{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.tf-up-card{border-radius:10px;padding:9px;display:flex;flex-direction:column;gap:5px;min-height:118px}
+.tf-up-card{border-radius:10px;padding:9px;display:flex;flex-direction:column;gap:5px;min-height:118px;
+  background:var(--steel);border:2px solid var(--border)}
 .tf-up-card .nm{font-size:14px;font-weight:900;display:flex;align-items:center;gap:6px}
-.tf-up-card .nm .tf-ic{width:20px;height:20px;color:#fbbf24}
-.tf-pips{display:flex;gap:4px}.tf-pips i{width:18px;height:9px;border-radius:3px;background:#0b111a;border:1px solid #0a0f18}
-.tf-pips i.on{background:linear-gradient(#fde68a,#f59e0b)}
-.tf-up-card .ln{font-size:12px;color:#94a3b8;min-height:16px}
-.tf-up-card button{height:40px;border-radius:8px;font-size:12px;font-weight:900}
+.tf-up-card .nm .tf-ic{width:20px;height:20px;color:var(--goal)}
+.tf-pips{display:flex;gap:4px}.tf-pips i{width:18px;height:9px;border-radius:3px;background:var(--well);border:1px solid var(--border)}
+.tf-pips i.on{background:var(--amber)}
+.tf-up-card .ln{font-size:14px;color:var(--muted);min-height:16px}
+.tf-up-card button{height:40px;border-radius:8px;font-size:14px;font-weight:900;
+  background:var(--green);color:#052e21;border:2px solid var(--border)}
+.tf-up-card button.cant{background:#3a4c68;color:var(--ink)}
 .tf-up-card button:disabled{opacity:.5;cursor:default}
-.tf-max{font-size:11px;font-weight:900;color:#34d399}
+.tf-max{font-size:14px;font-weight:900;color:var(--success)}
 .tf-sw{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;align-items:center}
-.tf-sw i{width:34px;height:34px;border-radius:50%;border:3px solid #0a0f18;cursor:pointer}
-.tf-sw i.on{outline:3px solid #fbbf24}
+.tf-sw i{width:34px;height:34px;border-radius:50%;border:3px solid var(--border);cursor:pointer}
+.tf-sw i.on{outline:3px solid var(--goal)}
 
 /* result / fail */
 .tf-stars{display:flex;justify-content:center;gap:8px;margin:4px 0 10px}
 .tf-stars .tf-ic{width:44px;height:44px;color:#3a4c68}
-.tf-stars .tf-ic.on{color:#fbbf24;fill:#fbbf24}
-.tf-bigcoin{text-align:center;font-size:34px;font-weight:900;color:#fbbf24;text-shadow:0 3px 0 #0a0f18}
+.tf-stars .tf-ic.on{color:var(--goal);fill:var(--goal)}
+.tf-bigcoin{text-align:center;font-size:34px;font-weight:900;color:var(--goal);text-shadow:0 3px 0 var(--border)}
 .tf-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
-.tf-acts button{height:54px;border-radius:11px;font-size:15px;font-weight:900}
-.tf-reward{width:100%;height:44px;border-radius:10px;margin-top:8px;font-size:13px;font-weight:900}
+.tf-acts button{height:54px;border-radius:11px;font-size:15px;font-weight:900;
+  background:var(--steel);border:2px solid var(--border);color:var(--ink)}
+.tf-acts button.tf-amber{background:var(--amber);color:#1a1204}
+.tf-reward{width:100%;height:44px;border-radius:10px;margin-top:8px;font-size:14px;font-weight:900;
+  background:var(--steel);border:2px solid var(--border);color:var(--ink)}
 
-/* big map */
-.tf-winbox.mapwin{width:min(760px,96vw);height:min(660px,88vh)}
-.tf-mapwrap{position:relative;flex:1;min-height:200px;border-radius:10px;overflow:hidden;background:#0b111a}
+/* big map - SQUARE canvas fills the width, never half empty */
+.tf-winbox.mapwin{width:min(760px,96vw,calc(100vh - 130px));height:auto;max-height:calc(100vh - 24px)}
+.tf-mapwrap{position:relative;width:100%;aspect-ratio:1/1;
+  border-radius:10px;overflow:hidden;background:var(--well)}
 #tf-map-c{width:100%;height:100%;display:block}
-.tf-mapkey{position:absolute;left:10px;bottom:10px;display:flex;gap:10px;font-size:12px;font-weight:800;background:rgba(11,17,26,.8);padding:6px 10px;border-radius:8px}
-.tf-mapkey b{color:#fbbf24}
+.tf-mapkey{position:absolute;left:10px;bottom:10px;display:flex;gap:10px;font-size:14px;font-weight:800;
+  background:rgba(11,17,26,.85);padding:6px 10px;border-radius:8px}
 
 /* confirm */
 .tf-confirm{text-align:center}
@@ -189,13 +230,13 @@ const CSS = `
 
 @media (max-width:560px){
   .tf-grid{grid-template-columns:repeat(3,1fr);gap:7px}
-  .tf-tile{min-height:84px;font-size:11px}.tf-tile .tf-ic{width:28px;height:28px}
+  .tf-tile{min-height:84px;font-size:14px}.tf-tile .tf-ic{width:28px;height:28px}
   .tf-up{grid-template-columns:1fr 1fr}
   .tf-winbox{padding:14px 12px 12px}
   .tf-h2{font-size:19px}
 }
 @media (max-height:470px){
-  .tf-winbox{padding:10px 12px}.tf-tile{min-height:64px;font-size:11px;flex-direction:row;gap:5px}
+  .tf-winbox{padding:10px 12px}.tf-tile{min-height:64px;font-size:14px;flex-direction:row;gap:5px}
   .tf-tile .tf-ic{width:24px;height:24px}.tf-help-pic{height:100px}.tf-h2{font-size:18px;margin-bottom:6px}
 }
 `;
@@ -228,7 +269,6 @@ export default class Menus {
     this.start.id = 'tf-start';
     this.start.innerHTML = `
       <div class="tf-start-glow"></div>
-      <div class="tf-machine">${MACHINE_SVG}</div>
       <button class="tf-start-sound tf-sec" data-a="sound" aria-label="Sound on or off">${svg('sound')}</button>
       <div class="tf-start-box tf-panel">
         <h1>TERRAFORM 3D</h1>
@@ -509,8 +549,9 @@ export default class Menus {
       </div></div>`;
   }
   _map() {
-    return `<h2 class="tf-h2 tf-title">SITE MAP</h2>
-      <div class="tf-mapwrap"><canvas id="tf-map-c" width="720" height="560"></canvas>
+    const d = this._data() || {}, m = d.map || {};
+    return `<h2 class="tf-h2 tf-title">SITE MAP · ${String(m.name || 'SITE').toUpperCase()}</h2>
+      <div class="tf-mapwrap"><canvas id="tf-map-c" width="720" height="720"></canvas>
         <div class="tf-mapkey"><span><b>●</b> YOU</span><span style="color:#34d399"><b>●</b> GOAL</span><span><b style="color:#22d3ee">●</b> LANDMARK</span></div>
       </div>`;
   }
@@ -525,6 +566,7 @@ export default class Menus {
     const goals = m.goals || [];
     const p = m.player || { x: 0, z: 0, yaw: 0 };
     let minX = -60, maxX = 60, minZ = -60, maxZ = 60;
+    if (m.bounds) { minX = m.bounds.minX; maxX = m.bounds.maxX; minZ = m.bounds.minZ; maxZ = m.bounds.maxZ; }
     const all = [{ x: p.x, z: p.z }, ...goals, ...(m.landmark ? [m.landmark] : [])];
     for (const b of pts) { all.push({ x: b.x - b.w / 2, z: b.z - b.d / 2 }, { x: b.x + b.w / 2, z: b.z + b.d / 2 }); }
     for (const a of all) { if (!Number.isFinite(a.x) || !Number.isFinite(a.z)) continue; minX = Math.min(minX, a.x); maxX = Math.max(maxX, a.x); minZ = Math.min(minZ, a.z); maxZ = Math.max(maxZ, a.z); }
@@ -573,6 +615,7 @@ export default class Menus {
       g.strokeStyle = q.color || '#34d399'; g.lineWidth = 3;
       g.beginPath(); g.arc(X(q.x), Z(q.z), 11, 0, 6.284); g.stroke();
       g.fillStyle = q.color || '#34d399'; g.beginPath(); g.arc(X(q.x), Z(q.z), 4, 0, 6.284); g.fill();
+      if (q.label) { g.font = 'bold 16px sans-serif'; g.textAlign = 'center'; g.fillText(q.label, X(q.x), Z(q.z) - 16); }
     }
     // Compass + scale bar (code-drawn, no outside image).
     g.fillStyle = '#94a3b8'; g.font = 'bold 13px sans-serif'; g.textAlign = 'left';

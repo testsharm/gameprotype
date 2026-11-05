@@ -1,5 +1,34 @@
 # FILE MAP - TerraForm 3D (depth summary of every file)
 
+## LATEST - QUALITY PASS v3 (2026-11-05)
+
+The table below is HISTORICAL (it describes HUD v7 and the pre-Tier-C layout).
+Current source of truth: `README.md` at the repo root and `docs/DEPTH_REPORT.md`.
+
+New/changed since this table was written:
+- `src/ui/GameUI.js` → **HUD v8**: always-visible `.tf-touch`, circular speedometer,
+  hidden keyboard pad, `setVerbs()`, `setLoads()`, ≥14px fonts, `.tf-ring{inset:0}`.
+- `src/ui/Menus.js` → steel/amber theme, square 720×720 `#tf-map-c` map canvas.
+- `src/gameplay/Stages.js` → **NEW** 15-stage environment system (`STAGE_TABLE`,
+  `StageManager`, `qaStage()`, `qaAllStages()`), ground textures, skylines,
+  landmarks, traffic lineup, 3 coach lines, sound beds.
+- `src/gameplay/Levels.js` → `stageCoach()`, compound cone gates, tumble ≤1.5 s, `+2s`.
+- `src/gameplay/Jobs.js` → six `UPGRADES` of 4 paid steps each + `UPGRADE_KEYS`.
+- `src/core/CameraManager.js` → `snapTo(vehicleMesh, pos)` kills the 4 s teleport fly-in.
+- `src/core/Audio.js` → `setSoundBed(name)`, `beepCount`, `engine:0.28`.
+- `src/main.js` → renderFrame() QA instrumentation, `qaRender()`, `qaAudio()`,
+  stage wiring, `ui.setLoads(0)` in Free Play.
+- `scripts/` → `browser.mjs`, `contrast-check.mjs`, `layout-check.mjs`,
+  `button-check.mjs`, `level-walk.mjs`, `screenshots.mjs`, `contact-sheet.mjs`,
+  `perf-check.mjs`, `sdk-check.mjs`, `session.mjs` (all real Chromium), plus
+  refreshed Node harnesses.
+- `docs/` → `QA_EVIDENCE.txt`, `QA_PERF.txt`, `QA_SESSION_LOG.txt`,
+  `DEPTH_REPORT.md`, `screenshots/` (48 real PNGs).
+
+---
+
+
+
 ## LATEST (2026-11-05, FINAL PRODUCT PUSH) - new / changed files
 
 | File | Role |

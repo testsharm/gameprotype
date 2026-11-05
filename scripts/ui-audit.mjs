@@ -61,25 +61,26 @@ for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture', 'blur', 'v
 }
 ok(!hud.includes('new KeyboardEvent'), 'no fake keyboard events');
 
-// ---- 5. TIER 2 exact layout tokens (CSS px)
+// ---- 5. HUD v8 layout tokens (CSS px). The AUTHORITATIVE overlap / size
+// check is scripts/layout-check.mjs, which measures real Chromium rects at
+// 1920x1080, 1280x720, 844x390, 440x956 and 390x844.
 const css = hud.slice(hud.indexOf('const CSS = `'), hud.indexOf('const HOLD_CODES'));
 for (const [label, token] of [
-  ['portrait mission card 52px', 'height:52px;transform:none'],
-  ['portrait minimap 88px', 'width:88px;height:88px'],
-  ['portrait icon stack at y=224', 'top:calc(224px + ${SAFE_T})'],
-  ['portrait Drive 150px on right', 'width:150px;height:150px;right:calc(20px + ${SAFE_R})'],
-  ['portrait Action 92px on left', 'width:92px;height:92px;left:calc(20px + ${SAFE_L})'],
-  ['landscape 844x390 query', '@media (max-height:480px)'],
-  ['portrait phone query', '@media (max-width:600px) and (min-height:481px)'],
+  ['touch controls always shown', '.tf-touch{position:absolute;inset:0;pointer-events:none;display:block}'],
+  ['keyboard pad hidden', '#tf-hud .tf-pad{display:none !important}'],
+  ['landscape 844x390 query', '@media (max-height:560px) and (orientation:landscape)'],
+  ['portrait phone query', '@media (max-width:560px) and (orientation:portrait)'],
+  ['circular speedometer', '#tf-hud .tf-speed{border-radius:50%}'],
+  ['verb-specific action labels', 'id="tf-f-label"'],
   ['safe-area insets', 'SAFE_L'],
   ['left-handed swap', '#tf-hud.tf-lefty .tf-drive'],
   ['no rotate overlay', true]
 ]) {
-  ok(token === true ? !/rotate your phone|orientation.?lock/i.test(hud + menus) : css.includes(token), label);
+  ok(token === true ? !/rotate your phone|orientation.?lock/i.test(hud + menus) : (css.includes(token) || hud.includes(token)), label);
 }
 
-// ---- 6. touch targets >= 48px in every media query
-const sizes = [...css.matchAll(/\.tf-tools button\{width:(\d+)px;height:(\d+)px/g)].map(m => +m[1]);
+// ---- 6. icon-stack buttons >= 48px in every media query
+const sizes = [...css.matchAll(/\.tf-tools \.tf-b\{width:(\d+)px;height:(\d+)px/g)].map(m => +m[1]);
 ok(sizes.length >= 3 && sizes.every(n => n >= 48), 'icon stack buttons >= 48px in all layouts', JSON.stringify(sizes));
 
 // ---- 7. windows have X and are short
@@ -104,7 +105,7 @@ for (const m of ['setScreen','setStartInfo','setJob','setTimer','setCoins','setS
 const ads = read('src/core/Ads.js');
 ok(ads.includes('requestAd(kind, {'), 'Ads uses the documented requestAd API');
 ok(ads.includes('adStarted') && ads.includes('adFinished') && ads.includes('adError'), 'Ads handles all 3 callbacks');
-ok(/if \(!ad\) return Promise\.resolve\(false\)/.test(ads), 'Ads is a no-op when SDK is missing');
+ok(/if \(!ad\) return (false|Promise\.resolve\(false\))/.test(ads) || /await crazySDKReady\(\)/.test(ads), 'Ads is a no-op when SDK is missing');
 
 console.log('\n' + (failures === 0 ? 'UI AUDIT: PASS' : `UI AUDIT: ${failures} FAILURE(S)`));
 process.exit(failures ? 1 : 0);

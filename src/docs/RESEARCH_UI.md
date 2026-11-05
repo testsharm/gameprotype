@@ -1,5 +1,15 @@
 # RESEARCH_UI - compact notes for the Final Product Push
 
+> **2026-11-05 QUALITY PASS v3:** these are historical research notes from the
+> earlier phase. The SDK init gate described below IS implemented in
+> `src/core/Ads.js` / `Portal.js` and verified in real Chromium by
+> `node scripts/sdk-check.mjs` (0 × `CrazySDK is not initialized yet`).
+> Current status: `README.md` and `docs/DEPTH_REPORT.md`.
+
+---
+
+
+
 Only official pages were read. No outside art, fonts, sounds or scripts were downloaded.
 
 ## Official CrazyGames SDK v3 (HTML5)

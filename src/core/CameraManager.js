@@ -66,6 +66,19 @@ export class CameraManager {
         this.collidableMeshes = meshes || [];
     }
 
+    // TIER C/D: after a level teleport the chase camera used to spend ~4 s
+    // flying across the map, showing an empty brown screen. Place it NOW.
+    snapTo(vehicleMesh, pos) {
+        if (!vehicleMesh) return;
+        const p = pos || vehicleMesh.position;
+        const zoom = this._zoom * this._distFactor;
+        const offset = this._offset.copy(CHASE_OFFSET).multiplyScalar(zoom)
+            .applyQuaternion(vehicleMesh.quaternion);
+        this.camera.position.set(p.x, p.y, p.z).add(offset);
+        this.currentLookAt.set(p.x, p.y + 2, p.z);
+        this.camera.lookAt(this.currentLookAt);
+    }
+
     setupInputs() {
         this.domElement.addEventListener('pointerdown', (e) => {
             this.isDragging = true;
@@ -196,16 +209,21 @@ export class CameraManager {
         const offset = this._offset;
 
         if (this.showcase) {
-            // Slow hero orbit for the main menu: the backhoe and the yard stay in view.
-            this._showT += dt * 0.12;
-            const r = 17 * this._distFactor;
+            // A2: REAL 3D backhoe on a slow turntable, 12 s per turn.
+            this._showT += dt * (Math.PI * 2 / 12);
+            const r = 16 * this._distFactor;
             idealPos.set(
                 vehiclePos.x + Math.sin(this._showT) * r,
-                vehiclePos.y + 7.2,
+                vehiclePos.y + 7.0,
                 vehiclePos.z + Math.cos(this._showT) * r
             );
             this.camera.position.lerp(idealPos, k(2.6));
-            this.currentLookAt.lerp(headPos, k(3.2));
+            // Shift the look-at sideways in CAMERA space so the machine sits
+            // beside the centred 440 px card instead of hiding behind it.
+            const dir = new THREE.Vector3().subVectors(this.camera.position, headPos).normalize();
+            const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir).normalize();
+            const look = headPos.clone().addScaledVector(right, 5.2);
+            this.currentLookAt.lerp(look, k(3.2));
             this.camera.lookAt(this.currentLookAt);
             return;
         }

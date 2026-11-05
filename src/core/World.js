@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // World: city, roads, sky, props, job site.
 // Rules used here (anti-flicker): road markings live inside ONE texture,
@@ -1118,22 +1119,22 @@ export class World {
     this.buildingData.push({ x: jobX + 15, y: 2, z: jobZ - 1, w: 4.2, h: 2, d: 6 });
 
     // cones
-    const coneMat = new THREE.MeshStandardMaterial({ color: 0xff5500, roughness: 0.8 });
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-    const baseGeo = new THREE.BoxGeometry(1, 0.3, 1);
-    const coneGeo = new THREE.ConeGeometry(0.45, 1.5, 8);
+    const coneMat = new THREE.MeshStandardMaterial({ color: 0xff6a1a, roughness: 0.75 });
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.95 });
+    // Base + cone are ONE geometry with two material groups, so a knocked cone
+    // tips over as one rigid object. Nothing can float away from its base.
+    const baseGeo = new THREE.BoxGeometry(0.78, 0.14, 0.78);
+    baseGeo.translate(0, 0.07, 0);
+    const coneGeo = new THREE.ConeGeometry(0.38, 1.25, 12);
+    coneGeo.translate(0, 0.14 + 1.25 / 2, 0);
+    const compound = mergeGeometries([baseGeo, coneGeo], true);
     for (let i = 0; i < 16; i++) {
       const angle = (i / 16) * Math.PI * 2;
-      const g = new THREE.Group();
-      const base = new THREE.Mesh(baseGeo, baseMat);
-      base.position.y = 0.15;
-      g.add(base);
-      const cone = new THREE.Mesh(coneGeo, coneMat);
-      cone.position.y = 1.0;
-      cone.castShadow = true;
-      g.add(cone);
-      g.position.set(Math.cos(angle) * 12, 0.04, Math.sin(angle) * 12);
-      this.jobSiteBase.add(g);
+      const m = new THREE.Mesh(compound, [baseMat, coneMat]);
+      m.castShadow = true;
+      m.position.set(Math.cos(angle) * 12, 0.04, Math.sin(angle) * 12);
+      m.userData.isCone = true;
+      this.jobSiteBase.add(m);
     }
   }
 
@@ -1272,8 +1273,9 @@ export class World {
     // --- street lights ---
     const poleGeo = new THREE.CylinderGeometry(0.16, 0.22, 8, 8);
     const poleMat = new THREE.MeshStandardMaterial({ color: 0x3a3d42, roughness: 0.7, metalness: 0.5 });
-    const lampGeo = new THREE.BoxGeometry(1.6, 0.4, 0.7);
-    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0xffee88, emissiveIntensity: 0.6 });
+    // A5: no blown-out white boxes. Small warm head, soft glow only at night.
+    const lampGeo = new THREE.BoxGeometry(0.5, 0.3, 0.9);
+    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffe6a8, emissive: 0xffd277, emissiveIntensity: 0.16, roughness: 0.6 });
     const poles = [];
     const lamps = [];
     ROAD_POS.forEach((rp) => {
@@ -1292,8 +1294,18 @@ export class World {
     poleMesh.castShadow = true;
     this.scene.add(poleMesh);
     const lampMesh = new THREE.InstancedMesh(lampGeo, lampMat, lamps.length);
-    lamps.forEach((p, i) => setM(lampMesh, i, p.x, 8, p.z));
+    lamps.forEach((p, i) => setM(lampMesh, i, p.x, 7.9, p.z));
     this.scene.add(lampMesh);
+    // Night-only light cones. Additive and very faint so they never wash out.
+    const coneMat = new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true,
+      opacity: 0.075, blending: THREE.AdditiveBlending, depthWrite: false,
+      side: THREE.DoubleSide, fog: false });
+    const glowGeo = new THREE.ConeGeometry(2.6, 7.4, 14, 1, true);
+    const glowMesh = new THREE.InstancedMesh(glowGeo, coneMat, lamps.length);
+    lamps.forEach((p, i) => setM(glowMesh, i, p.x, 4.1, p.z));
+    glowMesh.visible = false;
+    this.scene.add(glowMesh);
+    this.nightLampCones = glowMesh;
 
     // --- traffic light poles ---
     const tlPoleGeo = new THREE.CylinderGeometry(0.15, 0.18, 5, 8);
@@ -1388,6 +1400,11 @@ export class World {
         addTree(block.x + (R() - 0.5) * (block.w - 8), block.z + (R() - 0.5) * (block.d - 8), 0.8 + R() * 0.8);
       }
     });
+    // A5: tree blockers are KEPT SEPARATE from buildingData (JobSystem uses
+    // buildingData to find free sites). keepCameraClear() reads treeData too,
+    // so the chase camera can never end up inside a tree canopy.
+    this.treeData = trees.map(t => ({ x: t.x, y: 3.0 * t.s, z: t.z,
+      w: 4.6 * t.s, h: 6.0 * t.s, d: 4.6 * t.s }));
     if (trees.length) {
       const trunkMesh = new THREE.InstancedMesh(trunkGeo, trunkMat, trees.length);
       const c1Mesh = new THREE.InstancedMesh(canopy1Geo, canopyMat, trees.length);
@@ -1721,6 +1738,18 @@ export class World {
 
   // ---------------------------------------------------------- game functions
 
+  // A8: the pile eases down to a small flat patch instead of staying huge.
+  setPileFraction(f) { this._pileTarget = Math.max(0.15, Math.min(1, Number(f) || 1)); }
+  updatePile(dt) {
+    if (!this.dirtPileGroup) return;
+    const t = this._pileTarget === undefined ? 1 : this._pileTarget;
+    const k = 1 - Math.exp(-Math.max(0, dt) * 3.2);
+    const s = this.dirtPileGroup.scale;
+    s.x += (t - s.x) * k; s.y += (t - s.y) * k; s.z += (t - s.z) * k;
+  }
+  // A5: light cones are visible ONLY on night / storm levels.
+  setNight(on) { if (this.nightLampCones) this.nightLampCones.visible = !!on; }
+
   shrinkDirtPile() {
     // B3: shrink VISUALLY only. Never drop clods below a third of the pile,
     // so the third load always has something to scoop. resetDirtPile() is
@@ -1734,6 +1763,8 @@ export class World {
   }
 
   resetDirtPile() {
+    this._pileTarget = 1;
+    if (this.dirtPileGroup) this.dirtPileGroup.scale.setScalar(1);
     this.dirtPileGroup.clear();
     this.allDirtClods = this._masterClods.slice();
     this.allDirtClods.forEach((clod) => this.dirtPileGroup.add(clod));

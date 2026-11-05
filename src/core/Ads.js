@@ -1,11 +1,44 @@
-// TerraForm 3D - ONE safe CrazyGames v3 ad wrapper. No SDK = no-op.
+// TerraForm 3D - ONE safe CrazyGames v3 ad wrapper. No SDK = silent no-op.
 // Official API: window.CrazyGames.SDK.ad.requestAd("midgame"|"rewarded",
 //   { adStarted, adFinished, adError })  - docs.crazygames.com/sdk/video-ads/
-// The docs require the game to be PAUSED and MUTED in adStarted and restored
-// in adFinished / adError. Reward buttons stay hidden when ads are unavailable.
+// A3: the SDK is initialised EXACTLY ONCE. Every caller queues behind the same
+// promise. If the script is missing or init() throws, ads are DISABLED FOREVER
+// and nothing ever reads window.CrazyGames again -> zero red console errors.
 
 const SESSION_MIN_BEFORE_MIDGAME = 120000; // 2 min
 const MIDGAME_COOLDOWN = 180000;          // 3 min (SDK adCooldown is also 3 min)
+
+let _gate = null;          // the single init() promise
+let _disabled = false;     // sticky: once off, never retry
+let _sdkRef = null;        // only set AFTER init() resolves
+
+const _sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+export function crazySDKReady() {
+  if (_disabled) return Promise.resolve(null);
+  if (_gate) return _gate;
+  _gate = (async () => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      _disabled = true; return null;
+    }
+    // The <script> tag is already in index.html. Outside the CrazyGames portal
+    // it fails to load, so we wait a short, bounded time and then give up.
+    const script = document.querySelector('script[data-crazygames-sdk]');
+    if (!script) { _disabled = true; return null; }
+    const start = Date.now();
+    while (!(window.CrazyGames && window.CrazyGames.SDK) && Date.now() - start < 2500) {
+      await _sleep(50);
+    }
+    const S = window.CrazyGames && window.CrazyGames.SDK;
+    if (!S || typeof S.init !== 'function') { _disabled = true; return null; }
+    try { await S.init(); } catch (e) { _disabled = true; return null; }
+    _sdkRef = S;
+    return S;
+  })();
+  return _gate;
+}
+export function crazySDKDisabled() { return _disabled; }
+export function crazySDK() { return _disabled ? null : _sdkRef; }
 
 export default class Ads {
   constructor(opts) {
@@ -20,11 +53,9 @@ export default class Ads {
   _pause(on) { try { if (this.opts.onPause) this.opts.onPause(on); } catch (e) {} }
   _mute(on) { try { if (this.opts.onMute) this.opts.onMute(on); } catch (e) {} }
   _sdk() {
-    try {
-      if (this.SDK) return this.SDK;
-      const s = window.CrazyGames && window.CrazyGames.SDK;
-      if (s && s.ad && typeof s.ad.requestAd === 'function') { this.SDK = s.ad; return this.SDK; }
-    } catch (e) {}
+    // NEVER touch window.CrazyGames before crazySDKReady() has resolved.
+    const S = crazySDK();
+    if (S && S.ad && typeof S.ad.requestAd === 'function') { this.SDK = S.ad; return this.SDK; }
     return null;
   }
   available() { return !!this._sdk() || this.fake; }
@@ -37,12 +68,14 @@ export default class Ads {
   }
 
   // type: 'midgame' | 'rewarded'. Resolves true only when the ad finished.
-  request(type, onGranted) {
+  async request(type, onGranted) {
     const kind = type === 'rewarded' ? 'rewarded' : 'midgame';
     if (kind === 'midgame') this.lastMidgame = Date.now();
     if (this.fake) return this._fake(kind, onGranted);
+    await crazySDKReady();          // A3: queue behind the ONE init()
+    if (crazySDKDisabled()) return false;
     const ad = this._sdk();
-    if (!ad) return Promise.resolve(false);
+    if (!ad) return false;
     this.busy = true;
     return new Promise((resolve) => {
       let done = false;

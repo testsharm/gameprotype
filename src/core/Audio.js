@@ -6,7 +6,7 @@ const LEVELS = {
   master: 0.9,
   music: 0.3,
   ambience: 0.22,
-  engine: 0.7,
+  engine: 0.28,   // A11: ~60% quieter than the old 0.7
   sfx: 0.8,
   reverb: 0.4,
 };
@@ -58,6 +58,7 @@ export class AudioHub {
     this._loadUntil = 0;
     this._musicOn = false;
     this._ambOn = false;
+    this.beepCount = 0;
     this._step = 0;
     this._nextStep = 0;
     this._nextClank = 0;
@@ -482,6 +483,7 @@ export class AudioHub {
     if (!rev) { this._nextBeep = 0; return; }
     if (now >= this._nextBeep) {
       this._nextBeep = now + 0.85;
+      this.beepCount++;
       this._tone({ type: 'square', f0: 1000, f1: 1000, t: now + 0.01, dur: 0.4, a: 0.005, vol: 0.1, lp: 2200, sus: true });
     }
   }
@@ -835,6 +837,17 @@ export class AudioHub {
   stop() { this._musicOn = false; }
 
   setIntensity(v) { this._intTarget = clamp(+v || 0, 0, 1); }
+  // TIER C: each stage has its own sound bed (birds / traffic / rain / night).
+  setSoundBed(name) {
+    this._bed = String(name || 'site');
+    const quiet = this._bed === 'night' || this._bed === 'rain';
+    // Audio may not be unlocked yet on the very first stage (no user gesture).
+    // Never touch this.ctx / this.ambBus before the context exists.
+    if (this.ctx && this.ambBus) {
+      if (quiet) this._nextBird = Infinity; else this._nextBird = this.ctx.currentTime + 4;
+      this.ambBus.gain.setTargetAtTime(quiet ? 0.14 : 0.22, this.ctx.currentTime, 0.4);
+    }
+  }
 
   setEngine(speedKmh, throttle) {
     const s = this._eng;

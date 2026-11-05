@@ -1,5 +1,17 @@
 # UI SPEC - TerraForm 3D (exact boxes AS BUILT)
 
+> **2026-11-05 QUALITY PASS v3:** the CSS geometry below describes HUD v7 and is
+> HISTORICAL. The current HUD is v8 in `src/ui/GameUI.js`. The authoritative
+> measurements are now real Chromium rects, not a CSS model:
+> `node scripts/layout-check.mjs` covers 1920×1080, 1280×720, 844×390,
+> 440×956 and 390×844 (0 overlaps / 0 clipped / 0 sub-48px targets), and
+> `node scripts/contrast-check.mjs` covers 172 elements over 11 screens
+> (0 WCAG failures). See `docs/QA_EVIDENCE.txt` and `docs/DEPTH_REPORT.md`.
+
+---
+
+
+
 Written 2026-11-05. Source of truth: `src/ui/GameUI.js` (HUD CSS) and `src/ui/Menus.js` (windows).
 All values are CSS px, measured from the top-left of the viewport. Safe-area insets
 (`env(safe-area-inset-*)`) are added to every edge offset. This file describes the CSS

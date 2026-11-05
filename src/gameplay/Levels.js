@@ -3,6 +3,8 @@
 // main.js still owns physics, the dig animation, coins and the result window.
 // All art is made in code (no outside images, fonts or sounds).
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { stageCoach } from './Stages.js';
 
 export const CHAPTERS = [
   { id: 1, name: 'Rookie Yard', from: 1, to: 5 },
@@ -21,6 +23,25 @@ const STORM = E('storm', 0.45, 0.70, 0.0055, 0x8e9aa6, true, true);
 const DAWN = E('dawn', 0.85, 0.90, 0.0016, 0xf0d9bd);
 const GOLDEN = E('golden', 0.95, 0.90, 0.0013, 0xffd9a0);
 
+// A9: 3 short coaching lines per level. No generic repeated sentences.
+// Each line is at most 8 words, so it fits one line on a phone.
+export const COACH = {
+  1:  ['Drive to the dirt pile', 'Hold SCOOP for 1.6 seconds', 'Hold DUMP over the blue truck'],
+  2:  ['Follow the amber gate ring', 'Keep the bucket low', 'Pass every gate in order'],
+  3:  ['Scoop the near dirt pile', 'Aim for the amber ring', 'Dump inside the marked hole'],
+  4:  ['Drive the long park road', 'Watch the trees on both sides', 'Line up with the truck bed'],
+  5:  ['Find the glowing pile', 'Scoop before the ring fades', 'Load the waiting blue truck'],
+  6:  ['Stop on the trench plate', 'Hold SCOOP to dig', 'Dump spoil, then find the next'],
+  7:  ['Pick up the pipe rack', 'Carry it slowly', 'Place it on the amber pad'],
+  8:  ['Use your work lights', 'Follow the map arrow', 'Drive slowly in the dark'],
+  9:  ['Scoop, then cross the barrier', 'Keep the load level', 'Dump on the bridge deck'],
+  10: ['Watch the crossing car', 'Scoop at the night pile', 'Load the glowing night truck'],
+  11: ['Find the glowing debris', 'Scoop it cleanly', 'Dump, then find the next pile'],
+  12: ['Dig boxes in arrow order', 'Six boxes, one by one', 'Dump, then move to the next'],
+  13: ['Pick up the crate stack', 'Grip it with the bucket', 'Place it on the amber pad'],
+  14: ['Lower the bucket with E', 'Pass under the low beam', 'Only the amber gate counts'],
+  15: ['Three phases, watch the card', 'Haul, checkpoints, then deck fills', 'Finish all goals before time']
+};
 const H = (scoop, dump) => ({ scoop, dump });
 const S = (bearing, dist, spread, gap) => ({ bearing, dist, spread, gap });
 
@@ -609,14 +630,19 @@ export class LevelEngine {
     // _mesh adds to this.group, so reparent it into the gate group
     this.group.remove(stripe); grp.add(stripe);
     const cones = [];
-    for (const s of [-1, 1]) {
-      const base = new THREE.Mesh(new THREE.BoxGeometry(1, 0.32, 1), this._mat(COL.dark));
-      base.position.set(s * half, 0.16, 0);
-      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.5, 10), this._mat(COL.cone));
-      cone.position.set(s * half, 1.05, 0);
-      cone.castShadow = true;
-      const post = new THREE.Group();
-      post.add(base); post.add(cone);
+    // ONE rigid compound: square base + cone in a single geometry. It tips
+    // over as one object, so the cone can never float away from its base.
+    const bGeo = new THREE.BoxGeometry(0.78, 0.14, 0.78);
+    bGeo.translate(0, 0.07, 0);
+    const cGeo = new THREE.ConeGeometry(0.38, 1.25, 12);
+    cGeo.translate(0, 0.14 + 1.25 / 2, 0);
+    const compound = mergeGeometries([bGeo, cGeo], true);
+    const cMats = [this._mat(COL.dark), this._mat(COL.cone)];
+    for (const side of [-1, 1]) {
+      const post = new THREE.Mesh(compound, cMats);
+      post.position.set(side * half, 0.02, 0);
+      post.castShadow = true;
+      post.userData.tumble = null;
       grp.add(post);
       cones.push(post);
     }
@@ -808,7 +834,9 @@ export class LevelEngine {
         if (g.mesh.userData && g.mesh.userData.stripe) {
           g.mesh.userData.stripe.material = this._mat(COL.green, { emissive: 0x065f46, emissiveIntensity: 0.6 });
           g.mesh.userData.halo.visible = false;
-          g.mesh.userData.cones.forEach(c => { c.rotation.z = 1.15; c.position.y = -0.35; });
+          g.mesh.userData.cones.forEach((c, i) => {
+            if (!c.userData.tumble) c.userData.tumble = { t: 0, dir: i ? 1 : -1, done: false };
+          });
         } else if (g.mesh.userData && g.mesh.userData.lid) {
           g.mesh.userData.lid.visible = false;
           g.mesh.userData.floor.material = this._mat(COL.green);
@@ -856,12 +884,11 @@ export class LevelEngine {
     const labels = { haul: 'Haul loads', fill: 'Hole fills', move: 'Pipes placed', gate: 'Gates', trench: 'Trenches', debris: 'Piles cleared', rush: 'Trucks loaded' };
     return labels[g.kind] + ' ' + this.done + '/' + this.goals.length;
   }
-  hint() {
-    const g = this.active();
-    if (!g) return '';
-    if (g.kind === 'gate') return g.beam ? this.job.hints.dump : this.job.hints.scoop;
-    if (g.kind === 'rush') return 'Load the glowing truck before its timer ring runs out';
-    return this.job.hints.scoop;
+  hint(dirty) {
+    // A9: three SHORT lines per level, shown one at a time. No repeats.
+    const lines = stageCoach(this.job && this.job.id);
+    const phase = dirty ? 2 : (this.done > 0 ? 1 : 0);
+    return lines[Math.min(2, phase)];
   }
   wantsDump() { const k = this.activeKind(); return k === 'haul' || k === 'fill' || k === 'move' || k === 'rush' || k === 'trench' || k === 'debris'; }
   isFinished() { return this.finished; }
@@ -988,6 +1015,17 @@ export class LevelEngine {
   update(dt, vehicle) {
     if (!this.job || !this.group) return;
     this._t += dt;
+    // A4: a knocked cone wobbles to rest in <=1.5 s and then stays perfectly still.
+    if (this.group) this.group.traverse(o => {
+      const t = o.userData && o.userData.tumble;
+      if (!t || t.done) return;
+      t.t += dt;
+      const k = Math.min(1, t.t / 1.5);
+      const damp = Math.exp(-k * 5);
+      o.rotation.z = t.dir * (1.42 * (1 - damp) + Math.sin(t.t * 13) * 0.16 * damp);
+      o.position.y = 0.02 + Math.abs(Math.sin(t.t * 9)) * 0.12 * damp;
+      if (k >= 1) { o.rotation.z = t.dir * 1.42; o.position.y = 0.02; t.done = true; }
+    });
     if (this.comboTime > 0) {
       this.comboTime -= dt;
       if (this.comboTime <= 0) this.combo = 0;
@@ -1033,7 +1071,14 @@ export class LevelEngine {
     if (!crossed && !nearCentre) return;
     if (crossed && lateral > g.width + 1.6 && lateral < g.width + 4.5) {
       this.coneHits++;
-      if (this.hooks.onToast) this.hooks.onToast('Cone knocked over!', 'warn');
+      if (this.hooks.onDing) this.hooks.onDing();
+      if (this.hooks.addTime) this.hooks.addTime(2);
+      if (this.hooks.onToast) this.hooks.onToast('Cone down  +2s', 'success');
+      if (g.mesh && g.mesh.userData && g.mesh.userData.cones) {
+        g.mesh.userData.cones.forEach((c, i) => {
+          if (!c.userData.tumble) c.userData.tumble = { t: 0, dir: i ? 1 : -1, done: false };
+        });
+      }
     }
     if (lateral > g.width && !nearCentre) return;
     if (g.beam && vehicle.bucketPivot) {

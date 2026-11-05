@@ -35,7 +35,8 @@ export default class Guidance {
 
         this._target = null;
         this._visible = true;
-        this._ringGeo = new THREE.RingGeometry(0.55, 0.85, 40);
+        // A6: ground ring radius 2.2 m, only on the CURRENT target.
+        this._ringGeo = new THREE.RingGeometry(1.95, 2.2, 48);
         this._ringMat = new THREE.MeshBasicMaterial({
             color: 0xffb84a, transparent: true, opacity: 0.75,
             blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
@@ -44,6 +45,17 @@ export default class Guidance {
         this._ring.rotation.x = -Math.PI / 2;
         this._ring.visible = false;
         this.scene.add(this._ring);
+
+        // A6: ONE thin additive beam, radius 0.5 m, 12 m tall. It fades out
+        // completely when the machine is closer than 8 m. The old 60 m yellow
+        // wedge was deleted from main.js.
+        this._beamMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true,
+            opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
+            side: THREE.DoubleSide, fog: false });
+        this._beam = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 12, 16, 1, true), this._beamMat);
+        this._beam.visible = false;
+        this.scene.add(this._beam);
+        this._pulseBoost = 0;
 
         // TIER 5: a soft bobbing chevron above the glowing ground ring.
         this._float = new THREE.Group();
@@ -84,6 +96,7 @@ export default class Guidance {
             this._target = null;
             this._ring.visible = false;
             this._float.visible = false;
+            if (this._beam) this._beam.visible = false;
         }
     }
 
@@ -93,6 +106,7 @@ export default class Guidance {
         if (this._ring) this._ring.visible = this._visible && !!this._target;
         if (this._chevrons) this._chevrons.group.visible = this._visible;
         if (!this._visible && this._float) this._float.visible = false;
+        if (!this._visible && this._beam) this._beam.visible = false;
         return this._visible;
     }
     isVisible() { return this._visible; }
@@ -111,7 +125,7 @@ export default class Guidance {
             side: THREE.DoubleSide, polygonOffset: true,
             polygonOffsetFactor: -5, polygonOffsetUnits: -5
         });
-        const plane = new THREE.Mesh(new THREE.PlaneGeometry(5, len), this._chevMat);
+        const plane = new THREE.Mesh(new THREE.PlaneGeometry(2.4, len), this._chevMat);
         plane.rotation.x = -Math.PI / 2;
         plane.renderOrder = 3;
         const group = new THREE.Group();
@@ -183,10 +197,22 @@ export default class Guidance {
             this._ringMat.opacity = 0.35 + pulse * 0.5;
             const d = playerPos ? Math.hypot(playerPos.x - this._target.x, playerPos.z - this._target.z) : 40;
             this._nearFade = Math.max(0, Math.min(1, (d - 7) / 24));
+            // A6: bobbing chevron + beam fade below 8 m. Both belong to the
+            // SAME single target; nothing is drawn at old goals.
             this._float.visible = this._visible && this._nearFade > 0.03;
-            this._float.position.set(this._target.x, 3.1 + Math.sin(this._pulseTime * 2.4) * 0.35, this._target.z);
+            this._float.position.set(this._target.x, 4.4 + Math.sin(this._pulseTime * 2.4) * 0.35, this._target.z);
             this._floatMat.opacity = 0.9 * this._nearFade;
-        } else { this._float.visible = false; this._nearFade = 0; }
+            const beamFade = Math.max(0, Math.min(1, (d - 8) / 14));
+            this._beam.visible = this._visible && beamFade > 0.01;
+            if (this._beam.visible) {
+                this._beam.position.set(this._target.x, 6.0, this._target.z);
+                this._beamMat.opacity = (0.10 + 0.04 * Math.sin(this._pulseTime * 3)) * beamFade;
+            }
+            if (this._pulseBoost > 0) {
+                this._pulseBoost = Math.max(0, this._pulseBoost - dt * 2.2);
+                this._ring.scale.multiplyScalar(1 + this._pulseBoost * 0.16);
+            }
+        } else { this._float.visible = false; this._nearFade = 0; if (this._beam) this._beam.visible = false; }
         if (this._chevrons && this._chevFade >= 0) {
             this._chevFade = Math.max(0, this._chevFade - dt / 1.4);
             this._chevMat.opacity = 0.85 * this._chevFade;
@@ -194,11 +220,14 @@ export default class Guidance {
         }
     }
     nearFade() { return this._nearFade; }
+    // A7: the hold ring on the button also flashes the ground ring.
+    pulseGround() { this._pulseBoost = 1; }
 
     reset() {
         this._target = null;
         if (this._ring) this._ring.visible = false;
         if (this._float) this._float.visible = false;
+        if (this._beam) this._beam.visible = false;
         this._nearFade = 0;
         this._pulseTime = 0;
         this._clearChevrons();

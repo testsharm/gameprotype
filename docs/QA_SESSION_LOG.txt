@@ -1,0 +1,114 @@
+TERRAFORM 3D - 10 MINUTE REAL BROWSER SESSION
+Chromium 153 | 600 s | real keyboard / mouse / clicks
+
+t+  3s  tick  1 | First Scoop          | state playing  | L1 loads 0/3 | fps 40.2 draw 252 | beeps 0
+t+  8s  tick  2 | First Scoop          | state playing  | L1 loads 0/3 | fps 31.7 draw 254 | beeps 0
+t+ 12s  tick  3 | First Scoop          | state playing  | L1 loads 0/3 | fps 24.1 draw 254 | beeps 0
+t+ 17s  tick  4 | First Scoop          | state playing  | L1 loads 0/3 | fps 20 draw 253 | beeps 0
+t+ 26s  tick  5 | First Scoop          | state playing  | L1 loads 0/3 | fps 7.4 draw 252 | beeps 0
+t+ 37s  tick  6 | First Scoop          | state playing  | L1 loads 0/3 | fps 4.7 draw 253 | beeps 0
+t+ 41s  tick  7 | First Scoop          | state playing  | L1 loads 0/3 | fps 6.3 draw 253 | beeps 0
+t+ 46s  tick  8 | First Scoop          | state playing  | L1 loads 0/3 | fps 5.8 draw 254 | beeps 0
+t+ 51s  tick  9 | First Scoop          | state playing  | L1 loads 0/3 | fps 5.9 draw 254 | beeps 0
+t+ 55s  tick 10 | First Scoop          | state playing  | L1 loads 0/3 | fps 6.2 draw 254 | beeps 0
+t+ 64s  tick 11 | First Scoop          | state playing  | L1 loads 0/3 | fps 5 draw 252 | beeps 0
+t+ 72s  tick 12 | Cone School          | state playing  | L2 loads 0/5 | fps 4.6 draw 184 | beeps 0
+t+ 76s  tick 13 | Cone School          | state playing  | L2 loads 0/5 | fps 8.9 draw 307 | beeps 0
+t+ 80s  tick 14 | Cone School          | state playing  | L2 loads 0/5 | fps 9 draw 306 | beeps 0
+t+ 86s  tick 15 | Cone School          | state playing  | L2 loads 0/5 | fps 8.8 draw 305 | beeps 0
+t+ 90s  tick 16 | Cone School          | state playing  | L2 loads 0/5 | fps 8.8 draw 303 | beeps 0
+t+ 99s  tick 17 | Cone School          | state playing  | L2 loads 0/5 | fps 5.1 draw 289 | beeps 0
+t+111s  tick 18 | Fill the Pothole     | state playing  | L3 loads 0/3 | fps 4.1 draw 138 | beeps 0
+t+115s  tick 19 | Fill the Pothole     | state playing  | L3 loads 0/3 | fps 5.9 draw 265 | beeps 0
+t+120s  tick 20 | Fill the Pothole     | state playing  | L3 loads 0/3 | fps 6.1 draw 225 | beeps 0
+t+125s  tick 21 | Fill the Pothole     | state playing  | L3 loads 0/3 | fps 6 draw 207 | beeps 0
+t+129s  tick 22 | Fill the Pothole     | state playing  | L3 loads 0/3 | fps 6.6 draw 201 | beeps 0
+t+138s  tick 23 | Fill the Pothole     | state playing  | L3 loads 0/3 | fps 5.7 draw 181 | beeps 0
+t+145s  tick 24 | Park Clean-up        | state playing  | L4 loads 0/4 | fps 5 draw 190 | beeps 0
+t+150s  tick 25 | Park Clean-up        | state playing  | L4 loads 0/4 | fps 9.1 draw 326 | beeps 0
+t+155s  tick 26 | Park Clean-up        | state playing  | L4 loads 0/4 | fps 8.8 draw 324 | beeps 0
+t+159s  tick 27 | Park Clean-up        | state playing  | L4 loads 0/4 | fps 8.6 draw 325 | beeps 0
+t+164s  tick 28 | Park Clean-up        | state playing  | L4 loads 0/4 | fps 9.5 draw 324 | beeps 0
+t+173s  tick 29 | Park Clean-up        | state playing  | L4 loads 0/4 | fps 5.8 draw 322 | beeps 0
+t+186s  tick 30 | Rush Hour Lite       | state playing  | L5 loads 0/3 | fps 4.9 draw 335 | beeps 0
+t+190s  tick 31 | Rush Hour Lite       | state playing  | L5 loads 0/3 | fps 5.9 draw 340 | beeps 0
+t+195s  tick 32 | Rush Hour Lite       | state playing  | L5 loads 0/3 | fps 5.5 draw 340 | beeps 0
+t+199s  tick 33 | Rush Hour Lite       | state playing  | L5 loads 0/3 | fps 5.4 draw 342 | beeps 0
+t+204s  tick 34 | Rush Hour Lite       | state playing  | L5 loads 0/3 | fps 8.4 draw 342 | beeps 0
+t+213s  tick 35 | Rush Hour Lite       | state playing  | L5 loads 0/3 | fps 7.9 draw 339 | beeps 0
+t+221s  tick 36 | Dig the Trench       | state playing  | L6 loads 0/4 | fps 7.5 draw 143 | beeps 0
+t+225s  tick 37 | Dig the Trench       | state playing  | L6 loads 0/4 | fps 11.3 draw 307 | beeps 0
+t+230s  tick 38 | Dig the Trench       | state playing  | L6 loads 0/4 | fps 8.7 draw 307 | beeps 0
+t+234s  tick 39 | Dig the Trench       | state playing  | L6 loads 0/4 | fps 8.3 draw 305 | beeps 0
+t+239s  tick 40 | Dig the Trench       | state playing  | L6 loads 0/4 | fps 8.3 draw 298 | beeps 0
+t+247s  tick 41 | Dig the Trench       | state playing  | L6 loads 0/4 | fps 5 draw 291 | beeps 0
+t+259s  tick 42 | Pipe Layer           | state playing  | L7 loads 0/3 | fps 4.3 draw 251 | beeps 0
+t+264s  tick 43 | Pipe Layer           | state playing  | L7 loads 0/3 | fps 7.3 draw 312 | beeps 0
+t+269s  tick 44 | Pipe Layer           | state playing  | L7 loads 0/3 | fps 6.7 draw 310 | beeps 0
+t+274s  tick 45 | Pipe Layer           | state playing  | L7 loads 0/3 | fps 6.9 draw 310 | beeps 0
+t+278s  tick 46 | Pipe Layer           | state playing  | L7 loads 0/3 | fps 7.1 draw 310 | beeps 0
+t+286s  tick 47 | Pipe Layer           | state playing  | L7 loads 0/3 | fps 4.5 draw 306 | beeps 0
+t+294s  tick 48 | Night Shift          | state playing  | L8 loads 0/5 | fps 4.4 draw 140 | beeps 0
+t+297s  tick 49 | Night Shift          | state playing  | L8 loads 0/5 | fps 6.2 draw 291 | beeps 0
+t+302s  tick 50 | Night Shift          | state playing  | L8 loads 0/5 | fps 6 draw 290 | beeps 0
+t+308s  tick 51 | Night Shift          | state playing  | L8 loads 0/5 | fps 6.1 draw 291 | beeps 0
+t+313s  tick 52 | Night Shift          | state playing  | L8 loads 0/5 | fps 5.9 draw 290 | beeps 0
+t+321s  tick 53 | Night Shift          | state playing  | L8 loads 0/5 | fps 6 draw 288 | beeps 0
+t+332s  tick 54 | Bridge Repair        | state playing  | L9 loads 0/5 | fps 4.3 draw 152 | beeps 0
+t+336s  tick 55 | Bridge Repair        | state playing  | L9 loads 0/5 | fps 9.5 draw 304 | beeps 0
+t+341s  tick 56 | Bridge Repair        | state playing  | L9 loads 0/5 | fps 9.2 draw 305 | beeps 0
+t+346s  tick 57 | Bridge Repair        | state playing  | L9 loads 0/5 | fps 9.3 draw 306 | beeps 0
+t+350s  tick 58 | Bridge Repair        | state playing  | L9 loads 0/5 | fps 9.6 draw 306 | beeps 0
+t+358s  tick 59 | Bridge Repair        | state playing  | L9 loads 0/5 | fps 5.1 draw 304 | beeps 0
+t+366s  tick 60 | Night Rush           | state playing  | L10 loads 0/5 | fps 5.1 draw 353 | beeps 0
+t+369s  tick 61 | Night Rush           | state playing  | L10 loads 0/5 | fps 5.2 draw 355 | beeps 0
+t+374s  tick 62 | Night Rush           | state playing  | L10 loads 0/5 | fps 5.1 draw 358 | beeps 0
+t+379s  tick 63 | Night Rush           | state playing  | L10 loads 0/5 | fps 4.5 draw 358 | beeps 0
+t+384s  tick 64 | Night Rush           | state playing  | L10 loads 0/5 | fps 4.3 draw 356 | beeps 0
+t+393s  tick 65 | Night Rush           | state playing  | L10 loads 0/5 | fps 4.8 draw 354 | beeps 0
+t+405s  tick 66 | Storm Clean-up       | state playing  | L11 loads 0/6 | fps 3.8 draw 352 | beeps 0
+t+408s  tick 67 | Storm Clean-up       | state playing  | L11 loads 0/6 | fps 5.2 draw 352 | beeps 0
+t+413s  tick 68 | Storm Clean-up       | state playing  | L11 loads 0/6 | fps 5.1 draw 353 | beeps 0
+t+418s  tick 69 | Storm Clean-up       | state playing  | L11 loads 0/6 | fps 5.2 draw 353 | beeps 0
+t+424s  tick 70 | Storm Clean-up       | state playing  | L11 loads 0/6 | fps 5.2 draw 352 | beeps 0
+t+432s  tick 71 | Storm Clean-up       | state playing  | L11 loads 0/6 | fps 4.6 draw 350 | beeps 0
+t+439s  tick 72 | Foundation Dig       | state playing  | L12 loads 0/6 | fps 4.3 draw 284 | beeps 0
+t+443s  tick 73 | Foundation Dig       | state playing  | L12 loads 0/6 | fps 6.4 draw 234 | beeps 5
+t+448s  tick 74 | Foundation Dig       | state playing  | L12 loads 0/6 | fps 6.6 draw 247 | beeps 6
+t+454s  tick 75 | Foundation Dig       | state playing  | L12 loads 0/6 | fps 6.6 draw 254 | beeps 6
+t+459s  tick 76 | Foundation Dig       | state playing  | L12 loads 0/6 | fps 6.6 draw 254 | beeps 6
+t+467s  tick 77 | Foundation Dig       | state playing  | L12 loads 0/6 | fps 4.8 draw 250 | beeps 6
+t+479s  tick 78 | Crane Support        | state playing  | L13 loads 0/4 | fps 4 draw 285 | beeps 6
+t+484s  tick 79 | Crane Support        | state playing  | L13 loads 0/4 | fps 10.8 draw 295 | beeps 6
+t+489s  tick 80 | Crane Support        | state playing  | L13 loads 0/4 | fps 11.1 draw 295 | beeps 6
+t+495s  tick 81 | Crane Support        | state playing  | L13 loads 0/4 | fps 11.2 draw 296 | beeps 6
+t+500s  tick 82 | Crane Support        | state playing  | L13 loads 0/4 | fps 11.7 draw 296 | beeps 6
+t+508s  tick 83 | Crane Support        | state playing  | L13 loads 0/4 | fps 5 draw 294 | beeps 6
+t+515s  tick 84 | Skill Course         | state playing  | L14 loads 0/8 | fps 4.7 draw 326 | beeps 6
+t+520s  tick 85 | Skill Course         | state playing  | L14 loads 0/8 | fps 7.8 draw 325 | beeps 6
+t+524s  tick 86 | Skill Course         | state playing  | L14 loads 0/8 | fps 7.7 draw 326 | beeps 6
+t+529s  tick 87 | Skill Course         | state playing  | L14 loads 1/8 | fps 7.3 draw 326 | beeps 6
+t+533s  tick 88 | Skill Course         | state playing  | L14 loads 1/8 | fps 7.8 draw 326 | beeps 6
+t+541s  tick 89 | Skill Course         | state playing  | L14 loads 1/8 | fps 5.3 draw 324 | beeps 6
+t+553s  tick 90 | Mega Project         | state playing  | L15 loads 0/8 | fps 4.4 draw 302 | beeps 6
+t+558s  tick 91 | Mega Project         | state playing  | L15 loads 0/8 | fps 5.2 draw 306 | beeps 6
+t+562s  tick 92 | Mega Project         | state playing  | L15 loads 0/8 | fps 5.2 draw 306 | beeps 6
+t+567s  tick 93 | Mega Project         | state playing  | L15 loads 0/8 | fps 5.4 draw 307 | beeps 6
+t+572s  tick 94 | Mega Project         | state playing  | L15 loads 0/8 | fps 5.6 draw 305 | beeps 6
+t+580s  tick 95 | Mega Project         | state playing  | L15 loads 0/8 | fps 5.4 draw 303 | beeps 6
+t+588s  tick 96 | First Scoop          | state playing  | L1 loads 0/3 | fps 5 draw 238 | beeps 6
+t+592s  tick 97 | First Scoop          | state playing  | L1 loads 0/3 | fps 6.6 draw 254 | beeps 6
+t+597s  tick 98 | First Scoop          | state playing  | L1 loads 0/3 | fps 6.8 draw 254 | beeps 6
+t+601s  tick 99 | First Scoop          | state playing  | L1 loads 0/3 | fps 6.4 draw 254 | beeps 6
+
+--- FULL CONSOLE LOG (1 entries) ---
+[error] Failed to load resource: net::ERR_FAILED  (https://sdk.crazygames.com/crazygames-sdk-v3.js)
+
+--- SUMMARY ---
+PASS session ran >= 10 minutes  602 s
+PASS no QA hook crash  0 crashes
+PASS real input exercised  clicks=108 keyHolds=323 levelChanges=16
+PASS 0 red console errors  0 | []
+PASS fps sampled  99 samples, avg 7.4
+
+10-MIN SESSION: PASS

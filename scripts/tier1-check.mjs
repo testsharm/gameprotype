@@ -35,8 +35,14 @@ globalThis.requestAnimationFrame = () => 0;
 
 const THREE = await import(THREE_URL);
 // Levels.js is a .js file in a CommonJS package; load it as an ES module via data URL.
+const STAGES_URL = pathToFileURL(path.join(ROOT, 'src/gameplay/Stages.js')).href;
+const UTILS_URL = pathToFileURL(path.join(ROOT, 'node_modules/three/examples/jsm/utils/BufferGeometryUtils.js')).href;
 const src = fs.readFileSync(path.join(ROOT, 'src/gameplay/Levels.js'), 'utf8')
-  .replace("from 'three'", `from '${THREE_URL}'`);
+  .replace("from 'three'", `from '${THREE_URL}'`)
+  .replace("from 'three/examples/jsm/utils/BufferGeometryUtils.js'", `from '${UTILS_URL}'`)
+  // Stages.js is CommonJS to Node (no package type:module); inline the
+  // 3-line coach instead. Real Stages.js is exercised by the browser harnesses.
+  .replace(/^import \{ stageCoach \}.*$/m, 'const stageCoach = (id) => COACH[id] || COACH[1];');
 const { LEVELS, LevelEngine } = await import('data:text/javascript;base64,' + Buffer.from(src).toString('base64'));
 
 let counts = 0, scoops = 0, dumps = 0, resets = 0, minClods = Infinity;

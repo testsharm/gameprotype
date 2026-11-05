@@ -15,6 +15,7 @@ import GameUI from './ui/GameUI.js';
 import TrafficPhysics from './core/TrafficPhysics.js';
 import { JobSystem, buildSiteDressing, rankInfo, JOBS as LEVEL_LIST } from './gameplay/Jobs.js';
 import { LevelEngine, levelStartPose, CHAPTERS } from './gameplay/Levels.js';
+import { StageManager, STAGE_TABLE, stageVerbs } from './gameplay/Stages.js';
 import { CAMERA_LABELS } from './core/CameraManager.js';
 import { Portal } from './core/Portal.js';
 import Ads from './core/Ads.js';
@@ -157,6 +158,8 @@ scene.background = new THREE.Color(0xdfe9f3);
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.5, 1400);
 const cameraManager = new CameraManager(camera, canvas);
 const worldBuilder = new World(scene);
+// TIER C: one active, fully-built stage per level. Nothing spawns lazily.
+const stages = new StageManager(scene, worldBuilder);
 cameraManager.setCollidables([...worldBuilder.buildingMeshes, ...worldBuilder.treeMeshes]);
 
 cameraManager.onChange = () => safe(() => { if (ui) ui.refresh(); });
@@ -164,6 +167,9 @@ cameraManager.onChange = () => safe(() => { if (ui) ui.refresh(); });
 cameraManager.setMode('chase');
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: false });
+// TIER QA: count ALL passes in a frame (the composer's final fullscreen quad
+// otherwise resets info.render.calls to 1).
+renderer.info.autoReset = false;
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
@@ -292,14 +298,25 @@ function setupPostProcessing() {
     composer.addPass(new OutputPass());
 }
 
+// TIER QA: record the LAST COMPLETE frame, not a mid-frame snapshot.
+let _lastCalls = 0, _lastTris = 0, _fpsWin = [], _lastFrameT = 0;
 function renderFrame() {
     if (!firstFrameRendered) {
         firstFrameRendered = true;
         setupPostProcessing();
         startFpsTest();
     }
+    renderer.info.reset();
     if (composer) composer.render();
     else renderer.render(scene, camera);
+    _lastCalls = renderer.info.render.calls;
+    _lastTris = renderer.info.render.triangles;
+    const now = performance.now();
+    if (_lastFrameT && now > _lastFrameT) {
+        _fpsWin.push(1000 / (now - _lastFrameT));
+        if (_fpsWin.length > 90) _fpsWin.shift();
+    }
+    _lastFrameT = now;
 }
 
 window.setQuality = (q) => {
@@ -383,39 +400,58 @@ function uiData() {
   };
 }
 function mapData() {
-  const blocks = (worldBuilder && worldBuilder.blocks ? worldBuilder.blocks : []).slice(0, 420)
-    .map(b => ({ x: b.x, z: b.z, w: b.w, d: b.d, park: !!b.park, water: !!b.water }));
+  // TIER B: a big SQUARE map framed around THIS stage, not the whole 1000 m
+  // city. Only nearby blocks are drawn, so the square is never half empty.
+  const player = vehicle && vehicle.mesh ? { x: vehicle.mesh.position.x, z: vehicle.mesh.position.z,
+    yaw: new THREE.Euler().setFromQuaternion(vehicle.mesh.quaternion, 'YXZ').y } : { x: 0, z: 0, yaw: 0 };
   const goals = [];
   if (siteNow) {
-    goals.push({ x: siteNow.pile.x, z: siteNow.pile.z, color: '#fbbf24' });
-    goals.push({ x: siteNow.truck.x, z: siteNow.truck.z, color: '#34d399' });
+    goals.push({ x: siteNow.pile.x, z: siteNow.pile.z, color: '#fbbf24', label: 'SCOOP' });
+    goals.push({ x: siteNow.truck.x, z: siteNow.truck.z, color: '#34d399', label: 'DUMP' });
   }
+  const cx = (player.x + (goals[0] ? goals[0].x : player.x)) / 2;
+  const cz = (player.z + (goals[0] ? goals[0].z : player.z)) / 2;
+  const R = 95;
+  const blocks = (worldBuilder && worldBuilder.blocks ? worldBuilder.blocks : [])
+    .filter(b => b && Math.abs(b.x - cx) < R && Math.abs(b.z - cz) < R)
+    .map(b => ({ x: b.x, z: b.z, w: b.w, d: b.d, park: !!b.park, water: !!b.water }));
   return {
-    blocks, goals,
-    player: vehicle && vehicle.mesh ? { x: vehicle.mesh.position.x, z: vehicle.mesh.position.z,
-      yaw: new THREE.Euler().setFromQuaternion(vehicle.mesh.quaternion, 'YXZ').y } : { x: 0, z: 0, yaw: 0 },
+    blocks, goals, name: (jm && jm.current && jm.current.name) || 'SITE',
+    // explicit bounds keep the square map full and centred on the job
+    bounds: { minX: cx - R, maxX: cx + R, minZ: cz - R, maxZ: cz + R },
+    player,
     landmark: siteNow ? { x: siteNow.truck.x, z: siteNow.truck.z } : null
   };
 }
-// TIER 1: scoop and dump are ALWAYS a 3-second hold, on keys and on screen.
-let actHolding = false, actT = 0, actFired = false;
-function actionProgress(p) { safe(() => { if (ui && ui.setActionProgress) ui.setActionProgress(p); }); }
+// A7: SCOOP is a 1.6 s hold, DUMP a 1.2 s hold. Hydraulics can shorten them,
+// but never below 0.9 s so the machine still feels heavy. The radial ring on
+// the button and the ground ring show the exact same progress.
+const ACT_BASE = { KeyF: 1.6, KeyG: 1.2 };
+let actHolding = false, actT = 0, actFired = false, actCode = 'KeyF';
+function actionDuration(code) {
+    const base = ACT_BASE[code] || 1.6;
+    const hyd = Math.max(1, Math.min(6, saveData.hydraulicLevel || 1));
+    return Math.max(0.9, base - (hyd - 1) * 0.11);
+}
+function actionProgress(p, code) { safe(() => { if (ui && ui.setActionProgress) ui.setActionProgress(p, code || actCode); }); }
 function updateActionHold(dt) {
     if (actHolding && canPlay()) {
         actT += dt;
-        actionProgress(Math.min(1, actT / 3));
-        if (actT >= 3) {
+        const dur = actionDuration(actCode);
+        actionProgress(Math.min(1, actT / dur), actCode);
+        if (actT >= dur) {
             actHolding = false; actFired = true; actT = 0;
-            actionProgress(0);
-            if (vehicle) vehicle.autoAction();
+            actionProgress(0, actCode);
+            if (vehicle) { if (actCode === 'KeyG') vehicle.dump(); else vehicle.scoop(); }
+            safe(() => { if (guide && guide.pulseGround) guide.pulseGround(actCode === 'KeyG'); });
         }
-    } else if (!actHolding && actT > 0) { actT = 0; actionProgress(0); }
+    } else if (!actHolding && actT > 0) { actT = 0; actionProgress(0, actCode); }
 }
 function actionHold(code, on) {
     const live = canPlay();
-    if (code === 'KeyF') {
-        if (on) { actHolding = !!live; actT = 0; actFired = false; actionProgress(0); }
-        else { actHolding = false; actT = 0; actFired = false; actionProgress(0); }
+    if (code === 'KeyF' || code === 'KeyG') {
+        if (on) { actHolding = !!live; actCode = code; actT = 0; actFired = false; actionProgress(0, code); }
+        else { actHolding = false; actT = 0; actFired = false; actionProgress(0, code); }
     }
     else if (code === 'KeyW') input.forward = on && live;
     else if (code === 'KeyS') input.backward = on && live;
@@ -426,7 +462,8 @@ function actionHold(code, on) {
 function actionTap(code) {
     unlockAudio();
     switch (code) {
-        case 'KeyF': if (canPlay() && vehicle) vehicle.autoAction(); break;
+        case 'KeyF': if (canPlay() && vehicle) vehicle.scoop(); break;
+        case 'KeyG': if (canPlay() && vehicle) vehicle.dump(); break;
         case 'KeyE': if (canPlay() && vehicle) vehicle.toggleArm(); break;
         case 'KeyC': cameraManager.cycleMode(); safe(() => { if (ui) ui.refresh(); }); break;
         case 'KeyR': if (gameState === 'playing') window.restartJob(); break;
@@ -455,6 +492,7 @@ function pauseWindow() { pauseForMenu(); }
 function startGame() {
     unlockAudio();
     freePlay = false;
+    stages.enter(currentJob);
     if (park) park.hide();
     gameState = 'playing';
     uiPaused = false;
@@ -466,6 +504,7 @@ function startGame() {
 }
 function returnToMenu() {
     freePlay = false;
+    stages.leave();
     if (park) park.hide();
     closeJobModal();
     gameState = 'menu';
@@ -574,6 +613,7 @@ function setPaint(i) {
   safe(() => { if (vehicle && vehicle.setPaint) vehicle.setPaint(PAINTS[i]); });
 }
 function startFreePlay() {
+    stages.leave();
   // TIER 7: a real 160 x 160 m stunt park outside the city. No timer, no fail.
   if (!physReady || !world || !RAPIER) return;   // physics must be ready
   freePlay = true;
@@ -600,8 +640,11 @@ function startFreePlay() {
       if (vehicle.resetInterpolation) vehicle.resetInterpolation();
     } catch (e) {}
   }
+  safe(() => { if (cameraManager.snapTo && vehicle) { cameraManager.snapTo(vehicle.mesh,
+    { x: PARK_CENTER.x, y: 1.6, z: PARK_CENTER.z + 58 }); camClearT = 1; } });
   safe(() => { if (ui) { ui.hideModal(); ui.setScreen('play'); ui.reset(); ui.setTimer(null);
     ui.setJob('Free Play', 'Drive, jump, collect rings', 'No timer · no fail');
+    ui.setLoads(0);
     ui.setHint('6 ramps · turntable · coin rings · jump pads'); } });
   if (jm) { jm.state.running = false; }
   clearInput();
@@ -698,6 +741,7 @@ let world, vehicle, RAPIER;
 let physReady = false;
 let isGameRunning = true;
 let hasScoopedDirt = false;
+let scoopCount = 0;   // A8: scoops made in this job
 let jobCompleted = false;
 let cameraShake = 0; 
 const MAX_LOADS = 3;
@@ -760,7 +804,7 @@ safe(() => {
 const CODE_TO_KEY = {
     KeyW: 'w', ArrowUp: 'arrowup', KeyS: 's', ArrowDown: 'arrowdown',
     KeyA: 'a', ArrowLeft: 'arrowleft', KeyD: 'd', ArrowRight: 'arrowright',
-    Space: ' ', KeyE: 'e', KeyF: 'f', KeyC: 'c', KeyR: 'r', KeyM: 'm', KeyP: 'p', KeyJ: 'j', KeyU: 'u'
+    Space: ' ', KeyE: 'e', KeyF: 'f', KeyG: 'g', KeyC: 'c', KeyR: 'r', KeyM: 'm', KeyP: 'p', KeyJ: 'j', KeyU: 'u'
 };
 function normKey(ev) {
     let k = CODE_TO_KEY[ev.code];
@@ -801,6 +845,7 @@ window.addEventListener('keydown', (ev) => {
     if (key === 'p') actionTap('KeyP');
     if (key === 'e') actionTap('KeyE');
     if (key === 'f') actionHold('KeyF', true);
+    if (key === 'g') actionHold('KeyG', true);
     if (key === 'c') actionTap('KeyC');
 });
 
@@ -814,12 +859,14 @@ window.addEventListener('keyup', (ev) => {
     if (key === 'd' || key === 'arrowright') actionHold('KeyD', false);
     if (e.key === ' ') actionHold('Space', false);
     if (key === 'f') actionHold('KeyF', false);
+    if (key === 'g') actionHold('KeyG', false);
 });
 
 // Pointer buttons call the same API directly (see GameUI.js). No fake key events.
 
 window.restartJob = () => {
-    hasScoopedDirt = false; jobCompleted = false; closeJobModal();
+    hasScoopedDirt = false; jobCompleted = false; scoopCount = 0; closeJobModal();
+    safe(() => { if (worldBuilder && worldBuilder.setPileFraction) worldBuilder.setPileFraction(1); });
     const overlay = document.getElementById('victory-overlay'); if (overlay) overlay.classList.remove('active');
 
     ensureJobs(); worldBuilder.resetDirtPile(); placeSite(currentJob);
@@ -835,6 +882,7 @@ window.restartJob = () => {
         currentStartPose = pose;
         setVehiclePose(pose.x, pose.y, pose.z, pose.quat);
         cameraManager.setMode('chase');
+        safe(() => { if (cameraManager.snapTo) cameraManager.snapTo(vehicle.mesh, { x: pose.x, y: pose.y, z: pose.z }); camClearT = 1; });
         cameraManager.setZoom(Math.max(0.75, Math.min(1.5, pose.cam / 12)));
         safe(() => {
             if (guide && job.tutorial) guide.setChevrons({ x: pose.x, z: pose.z }, { x: site.pile.x, z: site.pile.z });
@@ -964,9 +1012,22 @@ function keepCameraClear(dt) {
     if (len < 0.5) return;
     const o = [_camFocus.x, _camFocus.y, _camFocus.z];
     const d = [_camDir.x, _camDir.y, _camDir.z];
-    const margin = 0.6;
+    const margin = 1.2;   // A5: approx. spherecast radius, not a thin ray
     let tHit = 1;
-    const boxes = worldBuilder.buildingData;
+    // A5: buildings AND trees. Spherecast-style fat ray so a tree canopy
+    // cannot fill the screen with a solid green/black slab.
+    // TIER C: during a stage the CITY IS HIDDEN, so its invisible colliders
+    // must not shove the camera into the machine. Only the pile + truck block.
+    let boxes;
+    if (stages && stages.current) {
+      // The whole city is hidden during a stage: no invisible colliders, and
+      // no pile/truck blocker either (it would shove the camera into the
+      // machine when the player parks next to the pile). Normal chase camera.
+      boxes = [];
+    } else {
+      boxes = (worldBuilder.treeData && worldBuilder.treeData.length)
+        ? worldBuilder.buildingData.concat(worldBuilder.treeData) : worldBuilder.buildingData;
+    }
     for (let i = 0; i < boxes.length; i++) {
         const b = boxes[i];
         const c = [b.x, b.y, b.z];
@@ -985,14 +1046,18 @@ function keepCameraClear(dt) {
                 if (tmin > tmax) { ok = false; break; }
             }
         }
-        if (!ok || inside) continue;
+        if (!ok) continue;
+        if (inside) { tHit = Math.min(tHit, 0.42); continue; }
         if (tmin > 0 && tmin < tHit) tHit = tmin;
     }
-    const want = tHit < 1 ? Math.max(0.12, tHit - 0.04) : 1;
+    const want = tHit < 1 ? Math.max(0.38, tHit - 0.04) : 1;
     if (want < camClearT) camClearT = want;
     else camClearT += (want - camClearT) * Math.min(1, dt * 4);
     if (camClearT < 0.999) {
         camera.position.copy(_camFocus).addScaledVector(_camDir, camClearT);
+        // A5: re-aim after moving, or the machine slides out of frame.
+        if (cameraManager.currentLookAt) camera.lookAt(cameraManager.currentLookAt);
+        else camera.lookAt(_camFocus);
     }
 }
 
@@ -1024,6 +1089,8 @@ function ensureJobs() {
             onCount: (tip) => engineProgress(tip),
             onToast: (msg, kind) => safe(() => { if (ui) ui.toast(msg, kind || 'info'); }),
             onCombo: (n) => safe(() => { if (ui && n > 1) ui.toast('Combo x' + n + '!', 'success'); hub.coin(); }),
+            onDing: () => safe(() => { hub.coin(); }),
+            addTime: (sec) => safe(() => { if (jm && jm.addTime) jm.addTime(sec); }),
             onChange: () => refreshCard(),
             truckSolid: (on, x, z) => syncTruckCollider(!!on, x || siteNow.truck.x, z || siteNow.truck.z)
         });
@@ -1044,6 +1111,7 @@ function refreshCard() {
         if (!job) return;
         if (level && level.job) ui.setJob(job.name, level.objective(vehicle && vehicle.hasDirt), level.stepText());
         else ui.setJob(job.name, job.objective || '', (jm.stepText ? jm.stepText() : ''));
+        if (ui.setLoads && jm.state) ui.setLoads(Math.max(0, (job.loads || 3) - (jm.state.loads || 0)));
     });
 }
 function openModalState() {
@@ -1093,7 +1161,6 @@ function placeSite(id) {
     ensureJobs();
     safe(() => {
         const job = jm.get(id) || jm.get(1);
-        setEnv(job.env, !envGoal);
         captureBase();
         if (!siteBase) return;
         const lay = jm.siteFor(id);
@@ -1106,6 +1173,13 @@ function placeSite(id) {
         pg.updateMatrixWorld(true); tg.updateMatrixWorld(true);
         siteNow.pile.x = px; siteNow.pile.z = pz; siteNow.truck.x = tx; siteNow.truck.z = tz;
         rawSite = { pile: { x: px, z: pz }, truck: { x: tx, z: tz } };
+        // TIER C: build the stage AROUND this job's own pile/truck, which sit at
+        // a different far offset for many levels. No lazy goal spawns.
+        const stg = stages.enter(id, { x: (px + tx) / 2, z: (pz + tz) / 2 });
+        setEnv(stages.envFor(id), true);          // own sky, fog, sun - snap on stage swap
+        safe(() => { if (hub.setSoundBed) hub.setSoundBed(stg.sound); });
+        safe(() => { if (ui && ui.setVerbs) ui.setVerbs(stg.verbs[0], stg.verbs[1]); });
+        safe(() => { if (worldBuilder.setNight) worldBuilder.setNight(false); }); // stage owns its night lighting
         syncTruckCollider(moved, tx, tz);
         if (worldBuilder.jobSiteBase) worldBuilder.jobSiteBase.position.set(px, 0, pz);
         siteGroups.forEach((g, k) => { g.visible = (k === id); });
@@ -1211,7 +1285,7 @@ function startJobNow() {
     jm.start(currentJob);
     const j = jm.current;
     refreshCard();
-    safe(() => { if (ui) ui.setHint(level && level.job ? level.hint() : jm.hint()); });
+    safe(() => { if (ui) ui.setHint(level && level.job ? level.hint(vehicle && vehicle.hasDirt) : jm.hint()); });
     safe(() => { if (ui) ui.announce(j); });
     refreshCard();
 }
@@ -1255,7 +1329,7 @@ function onScooped() {
             if (r.count) engineProgress(0);
         }
     });
-    if (ui) ui.setHint(level && level.job ? level.hint() : jm.hint());
+    if (ui) ui.setHint(level && level.job ? level.hint(vehicle && vehicle.hasDirt) : jm.hint());
 }
 function deliverLoad(tipOverride) {
     ensureJobs();
@@ -1270,6 +1344,7 @@ function deliverLoad(tipOverride) {
             ui.setCoins(saveData.coins); lastCoinsShown = saveData.coins;
         }
         refreshCard();
+        if (ui && ui.setLoads) ui.setLoads(Math.max(0, (r.total || 0) - (r.loads || 0)));
         if (!r.complete && ui) ui.setHint(jm.hint());
     });
     if (r.loads === 1) safe(() => { if (guide) guide.onFirstLoad(); });
@@ -1429,6 +1504,50 @@ if (new URLSearchParams(location.search).has('qadebug')) {
 // Console test: type __testTimestep() in the F12 console. Every row must show 60.0
 // QA shortcut only: ?qadebug lets a headless test trigger one instant action.
 window.__qaAct = function () { actionTap('KeyF'); return true; };
+// QA hooks used by scripts/*.mjs. Real click/key tests use page.click / keyboard.
+window.__tfQA = {
+  qaState: () => ({ gameState, currentJob, freePlay, uiPaused, modalOpen, paused, physReady,
+    loads: jm && jm.state ? jm.state.loads : 0, total: jm && jm.current ? jm.current.loads : 0,
+    hasDirt: !!(vehicle && vehicle.hasDirt), scoopCount, coins: saveData.coins,
+    speed: vehicle ? +vehicle.currentSpeed.toFixed(2) : 0, fwd: !!input.forward,
+    actHolding, actCode, actT: +actT.toFixed(2), duration: +actionDuration(actCode).toFixed(2),
+    canvas: !!document.getElementById('game-container') }),
+  qaRender: () => ({ calls: _lastCalls, tris: _lastTris,
+    fps: +((_fpsWin.length ? _fpsWin.reduce((a, b) => a + b, 0) / _fpsWin.length : 0)).toFixed(1),
+    frames: _fpsWin.length }),
+  qaAudio: () => ({ beeps: hub.beepCount || 0, bed: hub._bed || 'site', engine: hub._eng ? +hub._eng.speed.toFixed(2) : 0 }),
+  qaOpen: (kind) => { pauseWindow(); if (ui) ui.showModal(kind); return true; },
+  qaWindow: (kind) => { pauseWindow(); if (!ui) return false;
+    if (kind === 'map') ui.showMap();
+    else if (kind === 'levels') ui.showPicker(uiData());
+    else if (kind === 'garage') ui.showGarage(uiData());
+    else if (kind === 'result') ui.showResult({ stars: 3, coins: 100, bonusGot: true, ads: false });
+    else if (kind === 'fail') ui.showFail({ loads: 1, total: 3, ads: false });
+    else if (kind === 'confirm') ui.confirm({ title: 'Test?', text: 'Just a test', yes: 'Yes', onYes: () => {} });
+    else ui.showModal(kind);
+    return true; },
+  qaLevel: (n) => { goJob(n); return true; },
+  qaStage: () => { const t = stages.stage(currentJob); return { id: t.id, name: t.name,
+    verbs: t.verbs, chapter: t.chapter, ground: t.ground, sky: t.sky, fog: t.fog,
+    skyline: t.skyline, landmark: t.landmark, props: t.props, sound: t.sound,
+    startYaw: t.yaw, coach: t.coach, active: stages.current, draw: renderer.info.render.calls }; },
+  qaAllStages: () => STAGE_TABLE.map(t => ({ id: t.id, name: t.name, verbs: t.verbs,
+    chapter: t.chapter, ground: t.ground, sky: t.sky, skyline: t.skyline, landmark: t.landmark,
+    props: t.props, startYaw: t.yaw, coach: t.coach })),
+  qaPlay: () => { startGame(); return true; },
+  qaFree: () => { startFreePlay(); return true; },
+  qaMenu: () => { returnToMenu(); return true; },
+  qaClose: () => { if (ui) ui.hideModal(); resumeGame(); return true; },
+  qaScoop: () => vehicle && vehicle.scoop(),
+  qaDump: () => vehicle && vehicle.dump(),
+  qaHold: (code, on) => actionHold(code, !!on),
+  qaTap: (code) => actionTap(code),
+  qaCamera: () => ({ pos: camera.position.toArray().map(v => +v.toFixed(2)),
+    look: cameraManager.currentLookAt ? cameraManager.currentLookAt.toArray().map(v => +v.toFixed(2)) : null,
+    clearT: camClearT, mode: cameraManager.currentMode, showcase: cameraManager.showcase }),
+  qaSite: () => ({ pile: rawSite && rawSite.pile, truck: rawSite && rawSite.truck,
+    vehicle: vehicle ? { x: vehicle.mesh.position.x, y: vehicle.mesh.position.y, z: vehicle.mesh.position.z } : null })
+};
 window.__qaPark = function () { return park ? { drawCalls: park.drawCalls, coins: park.coins,
   rings: park.rings.length, pads: park.pads.length, cones: park.cones.length } : null; };
 window.__testTimestep = function () {
@@ -1481,8 +1600,6 @@ function initFx() {
         if (guide && jm && jm.current && jm.current.tutorial && currentStartPose && rawSite) {
             guide.setChevrons({ x: currentStartPose.x, z: currentStartPose.z }, { x: rawSite.pile.x, z: rawSite.pile.z });
         }
-        const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 60, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-        beam.visible = false; scene.add(beam); scene.userData.beam = beam;
         const maxA = renderer.capabilities.getMaxAnisotropy();
         scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => { if (m.map) { m.map.anisotropy = maxA; m.map.needsUpdate = true; } }); });
     });
@@ -1500,18 +1617,6 @@ function updateFx(dt) {
                 else { key = 'pile'; pos = new THREE.Vector3(siteNow.pile.x, 0, siteNow.pile.z); }
             }
             if (key !== lastTarget) { lastTarget = key; guide.setTarget(pos); }
-            const bm = scene.userData.beam;
-            // TIER 5: soft beam fades away as the machine gets near the target.
-            if (bm) {
-                bm.visible = false;
-                if (pos) {
-                    const dist = vehicle.mesh.position.distanceTo(pos);
-                    const fade = Math.max(0, Math.min(1, (dist - 7) / 24));
-                    bm.visible = guide.isVisible() && fade > 0.02;
-                    bm.position.set(pos.x, 30, pos.z);
-                    bm.material.opacity = (0.16 + 0.08 * Math.sin(performance.now() / 300)) * fade;
-                }
-            }
             if (tutStep === 1 && pos && vehicle.mesh.position.distanceTo(pos) < 25) { guide.nextTutorialStep(); tutStep = 2; }
             // Guide is ALWAYS on for Level 1 until the player's first dump.
             const forceGuide = currentJob === 1 && (!jm || !jm.state || jm.state.loads === 0);
@@ -1562,7 +1667,7 @@ function animate() {
 
         // Signed speed keeps the reverse beeper working; Audio.js uses Math.abs for rpm.
         if (gameState === 'playing' && !uiPaused && !modalOpen) {
-            const signed = (vehicle.signedSpeedKmh !== undefined) ? vehicle.signedSpeedKmh : vehicle.getForwardSpeedMps() * 3.6;
+            const signed = vehicle.getForwardSpeedMps() * 3.6;
             hub.setEngine(signed, (input.forward || input.backward) ? 1 : 0);
         } else hub.setEngine(0, 0);
 
@@ -1573,6 +1678,10 @@ function animate() {
                 hasScoopedDirt = true;
                 const statusVal = document.getElementById('job-status-val'); if(statusVal) statusVal.textContent = 'DUMP IN TRUCK';
                 worldBuilder.shrinkDirtPile(); safe(onScooped);
+                // A8: the pile eases down to a ~15% flat patch after the last load.
+                const total = (jm && jm.current && jm.current.loads) || 3;
+                scoopCount++;
+                safe(() => { if (worldBuilder.setPileFraction) worldBuilder.setPileFraction(Math.max(0.15, 1 - 0.85 * scoopCount / total)); });
                 safe(() => { if (fx) fx.onScoop(bucketPos.clone()); if (sfx) sfx.scoop(); if (guide && tutStep === 2) { guide.nextTutorialStep(); tutStep = 3; } }); 
                 audio.playDirtCrunch(); 
             }
@@ -1615,6 +1724,7 @@ function animate() {
         updateSunShadow();
         trackFPS(dt);
         updateFx(dt);
+        safe(() => { if (worldBuilder.updatePile) worldBuilder.updatePile(dt); });
         safe(() => { if (level && level.job && !freePlay && gameState === 'playing' && !uiPaused && !modalOpen) level.update(dt, vehicle); });
         vehicle.pilePos = worldBuilder.dirtPileGroup.position;
         if (!vehicle.truckPos) vehicle.truckPos = new THREE.Vector3();
