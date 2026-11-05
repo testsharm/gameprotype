@@ -13,7 +13,7 @@ import DigAnimator from './vehicle/DigAnimator.js';
 import GameUI from './ui/GameUI.js';
 // (Music removed in M2)
 import TrafficPhysics from './core/TrafficPhysics.js';
-import JobManager from './gameplay/JobManager.js';
+import { JobSystem, JobPanels, buildSiteDressing, upgradeCost } from './gameplay/Jobs.js';
 
 let fx = null, guide = null, sfx = null, tutStep = 0, lastTarget = 'none';
 function safe(f) { try { return f(); } catch (e) { console.warn('[fx]', e); } }
@@ -57,9 +57,9 @@ function initUi() {
     safe(() => {
         ui = new GameUI();
         music = hub;
-        jm = new JobManager();
+        ensureJobs();
         jm.onTick = (t) => { if (ui) ui.setTimer(Math.ceil(t)); };
-        jm.onFail = () => { if (ui) ui.toast('Time is up! Try again', 'warn'); window.restartJob(); };
+        jm.onFail = onJobFail;
         jm.start(currentJob);
         ui.setJob(JOB_TITLE, JOB_OBJ, 'Scoop dirt 0/3');
         ui.setCoins(saveData.coins);
@@ -75,7 +75,7 @@ function updateUi(dt) {
         if (ui) {
             ui.setSpeed(vehicle.currentSpeed);
             if (saveData.coins !== lastCoinsShown) { lastCoinsShown = saveData.coins; ui.setCoins(saveData.coins); }
-            const lv = worldBuilder.truckDirtLevel;
+            const lv = lastLoads;
             if (lv !== lastLoads) {
                 if (lv > lastLoads && jm) jm.addLoad();
                 lastLoads = lv;
@@ -349,7 +349,7 @@ function updateShopUI() {
     if(hydBtn) { hydBtn.textContent = saveData.hydraulicLevel >= 3 ? 'MAX' : `Upgrade (${saveData.hydraulicLevel * 100} Coins)`; hydBtn.disabled = saveData.coins < saveData.hydraulicLevel * 100 || saveData.hydraulicLevel >= 3; }
 }
 
-const shopBtn = document.getElementById('shop-btn'); if(shopBtn) shopBtn.addEventListener('click', () => { document.getElementById('shop-overlay').classList.add('active'); isGameRunning = false; updateShopUI(); });
+const shopBtn = document.getElementById('shop-btn'); if(shopBtn) shopBtn.addEventListener('click', () => { openShop(); });
 const closeShopBtn = document.getElementById('close-shop-btn'); if(closeShopBtn) closeShopBtn.addEventListener('click', () => { document.getElementById('shop-overlay').classList.remove('active'); isGameRunning = true; });
 
 const buyEngBtn = document.getElementById('buy-engine-btn'); if(buyEngBtn) buyEngBtn.addEventListener('click', () => { const cost = saveData.engineLevel * 100; if (saveData.coins >= cost && saveData.engineLevel < 3) { saveData.coins -= cost; saveData.engineLevel++; writeSave(); document.getElementById('coin-count').textContent = saveData.coins; if (vehicle) vehicle.setUpgrades(saveData); updateShopUI(); } });
@@ -361,7 +361,7 @@ const input = { forward: false, backward: false, left: false, right: false, brak
 let paused = false;
 function togglePause() {
     const shop = document.getElementById('shop-overlay');
-    if (shop && shop.classList.contains('active')) return;
+    if ((shop && shop.classList.contains('active')) || modalOpen) return;
     paused = !paused;
     isGameRunning = !paused;
     const ov = document.getElementById('pause-overlay');
@@ -378,7 +378,7 @@ safe(() => window.dispatchEvent(new CustomEvent('bh-mute', { detail: !!hub.isMut
 const CODE_TO_KEY = {
     KeyW: 'w', ArrowUp: 'arrowup', KeyS: 's', ArrowDown: 'arrowdown',
     KeyA: 'a', ArrowLeft: 'arrowleft', KeyD: 'd', ArrowRight: 'arrowright',
-    Space: ' ', KeyE: 'e', KeyF: 'f', KeyC: 'c', KeyR: 'r', KeyM: 'm', KeyP: 'p'
+    Space: ' ', KeyE: 'e', KeyF: 'f', KeyC: 'c', KeyR: 'r', KeyM: 'm', KeyP: 'p', KeyJ: 'j', KeyU: 'u'
 };
 function normKey(ev) {
     let k = CODE_TO_KEY[ev.code];
@@ -406,6 +406,8 @@ window.addEventListener('keydown', (ev) => {
     if (e.key === ' ') input.brake = true;
     if (key === 'r') window.restartJob();
     if (key === 'm') toggleMute();
+    if (key === 'j') openPicker();
+    if (key === 'u') openShop();
     if (key === 'p') {
       const wasPaused = paused;
       togglePause();
@@ -416,8 +418,8 @@ window.addEventListener('keydown', (ev) => {
         } catch (e) { /* audio not ready */ }
       }
     }
-    if (key === 'e' && vehicle) vehicle.toggleArm();
-    if (key === 'f' && vehicle) vehicle.autoAction();
+    if (key === 'e' && vehicle && isGameRunning) vehicle.toggleArm();
+    if (key === 'f' && vehicle && isGameRunning) vehicle.autoAction();
     if (key === 'c') {
         const modes = ['chase', 'orbit', 'cab', 'bucket'];
         let nextIndex = (modes.indexOf(cameraManager.currentMode) + 1) % modes.length;
@@ -470,14 +472,14 @@ document.querySelectorAll('.cam-btn').forEach(btn => {
 });
 
 window.restartJob = () => {
-    hasScoopedDirt = false; jobCompleted = false;
+    hasScoopedDirt = false; jobCompleted = false; closeJobModal();
     const overlay = document.getElementById('victory-overlay'); if(overlay) overlay.classList.remove('active');
     const statusVal = document.getElementById('job-status-val'); if(statusVal) statusVal.textContent = 'SCOOP DIRT (0/3)';
     const missionDesc = document.getElementById('mission-desc'); if(missionDesc) missionDesc.textContent = 'Clear the rubble from the highway and load it into the blue truck.';
     
-    worldBuilder.resetDirtPile();
+    ensureJobs(); worldBuilder.resetDirtPile(); placeSite(currentJob);
     safe(() => { if (fx) fx.reset(); lastTarget = 'none'; });
-    safe(() => { lastLoads = 0; if (jm) jm.start(currentJob); if (ui) ui.setJob(JOB_TITLE, JOB_OBJ, 'Scoop dirt 0/3'); });
+    lastLoads = 0; startJobNow();
     
     if (vehicle && physReady) {
         vehicle.chassisBody.setTranslation({ x: -35, y: 1.2, z: 10 }, true);
@@ -534,9 +536,9 @@ function drawMinimap() {
 
     let targetX, targetZ;
     if (vehicle.hasDirt) {
-        targetX = 18; targetZ = -100;
+        targetX = siteNow.truck.x; targetZ = siteNow.truck.z;
     } else {
-        targetX = 0; targetZ = -100;
+        targetX = siteNow.pile.x; targetZ = siteNow.pile.z;
     }
 
     const mx = cx + (targetX - vx) * scale;
@@ -641,6 +643,314 @@ function keepCameraClear(dt) {
     }
 }
 
+// ======================================================================
+// M7a part 2: real jobs, sites per job, weather, shop, result windows
+// ======================================================================
+let panels = null;
+let modalOpen = false;
+const _truckOff = new THREE.Vector3(0, 2, -1);
+const _tmpC = new THREE.Color();
+const siteNow = { pile: { x: 0, z: -120 }, truck: { x: 15, z: -120 } };
+let siteBase = null;
+let truckBody = null;
+const siteGroups = new Map();
+
+function ensureJobs() {
+    if (!jm) {
+        jm = new JobSystem();
+        panels = new JobPanels();
+        jm.layout(worldBuilder.buildingData, worldBuilder.propColliders);
+    }
+    return jm;
+}
+function jobCtx() { return { engineLevel: saveData.engineLevel || 1, bucketLevel: saveData.bucketLevel || 1 }; }
+function syncCoins() {
+    safe(() => {
+        if (ui) { ui.setCoins(saveData.coins); lastCoinsShown = saveData.coins; }
+        else { const c = document.getElementById('coin-count'); if (c) c.textContent = saveData.coins; }
+    });
+}
+function refreshCard() {
+    safe(() => { if (ui && jm) ui.setJob(jm.current.name, jm.objective(), jm.stepText()); });
+}
+function openModalState() {
+    modalOpen = true;
+    isGameRunning = false;
+    input.forward = false; input.backward = false; input.left = false; input.right = false; input.brake = false;
+    safe(() => hub.setEngine(0, 0));
+}
+function closeJobModal() {
+    if (panels) panels.hide();
+    modalOpen = false;
+    if (!paused) isGameRunning = true;
+}
+
+// ---- where the pile and the truck stand for each job ----
+function captureBase() {
+    if (siteBase) return;
+    const pg = worldBuilder.dirtPileGroup, tg = worldBuilder.truckGroup;
+    if (!pg || !tg) return;
+    pg.updateMatrixWorld(true); tg.updateMatrixWorld(true);
+    const pb = new THREE.Box3().setFromObject(pg), tb = new THREE.Box3().setFromObject(tg);
+    const pc = pb.isEmpty() ? pg.getWorldPosition(new THREE.Vector3()) : pb.getCenter(new THREE.Vector3());
+    const tc = tb.isEmpty() ? tg.getWorldPosition(new THREE.Vector3()) : tb.getCenter(new THREE.Vector3());
+    const th = tb.isEmpty() ? new THREE.Vector3(0, 0, 0) : tb.getSize(new THREE.Vector3()).multiplyScalar(0.5);
+    siteBase = { pPos: pg.position.clone(), tPos: tg.position.clone(), pc, tc, th };
+    siteNow.pile.x = pc.x; siteNow.pile.z = pc.z; siteNow.truck.x = tc.x; siteNow.truck.z = tc.z;
+}
+function syncTruckCollider(moved, tx, tz) {
+    if (!world || !RAPIER || !siteBase) return;
+    const h = siteBase.th;
+    if (!(h.x > 0.5 && h.x < 7 && h.z > 0.5 && h.z < 10 && h.y > 0.5)) return;
+    const y = siteBase.tc.y;
+    const pos = moved ? { x: tx, y: y, z: tz } : { x: 0, y: -80, z: 0 };
+    if (!truckBody) {
+        truckBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(pos.x, pos.y, pos.z));
+        world.createCollider(RAPIER.ColliderDesc.cuboid(h.x * 0.9, h.y * 0.95, h.z * 0.9), truckBody);
+    } else {
+        truckBody.setTranslation(pos, true);
+    }
+}
+function placeSite(id) {
+    safe(() => {
+        const job = jm.get(id) || jm.get(1);
+        setEnv(job.env, !envGoal);
+        captureBase();
+        if (!siteBase) return;
+        const lay = jm.siteFor(id);
+        const moved = !!(lay && lay.ok && !lay.keep);
+        const pg = worldBuilder.dirtPileGroup, tg = worldBuilder.truckGroup;
+        const px = moved ? lay.pile.x : siteBase.pc.x, pz = moved ? lay.pile.z : siteBase.pc.z;
+        const tx = moved ? lay.truck.x : siteBase.tc.x, tz = moved ? lay.truck.z : siteBase.tc.z;
+        pg.position.set(siteBase.pPos.x + (px - siteBase.pc.x), siteBase.pPos.y, siteBase.pPos.z + (pz - siteBase.pc.z));
+        tg.position.set(siteBase.tPos.x + (tx - siteBase.tc.x), siteBase.tPos.y, siteBase.tPos.z + (tz - siteBase.tc.z));
+        pg.updateMatrixWorld(true); tg.updateMatrixWorld(true);
+        siteNow.pile.x = px; siteNow.pile.z = pz; siteNow.truck.x = tx; siteNow.truck.z = tz;
+        syncTruckCollider(moved, tx, tz);
+        siteGroups.forEach((g, k) => { g.visible = (k === id); });
+        if (moved && !siteGroups.has(id)) {
+            const g = buildSiteDressing(THREE, id, lay.pile, lay.truck);
+            scene.add(g);
+            siteGroups.set(id, g);
+        }
+    });
+}
+
+// ---- sky, light, fog and rain for each job ----
+const ENV_EXPO = { day: 1.0, dusk: 0.92, night: 0.62, storm: 0.8, dawn: 0.97 };
+const ENV_TINT = { day: 0, dusk: 0.35, night: 0.5, storm: 0.6, dawn: 0.3 };
+const envCur = { sun: 2.2, hemi: 0.8, fog: 0.0011, r: 0.62, g: 0.76, b: 0.9, expo: 1, tint: 0, bright: 1, light: 0 };
+let envGoal = null;
+let skyU = null;
+let workLight = null;
+function setEnv(e, instant) {
+    const c = new THREE.Color(e.fogColor);
+    envGoal = {
+        sun: 2.2 * e.sun, hemi: 0.8 * e.hemi, fog: e.fog, r: c.r, g: c.g, b: c.b,
+        expo: ENV_EXPO[e.id] || 1, tint: ENV_TINT[e.id] || 0, bright: 0.5 + 0.5 * e.sun,
+        light: e.lights ? 230 : (e.id === 'storm' ? 70 : 0), rain: e.id === 'storm'
+    };
+    if (instant) Object.assign(envCur, envGoal);
+}
+function updateEnv(dt) {
+    if (!envGoal) return;
+    if (vehicle && !workLight) {
+        workLight = new THREE.PointLight(0xfff1cf, 0, 42, 2);
+        workLight.position.set(0, 4.2, 0);
+        vehicle.mesh.add(workLight);
+    }
+    const k = 1 - Math.exp(-dt * 2.2);
+    const names = ['sun', 'hemi', 'fog', 'r', 'g', 'b', 'expo', 'tint', 'bright', 'light'];
+    for (let i = 0; i < names.length; i++) envCur[names[i]] += (envGoal[names[i]] - envCur[names[i]]) * k;
+    if (worldBuilder.sunLight) worldBuilder.sunLight.intensity = envCur.sun;
+    if (worldBuilder.hemiLight) worldBuilder.hemiLight.intensity = envCur.hemi;
+    if (scene.fog) {
+        if ('density' in scene.fog) scene.fog.density = envCur.fog;
+        scene.fog.color.setRGB(envCur.r, envCur.g, envCur.b);
+    }
+    if (scene.background && scene.background.isColor) scene.background.setRGB(envCur.r, envCur.g, envCur.b);
+    renderer.toneMappingExposure = envCur.expo;
+    if (workLight) workLight.intensity = envCur.light;
+    const sky = worldBuilder.sky;
+    if (sky && sky.material && sky.material.uniforms) {
+        if (!skyU) {
+            skyU = [];
+            for (const key in sky.material.uniforms) {
+                const v = sky.material.uniforms[key] && sky.material.uniforms[key].value;
+                if (v && v.isColor) skyU.push({ v, o: v.clone() });
+            }
+        }
+        _tmpC.setRGB(envCur.r, envCur.g, envCur.b);
+        for (let i = 0; i < skyU.length; i++) skyU[i].v.copy(skyU[i].o).multiplyScalar(envCur.bright).lerp(_tmpC, envCur.tint);
+    }
+}
+const RAIN_N = 650;
+let rain = null, rainDrop = null;
+function updateRain(dt) {
+    const on = !!(envGoal && envGoal.rain);
+    if (!rain) {
+        if (!on) return;
+        rainDrop = new Float32Array(RAIN_N * 3);
+        const geo = new THREE.BufferGeometry();
+        const attr = new THREE.BufferAttribute(new Float32Array(RAIN_N * 6), 3);
+        attr.setUsage(THREE.DynamicDrawUsage);
+        geo.setAttribute('position', attr);
+        rain = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0xbcd0e2, transparent: true, opacity: 0.4, depthWrite: false, fog: false }));
+        rain.frustumCulled = false;
+        rain.renderOrder = 5;
+        scene.add(rain);
+        for (let i = 0; i < RAIN_N; i++) {
+            rainDrop[i * 3] = camera.position.x + (Math.random() - 0.5) * 60;
+            rainDrop[i * 3 + 1] = camera.position.y - 8 + Math.random() * 30;
+            rainDrop[i * 3 + 2] = camera.position.z + (Math.random() - 0.5) * 60;
+        }
+    }
+    rain.visible = on;
+    if (!on) return;
+    const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
+    const p = rain.geometry.attributes.position.array;
+    for (let i = 0; i < RAIN_N; i++) {
+        let x = rainDrop[i * 3], y = rainDrop[i * 3 + 1], z = rainDrop[i * 3 + 2];
+        y -= 26 * dt; x -= 2.5 * dt;
+        if (y < cy - 8) y += 30; else if (y > cy + 22) y -= 30;
+        const ddx = x - cx; if (ddx > 30) x -= 60; else if (ddx < -30) x += 60;
+        const ddz = z - cz; if (ddz > 30) z -= 60; else if (ddz < -30) z += 60;
+        rainDrop[i * 3] = x; rainDrop[i * 3 + 1] = y; rainDrop[i * 3 + 2] = z;
+        p[i * 6] = x; p[i * 6 + 1] = y; p[i * 6 + 2] = z;
+        p[i * 6 + 3] = x + 0.08; p[i * 6 + 4] = y + 1.3; p[i * 6 + 5] = z;
+    }
+    rain.geometry.attributes.position.needsUpdate = true;
+}
+
+// ---- job flow ----
+function startJobNow() {
+    ensureJobs();
+    jm.start(currentJob);
+    const j = jm.current;
+    refreshCard();
+    safe(() => { if (ui) ui.setHint(jm.hint()); });
+    safe(() => { if (ui) ui.announce(j); });
+}
+function goJob(id) {
+    ensureJobs();
+    if (jm.lockReason(id, jobCtx())) return;
+    currentJob = id;
+    window.restartJob();
+}
+function onScooped() {
+    if (!jm) return;
+    jm.setPhase('dump');
+    refreshCard();
+    if (ui) ui.setHint(jm.hint());
+}
+function deliverLoad() {
+    ensureJobs();
+    const r = jm.addLoad(jobCtx());
+    if (!r) return false;
+    saveData.coins += r.tip;
+    writeSave();
+    safe(() => {
+        if (ui) {
+            if (!r.complete) ui.toast('Load ' + r.loads + ' of ' + r.total + ' delivered  +' + r.tip + ' coins', 'success');
+            ui.setCoins(saveData.coins); lastCoinsShown = saveData.coins;
+        }
+        refreshCard();
+        if (!r.complete && ui) ui.setHint(jm.hint());
+    });
+    if (!r.complete && r.loads % 3 === 0) {
+        setTimeout(() => safe(() => {
+            if (!jm || !jm.state.running) return;
+            worldBuilder.truckDirtMeshes.forEach(m => worldBuilder.truckGroup.remove(m));
+            worldBuilder.truckDirtMeshes = [];
+            worldBuilder.truckDirtLevel = 0;
+            if (ui) ui.toast('Truck is full. A new truck is here.', 'info');
+        }), 1500);
+    }
+    return r.complete;
+}
+function finishJob() {
+    ensureJobs();
+    const r = jm.complete(jobCtx());
+    saveData.coins += r.coins;
+    writeSave();
+    setTimeout(() => safe(() => {
+        if (!jobCompleted) return;
+        openModalState();
+        syncCoins();
+        panels.showResult(r, {
+            onNext: (id) => goJob(id),
+            onReplay: () => window.restartJob(),
+            onJobs: () => openPicker()
+        });
+    }), 1700);
+}
+function onJobFail() {
+    safe(() => {
+        openModalState();
+        panels.showFail(jm.current, jm.state.loads, {
+            onRetry: () => window.restartJob(),
+            onJobs: () => openPicker()
+        });
+    });
+}
+function openPicker() {
+    safe(() => {
+        ensureJobs();
+        openModalState();
+        panels.showPicker(jm, jobCtx(), {
+            onPick: (id) => goJob(id),
+            onClose: () => closeJobModal(),
+            onCoins: (amt) => {
+                saveData.coins += amt; writeSave(); syncCoins();
+                if (ui) { ui.toast('Daily bonus +' + amt + ' coins', 'success'); ui.setMenuDot(false); }
+                safe(() => hub.coin());
+            }
+        });
+    });
+}
+function buyUpgrade(kind) {
+    const key = kind === 'engine' ? 'engineLevel' : kind === 'hydraulic' ? 'hydraulicLevel' : 'bucketLevel';
+    const lv = saveData[key] || 1;
+    const cost = upgradeCost(kind, lv, 0);
+    if (cost === null || saveData.coins < cost) return false;
+    saveData.coins -= cost;
+    saveData[key] = lv + 1;
+    writeSave();
+    if (vehicle) vehicle.setUpgrades(saveData);
+    syncCoins();
+    safe(() => hub.coin());
+    return true;
+}
+function openShop() {
+    safe(() => {
+        ensureJobs();
+        openModalState();
+        panels.showShop(
+            () => ({ coins: saveData.coins, levels: { engine: saveData.engineLevel || 1, hydraulic: saveData.hydraulicLevel || 1, bucket: saveData.bucketLevel || 1 } }),
+            { onBuy: (k) => buyUpgrade(k), onClose: () => closeJobModal() }
+        );
+    });
+}
+
+// Jobs button next to the Upgrades button (key J does the same)
+safe(() => {
+    const sb = document.getElementById('shop-btn');
+    if (sb && !document.getElementById('jobs-btn')) {
+        const b = document.createElement('button');
+        b.id = 'jobs-btn';
+        b.type = 'button';
+        b.className = sb.className;
+        b.textContent = 'Jobs';
+        b.addEventListener('click', () => { b.blur(); openPicker(); });
+        sb.insertAdjacentElement('afterend', b);
+    }
+});
+safe(() => { if (import.meta.env.DEV && /[?&]rich/.test(location.search)) saveData.coins = Math.max(saveData.coins, 3000); });
+setTimeout(() => safe(() => {
+    ensureJobs();
+    if (ui && jm.dailyStatus().canClaim) { ui.setMenuDot(true); ui.toast('Daily bonus ready!', 'success'); }
+}), 3000);
+
 const clock = new THREE.Clock();
 
 // ---- Fixed 60 Hz physics (same speed on 30, 60, 144, 165, 240 Hz screens) ----
@@ -711,13 +1021,13 @@ function updateFx(dt) {
         if (guide) {
             let key = 'none', pos = null;
             if (!jobCompleted) {
-                if (vehicle.hasDirt) { key = 'truck'; pos = worldBuilder.truckGroup.position.clone(); }
-                else { key = 'pile'; pos = worldBuilder.dirtPileGroup.position.clone(); }
+                if (vehicle.hasDirt) { key = 'truck'; pos = new THREE.Vector3(siteNow.truck.x, 0, siteNow.truck.z); }
+                else { key = 'pile'; pos = new THREE.Vector3(siteNow.pile.x, 0, siteNow.pile.z); }
             }
             if (key !== lastTarget) { lastTarget = key; guide.setTarget(pos); }
             const bm = scene.userData.beam;
             if (bm) { bm.visible = false; if (pos) { bm.position.set(pos.x, 30, pos.z); bm.material.opacity = 0.16 + 0.08 * Math.sin(performance.now() / 300); } }
-            if (tutStep === 1 && pos && vehicle.mesh.position.distanceTo(worldBuilder.dirtPileGroup.position) < 25) { guide.nextTutorialStep(); tutStep = 2; }
+            if (tutStep === 1 && pos && vehicle.mesh.position.distanceTo(pos) < 25) { guide.nextTutorialStep(); tutStep = 2; }
             guide.update(dt);
         }
     });
@@ -769,14 +1079,14 @@ function animate() {
             if (!hasScoopedDirt && vehicle.hasDirt) {
                 hasScoopedDirt = true;
                 const statusVal = document.getElementById('job-status-val'); if(statusVal) statusVal.textContent = 'DUMP IN TRUCK';
-                worldBuilder.shrinkDirtPile();
+                worldBuilder.shrinkDirtPile(); safe(onScooped);
                 safe(() => { if (fx) fx.onScoop(bucketPos.clone()); if (sfx) sfx.scoop(); if (guide && tutStep === 2) { guide.nextTutorialStep(); tutStep = 3; } }); 
                 audio.playDirtCrunch(); 
             }
 
             if (hasScoopedDirt && !vehicle.hasDirt) {
                 const truckBedPos = worldBuilder.truckGroup.position.clone().add(new THREE.Vector3(0, 2, -1));
-                if (hasScoopedDirt && !vehicle.hasDirt && bucketPos.distanceTo(truckBedPos) >= 10) { hasScoopedDirt = false; safe(() => { if (ui) ui.toast('Missed the truck - scoop again', 'warn'); }); }
+                if (hasScoopedDirt && !vehicle.hasDirt && bucketPos.distanceTo(truckBedPos) >= 10) { hasScoopedDirt = false; safe(() => { if (ui) { ui.toast('Missed the truck - scoop again', 'warn'); if (jm) jm.setPhase('scoop'); refreshCard(); } }); }
                 if (bucketPos.distanceTo(truckBedPos) < 10) {
                     hasScoopedDirt = false;
                     worldBuilder.addDirtToTruck();
@@ -784,20 +1094,20 @@ function animate() {
                     safe(() => { if (fx) fx.onDump(worldBuilder.truckGroup.position.clone(), bucketPos.clone()); if (sfx) sfx.coin(); if (guide && tutStep === 3) { guide.nextTutorialStep(); tutStep = 4; } });
                     cameraShake = 0.5;
                     
-                    if (worldBuilder.truckDirtLevel < MAX_LOADS) {
+                    if (!deliverLoad()) {
                         const statusVal = document.getElementById('job-status-val'); 
                         if(statusVal) statusVal.textContent = `SCOOP DIRT (${worldBuilder.truckDirtLevel}/3)`;
                         audio.playScoop();
                     } else {
                         jobCompleted = true; 
-                        saveData.coins += 150;
-                        safe(() => { if (ui) { const r = jm ? jm.complete() : null; ui.setTimer(null); ui.toast('Job complete! +150 coins' + (r && r.stars ? '  ' + r.stars + ' star(s)' : ''), 'success'); } }); 
+                        finishJob();
+                        safe(() => { if (ui) { const r = null; ui.setTimer(null); ui.toast('Job complete!' + (r && r.stars ? '  ' + r.stars + ' star(s)' : ''), 'success'); } }); 
                         writeSave();
                         const coinCount = document.getElementById('coin-count'); if(coinCount) coinCount.textContent = saveData.coins;
                         const statusVal = document.getElementById('job-status-val'); if(statusVal) statusVal.textContent = 'COMPLETE!';
-                        const overlay = document.getElementById('victory-overlay'); if(overlay && !fx) overlay.classList.add('active');
+                        const overlay = document.getElementById('victory-overlay'); /* old victory overlay is off: Jobs.js shows the result window */
                         audio.playSuccess();
-                        safe(() => { if (fx) fx.showJobComplete(saveData.coins, () => window.restartJob()); if (sfx) sfx.complete(); });
+                        safe(() => { if (fx) void 0; if (sfx) sfx.complete(); });
                         try { window.CrazyGames.SDK.game.happytime(); } catch(e) {}
                     }
                 }
@@ -807,7 +1117,9 @@ function animate() {
         trackFPS(dt);
         updateFx(dt);
         vehicle.pilePos = worldBuilder.dirtPileGroup.position;
-        if (!vehicle.truckPos) vehicle.truckPos = worldBuilder.truckGroup.position.clone().add(new THREE.Vector3(0, 2, -1));
+        if (!vehicle.truckPos) vehicle.truckPos = new THREE.Vector3();
+        vehicle.truckPos.copy(worldBuilder.truckGroup.position).add(_truckOff);
+        safe(() => { updateEnv(dt); updateRain(dt); });
         updateUi(dt);
         updateDig(dt);
         renderFrame();

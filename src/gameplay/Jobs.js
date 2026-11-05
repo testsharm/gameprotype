@@ -6,7 +6,7 @@
 const SAVE_KEY = 'terraform_jobs_v1';
 const ROAD_POS = [-240, -160, -80, 80, 160, 240];
 const ROAD_HALF = 12;
-const SITE_R = 11;
+let SITE_R = 11;
 
 export const MAX_LEVEL = 4;
 export const START = { x: -35, y: 1.2, z: 10, yaw: Math.PI };
@@ -164,7 +164,7 @@ function buildIndex(buildings, props) {
     if (!b) continue;
     const hw = (b.w || 0) / 2, hd = (b.d || 0) / 2;
     add(b.x, b.z, hw, hd, 0);              // box centred on x,z
-    add(b.x + hw, b.z + hd, hw, hd, 0);    // same box if x,z is a corner (safe both ways)
+    // (x,z is the box centre, confirmed by main.js keepCameraClear)    // same box if x,z is a corner (safe both ways)
   }
   for (const c of props || []) {
     if (!c) continue;
@@ -270,6 +270,7 @@ export class JobSystem {
     ctx = ctx || {};
     const j = this.get(id);
     if (!j) return 'Unknown job';
+    try { if (/[?&]unlockall/.test(location.search)) return ''; } catch (e) { /* ignore */ }
     const n = j.needs || {};
     if (n.job && !this.isDone(n.job)) return 'Finish job ' + n.job + ' first';
     if (n.engine && (ctx.engineLevel || 1) < n.engine) return 'Needs Engine level ' + n.engine;
@@ -394,7 +395,11 @@ export class JobSystem {
   // where the pile and truck go for each job (null-safe, cached)
   layout(buildingData, propColliders) {
     if (!this._layout) {
-      try { this._layout = resolveAll(buildIndex(buildingData, propColliders)); }
+      try {
+        let out = resolveAll(buildIndex(buildingData, propColliders));
+        if ([...out.values()].some(v => !v.ok)) { SITE_R = 7; out = resolveAll(buildIndex(buildingData, propColliders)); SITE_R = 11; }
+        this._layout = out;
+      }
       catch (e) { console.warn('[Jobs] site finder failed', e); this._layout = new Map(); }
     }
     return this._layout;
@@ -412,7 +417,7 @@ function starSvg(on, size, delay) {
 const LOCK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px"><rect x="5" y="11" width="14" height="10" rx="2" fill="#fbbf24"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="#fbbf24" stroke-width="2.4"/></svg>';
 
 const CSS = `
-#tf-jb-root{position:fixed;inset:0;z-index:90;pointer-events:none;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#eef3fb;user-select:none}
+#tf-jb-root{position:fixed;inset:0;z-index:500;pointer-events:none;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#eef3fb;user-select:none}
 .tf-jb-veil{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:10px;box-sizing:border-box;background:rgba(4,8,15,.66);pointer-events:auto;overflow:auto;animation:tf-jb-fade .18s ease-out}
 .tf-jb-card{position:relative;width:min(540px,100%);max-height:100%;overflow:auto;box-sizing:border-box;padding:18px 20px 20px;border-radius:16px;background:linear-gradient(180deg,#2b384e,#18212f);border:2px solid #0a0f18;box-shadow:0 5px 0 #0a0f18,0 22px 44px rgba(0,0,0,.55),inset 0 2px 0 rgba(255,255,255,.12);animation:tf-jb-rise .22s ease-out}
 .tf-jb-card.wide{width:min(900px,100%)}
@@ -450,7 +455,7 @@ const CSS = `
 .tf-jb-bar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:#0f1622;border:2px solid #0a0f18;margin:8px 0;font-size:16px;box-shadow:inset 0 2px 6px rgba(0,0,0,.5)}
 .tf-jb-bar b{color:#fbbf24}
 .tf-jb-bar .tf-jb-btn{flex:0 0 auto;min-height:40px;padding:6px 16px;font-size:16px}
-.tf-jb-brief{position:absolute;left:50%;top:14%;transform:translateX(-50%) translateY(-10px);width:min(520px,calc(100% - 24px));box-sizing:border-box;padding:10px 16px 12px;border-radius:14px;background:linear-gradient(180deg,rgba(43,56,78,.96),rgba(24,33,47,.96));border:2px solid #0a0f18;box-shadow:0 4px 0 #0a0f18,0 14px 30px rgba(0,0,0,.45);text-align:center;opacity:0;transition:opacity .35s,transform .35s;pointer-events:none}
+.tf-jb-brief{position:absolute;left:50%;top:26%;transform:translateX(-50%) translateY(-10px);width:min(520px,calc(100% - 24px));box-sizing:border-box;padding:10px 16px 12px;border-radius:14px;background:linear-gradient(180deg,rgba(43,56,78,.96),rgba(24,33,47,.96));border:2px solid #0a0f18;box-shadow:0 4px 0 #0a0f18,0 14px 30px rgba(0,0,0,.45);text-align:center;opacity:0;transition:opacity .35s,transform .35s;pointer-events:none}
 .tf-jb-brief.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .tf-jb-brief .tf-jb-h{font-size:24px;margin:6px 0 2px}
 .tf-jb-brief .tf-jb-sub{margin:0;font-size:16px}
@@ -466,7 +471,7 @@ const CSS = `
   .tf-jb-row.total{font-size:18px}
   .tf-jb-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
   .tf-jb-btn{min-height:42px;font-size:16px}
-  .tf-jb-brief{top:10%}
+  .tf-jb-brief{top:17%}
 }
 `;
 
@@ -636,6 +641,255 @@ export class JobPanels {
       }
     });
   }
+}
+
+// ---------- shop window with level dots ----------
+const ICONS = {
+  engine: '<svg width="34" height="34" viewBox="0 0 24 24"><rect x="4" y="9" width="14" height="9" rx="2" fill="#fbbf24" stroke="#92400e" stroke-width="1.2"/><rect x="8" y="5" width="6" height="4" fill="#fbbf24"/><rect x="18" y="11" width="3" height="5" fill="#fbbf24"/><rect x="1.5" y="11" width="2.5" height="5" fill="#fbbf24"/></svg>',
+  hydraulic: '<svg width="34" height="34" viewBox="0 0 24 24"><rect x="2" y="8.5" width="12" height="7" rx="1.8" fill="#fbbf24" stroke="#92400e" stroke-width="1.2"/><rect x="14" y="11" width="8" height="2.6" fill="#e5e7eb"/><circle cx="3.6" cy="12" r="1.5" fill="#0a0f18"/></svg>',
+  bucket: '<svg width="34" height="34" viewBox="0 0 24 24"><path d="M3 7h13l5 7-3 5H6z" fill="#fbbf24" stroke="#92400e" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 19v2M12 19v2M16 19v2" stroke="#e5e7eb" stroke-width="2"/></svg>'
+};
+const CSS2 = `
+.tf-up{display:flex;flex-direction:column;gap:7px;padding:12px;border-radius:12px;border:2px solid #0a0f18;background:linear-gradient(180deg,#34445f,#212d40);box-shadow:0 4px 0 #0a0f18,inset 0 2px 0 rgba(255,255,255,.12)}
+.tf-up-top{display:flex;align-items:center;gap:10px}
+.tf-up-top h3{margin:0;font-size:19px;color:#fff}
+.tf-up-ico{flex:0 0 auto;width:46px;height:46px;border-radius:12px;background:#0f1622;border:2px solid #0a0f18;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 2px 6px rgba(0,0,0,.5)}
+.tf-up p{margin:0;font-size:15px;line-height:1.3;color:#c4cfdf}
+.tf-up p b{color:#6ee7a7}
+.tf-sp{display:inline-block;width:30px;height:13px;border-radius:4px;background:#0a0f18;border:1px solid #05080e;margin-right:5px;box-shadow:inset 0 2px 3px rgba(0,0,0,.6)}
+.tf-sp.on{background:linear-gradient(180deg,#fde68a,#f59e0b);box-shadow:0 0 8px rgba(251,191,36,.6),inset 0 1px 0 rgba(255,255,255,.6)}
+`;
+
+JobPanels.prototype.showShop = function (getCtx, h, again) {
+  h = h || {};
+  this._ensure();
+  if (!document.getElementById('tf-jb-css2')) {
+    const st = document.createElement('style');
+    st.id = 'tf-jb-css2';
+    st.textContent = CSS2;
+    document.head.appendChild(st);
+  }
+  const c = getCtx();
+  let cards = '';
+  for (const kind of ['engine', 'hydraulic', 'bucket']) {
+    const u = UPGRADES[kind];
+    const lv = Math.min(Math.max((c.levels && c.levels[kind]) || 1, 1), MAX_LEVEL);
+    const cost = upgradeCost(kind, lv, 0);
+    const pips = [1, 2, 3, 4].map(n => '<i class="tf-sp' + (n <= lv ? ' on' : '') + '"></i>').join('');
+    let btn;
+    if (cost === null) btn = '<button class="tf-jb-btn alt" disabled>MAX LEVEL</button>';
+    else if (c.coins < cost) btn = '<button class="tf-jb-btn" disabled>' + cost + ' coins (need ' + (cost - c.coins) + ' more)</button>';
+    else btn = '<button class="tf-jb-btn" data-act="buy" data-kind="' + kind + '">Buy - ' + cost + ' coins</button>';
+    cards +=
+      '<div class="tf-up"><div class="tf-up-top"><span class="tf-up-ico">' + ICONS[kind] + '</span><h3>' + u.name + '</h3></div>' +
+      '<div>' + pips + '</div>' +
+      '<p>Now: ' + u.lines[lv - 1] + '</p>' +
+      '<p>' + (cost === null ? 'Fully upgraded' : 'Next: <b>' + u.lines[lv] + '</b>') + '</p>' +
+      btn + '</div>';
+  }
+  const html =
+    '<span class="tf-jb-tag">Workshop</span>' +
+    '<div class="tf-jb-h">Upgrades</div>' +
+    '<p class="tf-jb-sub">Better machine, faster jobs, more coins.</p>' +
+    '<div class="tf-jb-bar"><span>Your coins: <b>' + c.coins + '</b></span><span>Job 6 needs Engine level 2</span></div>' +
+    '<div class="tf-jb-grid">' + cards + '</div>' +
+    '<div class="tf-jb-btns"><button class="tf-jb-btn alt" data-act="close">Back to game</button></div>';
+  const veil = this._open(html, true, (t) => {
+    const a = t.getAttribute('data-act');
+    if (a === 'buy') {
+      if (h.onBuy) h.onBuy(t.getAttribute('data-kind'));
+      this.showShop(getCtx, h, true);
+    } else if (a === 'close') {
+      this.hide();
+      if (h.onClose) h.onClose();
+    }
+  });
+  if (again && veil) {
+    veil.style.animation = 'none';
+    if (veil.firstChild) veil.firstChild.style.animation = 'none';
+  }
+};
+
+// ---------- site dressing: visual only, built once per job site ----------
+export function buildSiteDressing(THREE, id, pile, truck) {
+  const g = new THREE.Group();
+  g.name = 'jobSite' + id;
+  let seed = id * 7919 + 13;
+  const R = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const dx = truck.x - pile.x, dz = truck.z - pile.z;
+  const dl = Math.hypot(dx, dz) || 1;
+  const ux = dx / dl, uz = dz / dl, vx = -uz, vz = ux;
+  const yawU = Math.atan2(ux, uz);
+  const P = (a, b, o) => { const q = o || pile; return { x: q.x + ux * a + vx * b, z: q.z + uz * a + vz * b }; };
+  const onCorridor = (x, z) => {
+    const ax = (x - pile.x) * ux + (z - pile.z) * uz;
+    const bx = (x - pile.x) * vx + (z - pile.z) * vz;
+    return ax > -14 && ax < dl + 12 && Math.abs(bx) < 9;
+  };
+  const mats = {};
+  const M = (c, extra) => {
+    const k = c + JSON.stringify(extra || {});
+    if (!mats[k]) mats[k] = new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.85, metalness: 0.05 }, extra || {}));
+    return mats[k];
+  };
+  const add = (geo, mat, x, y, z, ry, shadow) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    if (ry) m.rotation.y = ry;
+    m.castShadow = shadow !== false;
+    m.receiveShadow = true;
+    g.add(m);
+    return m;
+  };
+  const box = (w, h, d, x, y, z, c, ry, extra) => add(new THREE.BoxGeometry(w, h, d), M(c, extra), x, y, z, ry);
+  const cyl = (rt, rb, h, x, y, z, c, extra) => add(new THREE.CylinderGeometry(rt, rb, h, 12), M(c, extra), x, y, z, 0);
+  const pad = (p, r, c, y) => {
+    const m = new THREE.Mesh(new THREE.CircleGeometry(r, 48), new THREE.MeshStandardMaterial({ color: c, roughness: 1, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 }));
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(p.x, y, p.z);
+    m.receiveShadow = true;
+    g.add(m);
+  };
+  const cone = (x, z) => {
+    cyl(0.16, 0.42, 1.0, x, 0.5, z, 0xf97316);
+    cyl(0.25, 0.3, 0.2, x, 0.55, z, 0xffffff);
+  };
+  const tree = (x, z) => {
+    const s = 0.8 + R() * 0.6;
+    cyl(0.4 * s, 0.55 * s, 3.2 * s, x, 1.6 * s, z, 0x6b4a2b);
+    add(new THREE.ConeGeometry(2.3 * s, 3.6 * s, 10), M(0x2f6f3a), x, 4.4 * s, z, 0);
+    add(new THREE.ConeGeometry(1.7 * s, 3.0 * s, 10), M(0x3a8546), x, 6.2 * s, z, 0);
+  };
+  const rock = (x, z) => {
+    const s = 0.9 + R() * 1.3;
+    const m = add(new THREE.DodecahedronGeometry(s, 0), M(0x7d7468, { flatShading: true }), x, s * 0.55, z, R() * 6);
+    m.scale.set(1, 0.7, 1.1);
+  };
+  const lamp = (x, z, h, power) => {
+    cyl(0.28, 0.4, h, x, h / 2, z, 0x5b6573);
+    box(2.4, 1.0, 0.8, x, h + 0.3, z, 0xfff4c9, yawU, { emissive: 0xffe9a8, emissiveIntensity: 3, roughness: 0.4 });
+    if (power) {
+      const L = new THREE.PointLight(0xfff0c8, power, 70, 2);
+      L.position.set(x, h - 0.5, z);
+      g.add(L);
+    }
+  };
+  const beacon = (x, y, z) => {
+    add(new THREE.SphereGeometry(0.42, 12, 8), M(0xffb020, { emissive: 0xff9a00, emissiveIntensity: 2.6 }), x, y, z, 0, false);
+  };
+  const sign = (text, sub) => {
+    const cv = document.createElement('canvas');
+    cv.width = 512; cv.height = 160;
+    const c = cv.getContext('2d');
+    c.fillStyle = '#1b2535'; c.fillRect(0, 0, 512, 160);
+    c.fillStyle = '#fbbf24'; c.fillRect(0, 0, 512, 14); c.fillRect(0, 146, 512, 14);
+    c.textAlign = 'center';
+    let fs = 54;
+    c.font = 'bold ' + fs + 'px system-ui,sans-serif';
+    while (c.measureText(text).width > 470 && fs > 24) { fs -= 2; c.font = 'bold ' + fs + 'px system-ui,sans-serif'; }
+    c.fillStyle = '#ffffff'; c.fillText(text, 256, 84);
+    c.fillStyle = '#fcd34d'; c.font = 'bold 30px system-ui,sans-serif'; c.fillText(sub, 256, 126);
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    const len = Math.hypot(pile.x, pile.z) || 1;
+    const nx = -pile.x / len, nz = -pile.z / len;
+    const ry = Math.atan2(nx, nz);
+    const cx = pile.x + nx * 10 + nz * 6, cz = pile.z + nz * 10 - nx * 6;
+    cyl(0.2, 0.2, 3.4, cx - nz * 3, 1.7, cz + nx * 3, 0x5b6573);
+    cyl(0.2, 0.2, 3.4, cx + nz * 3, 1.7, cz - nx * 3, 0x5b6573);
+    box(7.4, 2.4, 0.4, cx, 3.5, cz, 0x1b2535, ry);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.2), new THREE.MeshBasicMaterial({ map: tex }));
+    face.position.set(cx + nx * 0.23, 3.5, cz + nz * 0.23);
+    face.rotation.y = ry;
+    g.add(face);
+  };
+
+  const T = {
+    2: { a: 0x6b7a47, b: 0x8a8272 },
+    3: { a: 0x8d8d88, b: 0x7d7d79 },
+    4: { a: 0x4f4338, b: 0x5d5a55 },
+    5: { a: 0x4b4842, b: 0x5a5852 },
+    6: { a: 0x8f7f6a, b: 0x9a9388 }
+  }[id] || { a: 0x7a6a55, b: 0x7d7468 };
+  pad(pile, 13, T.a, 0.12);
+  pad(truck, 9.5, T.b, 0.13);
+
+  // cones around both spots (not in the driving corridor)
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2;
+    const x = pile.x + Math.cos(a) * 14.6, z = pile.z + Math.sin(a) * 14.6;
+    if (!onCorridor(x, z)) cone(x, z);
+  }
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2;
+    const x = truck.x + Math.cos(a) * 11, z = truck.z + Math.sin(a) * 11;
+    if (!onCorridor(x, z)) cone(x, z);
+  }
+
+  const job = JOBS.find(j => j.id === id);
+  if (job) sign('JOB ' + id + ' - ' + job.name.toUpperCase(), job.theme);
+
+  if (id === 2) { // park landslide
+    for (let i = 0; i < 10; i++) { const a = R() * 6.28, r = 7 + R() * 6; rock(pile.x + Math.cos(a) * r, pile.z + Math.sin(a) * r); }
+    for (let i = 0; i < 12; i++) {
+      const a = R() * 6.28, r = 19 + R() * 9;
+      const x = pile.x + Math.cos(a) * r, z = pile.z + Math.sin(a) * r;
+      if (!onCorridor(x, z)) tree(x, z);
+    }
+    for (let k = -1; k <= 1; k += 2) {
+      const p = P(dl * 0.5, k * 12);
+      box(2.6, 0.4, 0.9, p.x, 0.75, p.z, 0x8a5a2b, yawU);
+      box(2.6, 0.9, 0.35, p.x + vx * k * 0.4, 1.25, p.z + vz * k * 0.4, 0x8a5a2b, yawU);
+    }
+  } else if (id === 3) { // bridge repair
+    for (let b = -12; b <= 12.1; b += 3.6) {
+      const p = P(-12, b);
+      box(3.2, 1.1, 0.9, p.x, 0.55, p.z, 0xb9b9b3, yawU + Math.PI / 2);
+      box(3.22, 0.3, 0.92, p.x, 1.2, p.z, 0xf59e0b, yawU + Math.PI / 2);
+    }
+    for (let b = -14; b <= 14.1; b += 3.5) {
+      const p = P(dl + 8, b);
+      box(0.5, 1.5, 0.5, p.x, 0.75, p.z, 0x9ca3af);
+    }
+    { const p = P(dl + 8, 0); box(0.45, 0.45, 28.5, p.x, 1.35, p.z, 0xd1d5db, yawU + Math.PI / 2); }
+    for (const k of [-14, 14]) { const p = P(-12, k); box(1.7, 1.7, 0.35, p.x, 1.9, p.z, 0xf59e0b, yawU + Math.PI / 4); beacon(p.x, 3.1, p.z); }
+  } else if (id === 4) { // night shift
+    const a = P(-8, -12), b = P(-8, 12), c = P(dl + 6, 0);
+    lamp(a.x, a.z, 9.5, 260); lamp(b.x, b.z, 9.5, 260); lamp(c.x, c.z, 9.5, 240);
+    for (let i = 0; i < 5; i++) { const p = P(R() * 14 - 4, R() * 20 - 10, pile); box(1.3, 1.3, 1.3, p.x, 0.65, p.z, 0x6b7280, R() * 3); }
+    for (let k = -1; k <= 1; k += 2) { const p = P(dl * 0.5, k * 10); beacon(p.x, 1.3, p.z); cyl(0.3, 0.3, 0.9, p.x, 0.45, p.z, 0x334155); }
+  } else if (id === 5) { // storm rescue
+    for (let i = 0; i < 4; i++) {
+      const a = R() * 6.28, r = 12 + R() * 6;
+      const x = pile.x + Math.cos(a) * r, z = pile.z + Math.sin(a) * r;
+      if (onCorridor(x, z)) continue;
+      const m = add(new THREE.CylinderGeometry(0.65, 0.75, 9, 10), M(0x5b4630), x, 0.7, z, R() * 3);
+      m.rotation.z = Math.PI / 2;
+      const f = add(new THREE.SphereGeometry(2.1, 10, 8), M(0x2f4a2a), x + 4, 1.2, z, 0);
+      f.scale.set(1, 0.7, 1);
+    }
+    for (let i = 0; i < 8; i++) { const a = R() * 6.28, r = 6 + R() * 9; box(1 + R() * 0.7, 0.9 + R() * 0.6, 1 + R() * 0.7, pile.x + Math.cos(a) * r, 0.6, pile.z + Math.sin(a) * r, [0x7a6a55, 0x6b7280, 0x8a5a2b][i % 3], R() * 3); }
+    for (let i = 0; i < 5; i++) {
+      const a = R() * 6.28, r = 4 + R() * 9, s = 2.5 + R() * 1.5;
+      const m = new THREE.Mesh(new THREE.CircleGeometry(s, 24), new THREE.MeshStandardMaterial({ color: 0x5d7488, roughness: 0.12, metalness: 0.5, polygonOffset: true, polygonOffsetFactor: -8, polygonOffsetUnits: -8 }));
+      m.rotation.x = -Math.PI / 2; m.position.set(truck.x + Math.cos(a) * r, 0.14, truck.z + Math.sin(a) * r); g.add(m);
+    }
+    for (let row = 0; row < 2; row++) for (let i = 0; i < 6; i++) { const p = P(dl - 7 + row * 0.8, -4 + i * 1.3, pile); box(1.2, 0.5, 0.8, p.x, 0.3 + row * 0.5, p.z, 0xb6a27a, yawU + Math.PI / 2); }
+  } else if (id === 6) { // skyline foundation with a tower crane
+    const base = P(-2, 11);
+    box(3.4, 1.0, 3.4, base.x, 0.5, base.z, 0x6b7280);
+    box(1.2, 26, 1.2, base.x, 13.5, base.z, 0xf5b301);
+    box(24, 0.9, 0.9, base.x + ux * 8, 26.6, base.z + uz * 8, 0xf5b301, Math.atan2(uz, -ux) + Math.PI / 2 * 0 + 0, {});
+    box(2.2, 2.2, 2.2, base.x, 25.6, base.z, 0x1f2937);
+    box(5, 1.6, 1.6, base.x - ux * 5, 27, base.z - uz * 5, 0x6b7280, Math.atan2(uz, -ux));
+    cyl(0.22, 0.22, 11, base.x + ux * 12, 21, base.z + uz * 12, 0x111827);
+    box(2.2, 1.4, 2.2, base.x + ux * 12, 15, base.z + uz * 12, 0xea580c, yawU);
+    for (let i = 0; i < 3; i++) { const p = P(dl - 6, -6 + i * 6, pile); box(0.55, 0.55, 8, p.x, 0.4 + (i % 2) * 0.55, p.z, 0xc2410c, yawU + 0.2 * i); }
+    for (let i = 0; i < 3; i++) { const p = P(-6, -9 + i * 1.4); box(7, 0.5, 0.5, p.x, 0.3, p.z, 0x374151, yawU + Math.PI / 2); }
+    for (let k = -1; k <= 1; k += 2) { const p = P(-10, k * 11); beacon(p.x, 1.4, p.z); cyl(0.3, 0.3, 1, p.x, 0.5, p.z, 0x334155); }
+  }
+  return g;
 }
 
 export default JobSystem;
