@@ -200,7 +200,7 @@ body.tf-menu #tf-hud{display:none !important}
   .tf-speed .v{font-size:32px}
   .tf-toasts{bottom:calc(160px + ${SAFE_B});width:min(320px,60vw)}
   .tf-toast{font-size:14px;padding:7px 10px}
-  .tf-hint{top:calc(52px + ${SAFE_T})}
+  .tf-hint{top:calc(96px + ${SAFE_T})}
   #tf-loads{top:calc(52px + ${SAFE_T})}
   .tf-pad{display:none}
   #tf-hud.tf-lefty .tf-drive{left:auto;right:calc(10px + ${SAFE_R})}
@@ -237,7 +237,7 @@ body.tf-menu #tf-hud{display:none !important}
   .tf-speed .v{font-size:36px}
   .tf-toasts{bottom:calc(276px + ${SAFE_B});width:min(320px,84vw)}
   .tf-toast{font-size:14px;padding:9px 12px}
-  .tf-hint{top:calc(230px + ${SAFE_T})}
+  .tf-hint{top:calc(276px + ${SAFE_T})}
   #tf-loads{top:calc(230px + ${SAFE_T})}
   .tf-pad{display:none}
   #tf-hud.tf-lefty .tf-drive{left:auto;right:calc(12px + ${SAFE_R})}
@@ -338,8 +338,8 @@ export default class GameUI {
 
       <div class="tf-touch" id="tf-touch">
         <div class="tf-drive" id="tf-joy" aria-label="Steering pad"><div class="knob" id="tf-knob">${svg('wheel')}</div></div>
-        <button class="tf-action" id="tf-f" data-code="KeyF" aria-label="Scoop">${svg('dig')}<span>SCOOP</span><i class="tf-ring" id="tf-f-ring"></i></button>
-        <button class="tf-dump" id="tf-g" data-code="KeyG" aria-label="Dump">${svg('dump')}<span>DUMP</span><i class="tf-ring" id="tf-g-ring"></i></button>
+        <button class="tf-action" id="tf-f" data-code="KeyF" aria-label="Scoop">${svg('dig')}<span id="tf-f-label">SCOOP</span><i class="tf-ring" id="tf-f-ring"></i></button>
+        <button class="tf-dump" id="tf-g" data-code="KeyG" aria-label="Dump">${svg('dump')}<span id="tf-g-label">DUMP</span><i class="tf-ring" id="tf-g-ring"></i></button>
         <button class="tf-brake" id="tf-brk" data-code="Space" aria-label="Brake">${svg('brake')}<span>BRK</span></button>
       </div>
 
@@ -357,7 +357,7 @@ export default class GameUI {
       cam: $('tf-cam'), snd: $('tf-snd'), zin: $('tf-zin'), zout: $('tf-zout'), map: $('tf-map'),
       pad: $('tf-pad'), speed: $('tf-speed-v'), joy: $('tf-joy'), knob: $('tf-knob'),
       fBtn: $('tf-f'), gBtn: $('tf-g'), fRing: $('tf-f-ring'), gRing: $('tf-g-ring'),
-      fLabel: $('tf-f-label'), brk: $('tf-brk'),
+      fLabel: $('tf-f-label'), gLabel: $('tf-g-label'), brk: $('tf-brk'),
       toasts: $('tf-toasts'), hint: $('tf-hint'), loads: $('tf-loads'),
       announce: $('tf-announce'), annT1: $('tf-ann-t1'), annT2: $('tf-ann-t2')
     };
@@ -633,6 +633,15 @@ export default class GameUI {
     if (this.el.gBtn) this.el.gBtn.classList.toggle('holding', code === 'KeyG' && v > 0);
     const h = document.getElementById('tf-hold');
     if (h) { const i = h.querySelector('i'); if (i) i.style.width = Math.round(v * 100) + '%'; }
+  }
+  // TIER C: verb-specific action buttons (DIG / GRAB / PLACE / PUSH / PARK ...).
+  setVerbs(primary, secondary) {
+    const p = String(primary || 'SCOOP').slice(0, 12);
+    const q = String(secondary || 'DUMP').slice(0, 12);
+    if (this.el.fLabel) this.el.fLabel.textContent = p;
+    if (this.el.gLabel) this.el.gLabel.textContent = q;
+    if (this.el.fBtn) this.el.fBtn.setAttribute('aria-label', p);
+    if (this.el.gBtn) this.el.gBtn.setAttribute('aria-label', q);
   }
   setLoads(n) {
     if (!this.el.loads) return;

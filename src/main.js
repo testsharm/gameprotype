@@ -15,6 +15,7 @@ import GameUI from './ui/GameUI.js';
 import TrafficPhysics from './core/TrafficPhysics.js';
 import { JobSystem, buildSiteDressing, rankInfo, JOBS as LEVEL_LIST } from './gameplay/Jobs.js';
 import { LevelEngine, levelStartPose, CHAPTERS } from './gameplay/Levels.js';
+import { StageManager, STAGE_TABLE, stageVerbs } from './gameplay/Stages.js';
 import { CAMERA_LABELS } from './core/CameraManager.js';
 import { Portal } from './core/Portal.js';
 import Ads from './core/Ads.js';
@@ -157,6 +158,8 @@ scene.background = new THREE.Color(0xdfe9f3);
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.5, 1400);
 const cameraManager = new CameraManager(camera, canvas);
 const worldBuilder = new World(scene);
+// TIER C: one active, fully-built stage per level. Nothing spawns lazily.
+const stages = new StageManager(scene, worldBuilder);
 cameraManager.setCollidables([...worldBuilder.buildingMeshes, ...worldBuilder.treeMeshes]);
 
 cameraManager.onChange = () => safe(() => { if (ui) ui.refresh(); });
@@ -164,6 +167,9 @@ cameraManager.onChange = () => safe(() => { if (ui) ui.refresh(); });
 cameraManager.setMode('chase');
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: false });
+// TIER QA: count ALL passes in a frame (the composer's final fullscreen quad
+// otherwise resets info.render.calls to 1).
+renderer.info.autoReset = false;
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
@@ -292,14 +298,25 @@ function setupPostProcessing() {
     composer.addPass(new OutputPass());
 }
 
+// TIER QA: record the LAST COMPLETE frame, not a mid-frame snapshot.
+let _lastCalls = 0, _lastTris = 0, _fpsWin = [], _lastFrameT = 0;
 function renderFrame() {
     if (!firstFrameRendered) {
         firstFrameRendered = true;
         setupPostProcessing();
         startFpsTest();
     }
+    renderer.info.reset();
     if (composer) composer.render();
     else renderer.render(scene, camera);
+    _lastCalls = renderer.info.render.calls;
+    _lastTris = renderer.info.render.triangles;
+    const now = performance.now();
+    if (_lastFrameT && now > _lastFrameT) {
+        _fpsWin.push(1000 / (now - _lastFrameT));
+        if (_fpsWin.length > 90) _fpsWin.shift();
+    }
+    _lastFrameT = now;
 }
 
 window.setQuality = (q) => {
@@ -475,6 +492,7 @@ function pauseWindow() { pauseForMenu(); }
 function startGame() {
     unlockAudio();
     freePlay = false;
+    stages.enter(currentJob);
     if (park) park.hide();
     gameState = 'playing';
     uiPaused = false;
@@ -486,6 +504,7 @@ function startGame() {
 }
 function returnToMenu() {
     freePlay = false;
+    stages.leave();
     if (park) park.hide();
     closeJobModal();
     gameState = 'menu';
@@ -594,6 +613,7 @@ function setPaint(i) {
   safe(() => { if (vehicle && vehicle.setPaint) vehicle.setPaint(PAINTS[i]); });
 }
 function startFreePlay() {
+    stages.leave();
   // TIER 7: a real 160 x 160 m stunt park outside the city. No timer, no fail.
   if (!physReady || !world || !RAPIER) return;   // physics must be ready
   freePlay = true;
@@ -620,8 +640,11 @@ function startFreePlay() {
       if (vehicle.resetInterpolation) vehicle.resetInterpolation();
     } catch (e) {}
   }
+  safe(() => { if (cameraManager.snapTo && vehicle) { cameraManager.snapTo(vehicle.mesh,
+    { x: PARK_CENTER.x, y: 1.6, z: PARK_CENTER.z + 58 }); camClearT = 1; } });
   safe(() => { if (ui) { ui.hideModal(); ui.setScreen('play'); ui.reset(); ui.setTimer(null);
     ui.setJob('Free Play', 'Drive, jump, collect rings', 'No timer · no fail');
+    ui.setLoads(0);
     ui.setHint('6 ramps · turntable · coin rings · jump pads'); } });
   if (jm) { jm.state.running = false; }
   clearInput();
@@ -859,6 +882,7 @@ window.restartJob = () => {
         currentStartPose = pose;
         setVehiclePose(pose.x, pose.y, pose.z, pose.quat);
         cameraManager.setMode('chase');
+        safe(() => { if (cameraManager.snapTo) cameraManager.snapTo(vehicle.mesh, { x: pose.x, y: pose.y, z: pose.z }); camClearT = 1; });
         cameraManager.setZoom(Math.max(0.75, Math.min(1.5, pose.cam / 12)));
         safe(() => {
             if (guide && job.tutorial) guide.setChevrons({ x: pose.x, z: pose.z }, { x: site.pile.x, z: site.pile.z });
@@ -992,8 +1016,18 @@ function keepCameraClear(dt) {
     let tHit = 1;
     // A5: buildings AND trees. Spherecast-style fat ray so a tree canopy
     // cannot fill the screen with a solid green/black slab.
-    const boxes = (worldBuilder.treeData && worldBuilder.treeData.length)
-      ? worldBuilder.buildingData.concat(worldBuilder.treeData) : worldBuilder.buildingData;
+    // TIER C: during a stage the CITY IS HIDDEN, so its invisible colliders
+    // must not shove the camera into the machine. Only the pile + truck block.
+    let boxes;
+    if (stages && stages.current) {
+      // The whole city is hidden during a stage: no invisible colliders, and
+      // no pile/truck blocker either (it would shove the camera into the
+      // machine when the player parks next to the pile). Normal chase camera.
+      boxes = [];
+    } else {
+      boxes = (worldBuilder.treeData && worldBuilder.treeData.length)
+        ? worldBuilder.buildingData.concat(worldBuilder.treeData) : worldBuilder.buildingData;
+    }
     for (let i = 0; i < boxes.length; i++) {
         const b = boxes[i];
         const c = [b.x, b.y, b.z];
@@ -1127,8 +1161,6 @@ function placeSite(id) {
     ensureJobs();
     safe(() => {
         const job = jm.get(id) || jm.get(1);
-        setEnv(job.env, !envGoal);
-        safe(() => { if (worldBuilder.setNight) worldBuilder.setNight(!!(job.env && job.env.lights)); });
         captureBase();
         if (!siteBase) return;
         const lay = jm.siteFor(id);
@@ -1141,6 +1173,13 @@ function placeSite(id) {
         pg.updateMatrixWorld(true); tg.updateMatrixWorld(true);
         siteNow.pile.x = px; siteNow.pile.z = pz; siteNow.truck.x = tx; siteNow.truck.z = tz;
         rawSite = { pile: { x: px, z: pz }, truck: { x: tx, z: tz } };
+        // TIER C: build the stage AROUND this job's own pile/truck, which sit at
+        // a different far offset for many levels. No lazy goal spawns.
+        const stg = stages.enter(id, { x: (px + tx) / 2, z: (pz + tz) / 2 });
+        setEnv(stages.envFor(id), true);          // own sky, fog, sun - snap on stage swap
+        safe(() => { if (hub.setSoundBed) hub.setSoundBed(stg.sound); });
+        safe(() => { if (ui && ui.setVerbs) ui.setVerbs(stg.verbs[0], stg.verbs[1]); });
+        safe(() => { if (worldBuilder.setNight) worldBuilder.setNight(false); }); // stage owns its night lighting
         syncTruckCollider(moved, tx, tz);
         if (worldBuilder.jobSiteBase) worldBuilder.jobSiteBase.position.set(px, 0, pz);
         siteGroups.forEach((g, k) => { g.visible = (k === id); });
@@ -1473,7 +1512,10 @@ window.__tfQA = {
     speed: vehicle ? +vehicle.currentSpeed.toFixed(2) : 0, fwd: !!input.forward,
     actHolding, actCode, actT: +actT.toFixed(2), duration: +actionDuration(actCode).toFixed(2),
     canvas: !!document.getElementById('game-container') }),
-  qaRender: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
+  qaRender: () => ({ calls: _lastCalls, tris: _lastTris,
+    fps: +((_fpsWin.length ? _fpsWin.reduce((a, b) => a + b, 0) / _fpsWin.length : 0)).toFixed(1),
+    frames: _fpsWin.length }),
+  qaAudio: () => ({ beeps: hub.beepCount || 0, bed: hub._bed || 'site', engine: hub._eng ? +hub._eng.speed.toFixed(2) : 0 }),
   qaOpen: (kind) => { pauseWindow(); if (ui) ui.showModal(kind); return true; },
   qaWindow: (kind) => { pauseWindow(); if (!ui) return false;
     if (kind === 'map') ui.showMap();
@@ -1485,6 +1527,13 @@ window.__tfQA = {
     else ui.showModal(kind);
     return true; },
   qaLevel: (n) => { goJob(n); return true; },
+  qaStage: () => { const t = stages.stage(currentJob); return { id: t.id, name: t.name,
+    verbs: t.verbs, chapter: t.chapter, ground: t.ground, sky: t.sky, fog: t.fog,
+    skyline: t.skyline, landmark: t.landmark, props: t.props, sound: t.sound,
+    startYaw: t.yaw, coach: t.coach, active: stages.current, draw: renderer.info.render.calls }; },
+  qaAllStages: () => STAGE_TABLE.map(t => ({ id: t.id, name: t.name, verbs: t.verbs,
+    chapter: t.chapter, ground: t.ground, sky: t.sky, skyline: t.skyline, landmark: t.landmark,
+    props: t.props, startYaw: t.yaw, coach: t.coach })),
   qaPlay: () => { startGame(); return true; },
   qaFree: () => { startFreePlay(); return true; },
   qaMenu: () => { returnToMenu(); return true; },

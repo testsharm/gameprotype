@@ -66,6 +66,19 @@ export class CameraManager {
         this.collidableMeshes = meshes || [];
     }
 
+    // TIER C/D: after a level teleport the chase camera used to spend ~4 s
+    // flying across the map, showing an empty brown screen. Place it NOW.
+    snapTo(vehicleMesh, pos) {
+        if (!vehicleMesh) return;
+        const p = pos || vehicleMesh.position;
+        const zoom = this._zoom * this._distFactor;
+        const offset = this._offset.copy(CHASE_OFFSET).multiplyScalar(zoom)
+            .applyQuaternion(vehicleMesh.quaternion);
+        this.camera.position.set(p.x, p.y, p.z).add(offset);
+        this.currentLookAt.set(p.x, p.y + 2, p.z);
+        this.camera.lookAt(this.currentLookAt);
+    }
+
     setupInputs() {
         this.domElement.addEventListener('pointerdown', (e) => {
             this.isDragging = true;

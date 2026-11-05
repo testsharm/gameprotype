@@ -4,6 +4,7 @@
 // All art is made in code (no outside images, fonts or sounds).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { stageCoach } from './Stages.js';
 
 export const CHAPTERS = [
   { id: 1, name: 'Rookie Yard', from: 1, to: 5 },
@@ -885,7 +886,7 @@ export class LevelEngine {
   }
   hint(dirty) {
     // A9: three SHORT lines per level, shown one at a time. No repeats.
-    const lines = COACH[this.job && this.job.id] || COACH[1];
+    const lines = stageCoach(this.job && this.job.id);
     const phase = dirty ? 2 : (this.done > 0 ? 1 : 0);
     return lines[Math.min(2, phase)];
   }
