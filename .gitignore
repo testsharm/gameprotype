@@ -11,3 +11,5 @@ kk
 .vite.log
 .preview.log
 tools/executor.old.txt
+
+qa/

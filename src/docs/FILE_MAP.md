@@ -127,3 +127,9 @@ Also seen in the phone test (F12 device mode 440x956, tall): the HUD was designe
 - Keys: event.code. Never use Escape or Ctrl+W. No custom fullscreen button. No orientation-lock code.
 - All art, sound, icons made in code. No outside images, fonts or scripts except the CrazyGames SDK script.
 - localStorage always in try/catch. Relative paths only.
+
+## 5. QA tooling available in this workspace (2026-11-05)
+
+- `npm install --no-save jsdom` gives a fast DOM check of GameUI.js (no layout).
+- `npm install --no-save @sparticuz/chromium playwright-core` + `inflate(bin/al2023.tar.br)` + `setupLambdaEnvironment('/tmp/al2023/lib')` + `C.executablePath()` gives a working headless Chromium. Launch with `C.args` and `env: process.env` (LD_LIBRARY_PATH must include /tmp/al2023/lib).
+- `page.screenshot()` can hang on this WebGL game; use CDP `Page.captureScreenshot` instead. Serve `dist` with `npx vite preview --host 0.0.0.0 --port 4173` and abort the external SDK request with `ctx.route`.

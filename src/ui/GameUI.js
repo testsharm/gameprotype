@@ -2,7 +2,7 @@
 // Everything is built here. The minimap canvas (#minimap-canvas) comes from index.html and is moved into the HUD.
 // Touch controls send the same keyboard events as the keyboard, so main.js does not change.
 const U = n => `calc(var(--u)*${n})`;
-const SAFE_L = 'env(safe-area-inset-left,0px)', SAFE_R = 'env(safe-area-inset-right,0px)', SAFE_B = 'env(safe-area-inset-bottom,0px)';
+const SAFE_L = 'env(safe-area-inset-left,0px)', SAFE_R = 'env(safe-area-inset-right,0px)', SAFE_B = 'env(safe-area-inset-bottom,0px)', SAFE_T = 'env(safe-area-inset-top,0px)';
 const MONO = 'ui-monospace,Menlo,Consolas,"Courier New",monospace';
 
 const CSS = `
@@ -99,6 +99,62 @@ const CSS = `
 .tf-joy{position:relative;width:${U(124)};height:${U(124)};border-radius:50%;border:${U(3)} dashed rgba(203,213,225,.5);background:rgba(8,12,20,.38);display:grid;place-items:center;pointer-events:auto;touch-action:none}
 .tf-thumb{width:${U(54)};height:${U(54)};border-radius:50%;pointer-events:none}
 .tf-joy span{position:absolute;bottom:${U(6)};left:0;right:0;text-align:center;font-weight:900;letter-spacing:.14em;color:#a9b8cc;pointer-events:none}
+
+/* Every touch target is at least 48 CSS px, even on small screens. */
+#tf-hud.tf-touch .tf-fbtn,#tf-hud.tf-touch .tf-cam,#tf-hud.tf-touch .tf-brk,#tf-hud.tf-touch .tf-menu,#tf-hud.tf-touch .tf-tile{min-width:48px;min-height:48px}
+
+/* ---- short landscape / small laptop window (844x390, 800x450, 1280x600) ---- */
+@media (max-height:480px) and (orientation:landscape){
+  .tf-tl{top:calc(8px + ${SAFE_T});left:calc(10px + ${SAFE_L});gap:6px}
+  .tf-map{width:68px;height:68px;padding:4px}
+  .tf-timer{padding:4px 8px}
+  .tf-card{top:calc(8px + ${SAFE_T});width:min(300px,calc(100vw - 300px))}
+  .tf-card.big .tf-story{max-height:44px}
+  .tf-tr{top:calc(8px + ${SAFE_T});right:calc(10px + ${SAFE_R})}
+  .tf-coin{height:44px}
+  .tf-lane{top:calc(60px + ${SAFE_T});width:220px}
+  .tf-drawer{top:calc(60px + ${SAFE_T});grid-template-columns:repeat(3,78px)}
+  .tf-tile{height:64px}
+  .tf-bl{bottom:calc(10px + ${SAFE_B});left:calc(10px + ${SAFE_L});gap:10px}
+  .tf-fbtn{width:76px;height:76px}
+  .tf-fbtn b{font-size:28px}
+  .tf-cam{width:52px;height:52px}
+  .tf-keys{padding:6px 10px}
+  .tf-br{bottom:calc(10px + ${SAFE_B});right:calc(10px + ${SAFE_R});gap:10px}
+  .tf-dial{width:76px;height:76px}
+  .tf-well{inset:16px}
+  #tf-spd{font-size:20px}
+  .tf-well span{font-size:11px}
+  .tf-tr2{gap:6px}
+  .tf-brk{width:64px;height:48px}
+  .tf-joy{width:96px;height:96px}
+  .tf-thumb{width:44px;height:44px}
+  .tf-hint{bottom:calc(172px + ${SAFE_B});max-width:calc(100vw - 300px);padding:6px 14px}
+}
+
+/* ---- tall portrait phone (440x956 and similar) ---- */
+@media (max-width:620px) and (orientation:portrait){
+  .tf-tl{top:calc(10px + ${SAFE_T});left:calc(12px + ${SAFE_L});gap:8px}
+  .tf-map{width:80px;height:80px;padding:4px}
+  .tf-timer{padding:5px 10px}
+  .tf-tr{top:calc(10px + ${SAFE_T});right:calc(12px + ${SAFE_R});gap:8px}
+  .tf-coin{height:48px;padding:0 12px 0 7px}
+  .tf-menu{width:48px;height:48px}
+  .tf-card{top:calc(132px + ${SAFE_T});left:calc(12px + ${SAFE_L});right:calc(12px + ${SAFE_R});transform:none;width:auto;max-width:none}
+  .tf-card.big .tf-story{max-height:120px}
+  .tf-lane{top:calc(228px + ${SAFE_T});right:calc(12px + ${SAFE_R});width:calc(100vw - 24px);gap:6px}
+  .tf-drawer{top:calc(64px + ${SAFE_T});right:calc(12px + ${SAFE_R});left:calc(12px + ${SAFE_L});width:auto;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tf-bl{bottom:calc(16px + ${SAFE_B});left:calc(12px + ${SAFE_L});gap:12px}
+  .tf-fbtn{width:96px;height:96px}
+  .tf-fbtn b{font-size:34px}
+  .tf-cam{width:56px;height:56px}
+  .tf-br{bottom:calc(16px + ${SAFE_B});right:calc(12px + ${SAFE_R});gap:10px}
+  .tf-dial{width:88px;height:88px}
+  .tf-tr2{gap:10px}
+  .tf-brk{width:72px;height:52px}
+  .tf-joy{width:112px;height:112px}
+  .tf-hint{bottom:calc(190px + ${SAFE_B});left:50%;max-width:calc(100vw - 24px);white-space:normal;text-align:center;padding:8px 14px}
+}
 `;
 
 const ICONS = {
@@ -120,7 +176,10 @@ export default class GameUI {
     this._down = new Set();
     this._toasts = [];
     this._seg = -1; this._sp = -1;
-    this._touch = (window.matchMedia && matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window) || /[?&]touch/.test(location.search);
+    this._touch = false;
+    this._forcedTouch = /[?&]touch(?:[=&]|$)/.test(location.search);
+    this._detectTouch();
+    // Do not rely on 'ontouchstart in window': desktop Chrome reports it even without a touchscreen.
 
     const old = document.getElementById('tf-hud');
     if (old) old.remove();
@@ -192,14 +251,31 @@ export default class GameUI {
     if (mc) this.el.map.appendChild(mc);
 
     this._scale();
-    window.addEventListener('resize', () => this._scale());
+    window.addEventListener('resize', () => { this._scale(); this._detectTouch(); });
     this._bind();
     setTimeout(() => { if (this.el.keys) this.el.keys.classList.add('dim'); }, 20000);
   }
 
   _scale() {
-    const s = Math.max(1, Math.min(1.4, Math.min(window.innerWidth / 844, window.innerHeight / 390)));
+    const w = window.innerWidth, h = window.innerHeight;
+    const s = Math.max(1, Math.min(1.4, Math.min(w / 844, h / 390)));
     this.root.style.setProperty('--u', s + 'px');
+  }
+
+  // Touch HUD when the device really has a coarse pointer / touch points, when ?touch is used,
+  // or when a real finger touches the screen (this also catches F12 device mode).
+  _detectTouch() {
+    let coarse = false, anyCoarse = false;
+    try { coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches); } catch (e) {}
+    try { anyCoarse = !!(window.matchMedia && matchMedia('(any-pointer: coarse)').matches); } catch (e) {}
+    const points = (navigator.maxTouchPoints || 0) > 0;
+    if (this._forcedTouch || coarse || (anyCoarse && points)) this._enableTouch();
+    else if (!this._touch && this.root) this.root.classList.remove('tf-touch');
+  }
+
+  _enableTouch() {
+    this._touch = true;
+    if (this.root) this.root.classList.add('tf-touch');
   }
 
   // ---- keyboard events (same path as a real key press) ----
@@ -221,6 +297,7 @@ export default class GameUI {
       b.blur(); closeDrawer(); this._tap(b.dataset.code);
     }));
     document.addEventListener('pointerdown', (e) => {
+      if (e && e.pointerType === 'touch') this._enableTouch();
       if (!el.drawer.classList.contains('open')) return;
       if (el.drawer.contains(e.target) || el.menu.contains(e.target)) return;
       closeDrawer();
