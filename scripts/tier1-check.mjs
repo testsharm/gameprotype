@@ -91,4 +91,15 @@ for (let i = 0; i < 3; i++) {
 console.log('counts =', counts, '| scoops =', scoops, '| dumps =', dumps,
   '| finished =', level.isFinished(), '| min clods =', minClods);
 if (counts !== 3 || !level.isFinished() || minClods < 15) throw new Error('B1/B3 FAIL');
+// B1: expiring RUSH trucks must be misses, not free progress / auto-win.
+console.log('--- B1: RUSH trucks expiring is a MISS ---');
+const rushJob = LEVELS.find(j => j.type === 'RUSH');
+const rush = new LevelEngine(new THREE.Scene(), world, { pile: { x: 0, z: 0 }, truck: { x: 15, z: 0 } }, hooks);
+rush.start(rushJob, { pile: { x: 0, z: 0 }, truck: { x: 15, z: 0 } });
+const rushGoals = rush.goals.filter(g => g.kind === 'rush');
+for (const g of rushGoals) rush._rushExpire(g);
+console.log('rush trucks =', rushGoals.length, '| misses =', rush.info().misses,
+  '| delivered =', rush.info().done, '| finished =', rush.isFinished());
+if (rush.info().misses !== rushGoals.length || rush.info().done !== 0 || rush.isFinished())
+  throw new Error('B1 FAIL: expired trucks completed the job');
 console.log('TIER 1 CHECK: PASS');

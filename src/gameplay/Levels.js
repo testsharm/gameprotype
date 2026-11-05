@@ -584,9 +584,11 @@ export class LevelEngine {
     g.mesh.userData.active = false;
     g.mesh.userData.leave = 2.0;
     if (!this._rushLeave.includes(g.mesh)) this._rushLeave.push(g.mesh);
-    this.index++;
-    if (this.index >= this.goals.length) this.finished = true;
-    this._setup(this.index);
+    // B1 fix: a miss NEVER advances the goal chain and NEVER finishes the job.
+    // Highlight the next truck that is still waiting; if none are left the job
+    // simply times out (the player failed), it does not complete itself.
+    const next = this.goals.findIndex(q => !q.done);
+    this._setup(next >= 0 ? next : this.index);
   }
 
   _buildGate(g, num, total) {
