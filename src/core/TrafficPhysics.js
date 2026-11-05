@@ -9,7 +9,7 @@ export default class TrafficPhysics {
     this.bodies = [];
     this._pos = { x: 0, y: 0, z: 0 };
     this._quat = { x: 0, y: 0, z: 0, w: 1 };
-    this._half = { x: 1, y: 0.7, z: 2.25 };
+    this._half = { x: 1, y: 0.8, z: 2.25 };
   }
 
   init() {
@@ -38,6 +38,7 @@ export default class TrafficPhysics {
         this._half.y,
         this._half.z
       );
+      colDesc.setTranslation(0, 1.0, 0).setRestitution(0).setFriction(0.5);
       this.world.createCollider(colDesc, body);
 
       this.bodies.push(body);

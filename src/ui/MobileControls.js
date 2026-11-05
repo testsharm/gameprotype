@@ -60,20 +60,6 @@ export default class MobileControls {
         pointer-events: auto;
         touch-action: none;
       }
-      .mc-joy-zone::before {
-        content: "DRIVE";
-        position: absolute;
-        left: 28px; bottom: 70px;
-        width: 110px; height: 110px;
-        box-sizing: border-box;
-        border-radius: 50%;
-        border: 2px dashed rgba(251,191,36,0.45);
-        background: rgba(15,23,42,0.25);
-        color: rgba(251,191,36,0.75);
-        font-size: 13px; font-weight: 700; letter-spacing: 1px;
-        display: flex; align-items: center; justify-content: center;
-        pointer-events: none;
-      }
       .mc-joy-base {
         position: absolute;
         width: 110px; height: 110px;
@@ -150,7 +136,7 @@ export default class MobileControls {
       .mc-topright {
         position: absolute;
         right: max(16px, env(safe-area-inset-right));
-        top: calc(env(safe-area-inset-top) + 124px);
+        top: calc(max(16px, env(safe-area-inset-top)) + 74px);
         display: flex;
         gap: 8px;
         pointer-events: auto;
@@ -175,7 +161,6 @@ export default class MobileControls {
         padding: 0;
       }
       .mc-small:active { background: rgba(30,41,59,0.9); }
-      @media (min-width: 701px) { .mc-topright { top: calc(env(safe-area-inset-top) + 200px); } }
       .mc-portrait {
         position: fixed;
         inset: 0;
@@ -314,7 +299,7 @@ export default class MobileControls {
       if (typeof this.cb.onMenu === 'function') this.cb.onMenu();
     });
 
-    // rotate overlay removed: CrazyGames handles orientation
+    this._buildPortraitOverlay();
   }
 
   _buildPortraitOverlay() {

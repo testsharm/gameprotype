@@ -153,6 +153,7 @@ export default class JobEffects {
         transform: scale(0.97);
       }
       .je-counter {
+        display: none;
         position: fixed;
         left: 18px;
         bottom: 18px;
@@ -173,11 +174,8 @@ export default class JobEffects {
   }
 
   _createCoinCounter() {
-    if (this._coinEl) return;
-    this._coinEl = document.createElement('div');
-    this._coinEl.className = 'je-counter';
-    this._coinEl.textContent = '🪙 0';
-    document.body.appendChild(this._coinEl);
+    // HUD v5 has ONE coin pill (top right). This old counter is disabled on purpose.
+    this._coinEl = null;
   }
 
   _getPopup() {
@@ -261,19 +259,16 @@ export default class JobEffects {
       this._coinT = 0.9;
     }
 
-    if (this.camera) {
-      _v1.set(0, 0, 0).applyMatrix4(this.camera.matrixWorld);
-      _v1.y += 1.1;
-      _v1.project(this.camera);
-      const sx = (_v1.x * 0.5 + 0.5) * window.innerWidth;
-      const sy = (-_v1.y * 0.5 + 0.5) * window.innerHeight;
-      const el = this._getPopup();
-      el.textContent = '+' + amount;
-      el.style.left = sx + 'px';
-      el.style.top = sy + 'px';
-      el.style.opacity = '1';
-      this._popups.push({ el, t: 0, dur: 1.3, x: sx, y: sy });
-    }
+    // Coin popups sit under the coin pill (top right), never in the middle of the screen.
+    const y = 78 + (this._popups.length % 3) * 30;
+    const el = this._getPopup();
+    el.textContent = '+' + amount;
+    el.style.transform = 'none';
+    el.style.left = 'auto';
+    el.style.right = 'calc(18px + env(safe-area-inset-right, 0px))';
+    el.style.top = y + 'px';
+    el.style.opacity = '1';
+    this._popups.push({ el, t: 0, dur: 1.3, x: 0, y });
   }
 
   showJobComplete(totalCoins, onNext) {
@@ -303,7 +298,7 @@ export default class JobEffects {
     this._bannerCoinValue = 0;
     this._bannerCoinTarget = totalCoins || 0;
     this._bannerCoinT = 0;
-    coins.textContent = '🪙 0';
+    coins.textContent = '0 coins';
   }
 
   update(dt) {
@@ -399,11 +394,11 @@ export default class JobEffects {
       this._coinT -= dt;
       if (this._coinEl) {
         this._coinValue += (this._coinTarget - this._coinValue) * Math.min(1, dt * 10);
-        this._coinEl.textContent = '🪙 ' + Math.round(this._coinValue);
+        this._coinEl.textContent = '' + Math.round(this._coinValue);
       }
       if (this._coinT <= 0) {
         this._coinValue = this._coinTarget;
-        if (this._coinEl) this._coinEl.textContent = '🪙 ' + Math.round(this._coinValue);
+        if (this._coinEl) this._coinEl.textContent = '' + Math.round(this._coinValue);
       }
     }
 
@@ -427,7 +422,7 @@ export default class JobEffects {
       if (Math.abs(this._bannerCoinValue - this._bannerCoinTarget) < 0.5) {
         this._bannerCoinValue = this._bannerCoinTarget;
       }
-      this._bannerCoinEl.textContent = '🪙 ' + Math.round(this._bannerCoinValue);
+      this._bannerCoinEl.textContent = '' + Math.round(this._bannerCoinValue);
     }
   }
 
@@ -470,6 +465,6 @@ export default class JobEffects {
     this._coinTarget = 0;
     this._coinValue = 0;
     this._coinT = 0;
-    if (this._coinEl) this._coinEl.textContent = '🪙 0';
+    if (this._coinEl) this._coinEl.textContent = '0';
   }
 }

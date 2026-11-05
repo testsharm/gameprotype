@@ -1,704 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>TerraForm 3D: City Rescue</title>
-    <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
-    <style>
-        /* system fonts only: CrazyGames wants no external fonts */
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>TerraForm 3D</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2318212f'/%3E%3Cpath d='M6 22h14l4-8h-8l-2-5H8z' fill='%23fbbf24'/%3E%3C/svg%3E">
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+<style>
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0f141c;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#game-container{position:fixed;left:0;top:0;width:100vw;height:100vh;display:block}
 
-        :root {
-            --glass-bg: rgba(14, 18, 24, 0.52);
-            --glass-bg-strong: rgba(14, 18, 24, 0.72);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-            --text-dim: rgba(255, 255, 255, 0.45);
-            --text-mid: rgba(255, 255, 255, 0.7);
-            --text: rgba(255, 255, 255, 0.94);
-            --amber: #ffb020;
-            --amber-soft: rgba(255, 176, 32, 0.9);
-            --font-ui: 'Rajdhani', 'Segoe UI', system-ui, -apple-system, sans-serif;
-        }
+/* loading screen */
+#loading-screen{position:fixed;inset:0;z-index:900;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(circle at 50% 40%,#2b384e,#0b111a);color:#e2e8f0;transition:opacity .4s}
+#loading-screen.hidden{opacity:0;pointer-events:none;visibility:hidden}
+#loading-screen .ld-logo{font-weight:900;font-size:44px;letter-spacing:.08em;color:#fbbf24;text-shadow:0 3px 0 #0a0f18,0 6px 0 #b45309}
+#loading-screen .ld-bar{width:240px;height:14px;border-radius:8px;background:#0b111a;border:2px solid #0a0f18;box-shadow:inset 0 3px 5px rgba(0,0,0,.7);overflow:hidden}
+#loading-screen .ld-bar i{display:block;height:100%;width:40%;border-radius:6px;background:linear-gradient(#fde68a,#f59e0b);animation:ldmove 1.1s ease-in-out infinite alternate}
+#loading-screen .ld-txt{font-weight:700;font-size:16px;color:#9fb0c8}
+@keyframes ldmove{from{margin-left:0}to{margin-left:60%}}
 
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        html, body { width: 100%; height: 100%; }
-        body {
-            background-color: #0d1117;
-            font-family: var(--font-ui);
-            overflow: hidden;
-            color: var(--text);
-        }
-
-        #game-container {
-            width: 100%; height: 100%;
-            display: block; position: absolute; top: 0; left: 0;
-            z-index: 1; cursor: grab; touch-action: none;
-        }
-
-        /* ---------- LOADING ---------- */
-        #loading-screen {
-            position: absolute; inset: 0;
-            background: #0d1117; color: #fff;
-            z-index: 999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.4s ease;
-        }
-        #loading-screen.hidden { opacity: 0; pointer-events: none; }
-        .spinner {
-            width: 42px; height: 42px;
-            border: 2px solid rgba(255, 176, 32, 0.12);
-            border-top-color: var(--amber);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 18px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text {
-            font-family: var(--font-ui);
-            font-size: 12px; font-weight: 600;
-            letter-spacing: 3px; text-transform: uppercase;
-            color: var(--text-dim);
-        }
-
-        /* ---------- TOP HUD ---------- */
-        .top-hud {
-            position: absolute;
-            top: calc(16px + env(safe-area-inset-top));
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-            pointer-events: none;
-            display: flex; flex-direction: column; align-items: center;
-            text-align: center;
-            width: min(460px, 56vw);
-            gap: 2px;
-        }
-        .mission-title {
-            font-family: var(--font-ui);
-            font-size: 10px; font-weight: 700;
-            letter-spacing: 3px; text-transform: uppercase;
-            color: var(--text-dim);
-            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
-            margin-bottom: 2px;
-        }
-        .mission-desc {
-            font-family: var(--font-ui);
-            font-size: 12px; font-weight: 500;
-            line-height: 1.3;
-            color: var(--text-mid);
-            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
-        }
-        .mission-status {
-            font-family: var(--font-ui);
-            font-size: 14px; font-weight: 700;
-            letter-spacing: 2px; text-transform: uppercase;
-            color: var(--amber);
-            text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
-            margin-top: 2px;
-        }
-
-        /* ---------- COINS ---------- */
-        .coins-ui {
-            position: absolute;
-            top: calc(16px + env(safe-area-inset-top));
-            left: calc(16px + env(safe-area-inset-left));
-            z-index: 10;
-            display: flex; align-items: center; gap: 7px;
-            padding: 6px 12px;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 999px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: var(--glass-shadow);
-            font-family: var(--font-ui);
-            font-size: 14px; font-weight: 600;
-            color: var(--text);
-            letter-spacing: 0.5px;
-            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
-        }
-        .coin-icon {
-            width: 11px; height: 11px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 35% 30%, #fff4c2, #ffb020 65%, #cc8800);
-            box-shadow: 0 0 6px rgba(255, 176, 32, 0.45);
-        }
-
-        /* ---------- MINIMAP ---------- */
-        .minimap-container {
-            position: absolute;
-            top: calc(16px + env(safe-area-inset-top));
-            right: calc(16px + env(safe-area-inset-right));
-            width: 168px; height: 168px;
-            background: rgba(10, 14, 19, 0.55);
-            border: 1px solid rgba(77, 225, 193, 0.28);
-            border-radius: 50%;
-            overflow: hidden;
-            z-index: 10;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-            display: flex; align-items: center; justify-content: center;
-            pointer-events: auto;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-        }
-        #minimap-canvas { width: 100%; height: 100%; display: block; }
-        .compass-n {
-            position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
-            font-family: var(--font-ui); font-size: 10px; font-weight: 700;
-            letter-spacing: 1px; color: rgba(77, 225, 193, 0.7);
-            z-index: 11; pointer-events: none;
-            text-shadow: 0 1px 4px #000;
-        }
-        .compass-s {
-            position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
-            font-family: var(--font-ui); font-size: 9px; font-weight: 600;
-            letter-spacing: 1px; color: rgba(255, 255, 255, 0.28);
-            z-index: 11; pointer-events: none;
-            text-shadow: 0 1px 4px #000;
-        }
-
-        /* ---------- CAMERA LIST ---------- */
-        .camera-ui {
-            position: absolute;
-            top: calc(196px + env(safe-area-inset-top));
-            right: calc(16px + env(safe-area-inset-right));
-            display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
-            z-index: 10; pointer-events: auto;
-        }
-        .cam-btn {
-            background: transparent;
-            border: none;
-            font-family: var(--font-ui);
-            font-size: 11px; font-weight: 600;
-            letter-spacing: 1.5px; text-transform: uppercase;
-            color: var(--text-dim);
-            cursor: pointer;
-            padding: 2px 0;
-            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
-            transition: color 0.15s ease, transform 0.15s ease;
-        }
-        .cam-btn:hover { color: var(--text); }
-        .cam-btn.active {
-            color: var(--amber);
-            transform: translateX(-3px);
-            text-shadow: 0 0 10px rgba(255, 176, 32, 0.5);
-        }
-
-        /* ---------- SPEEDOMETER ---------- */
-        .speedometer-ui {
-            position: absolute;
-            bottom: calc(94px + env(safe-area-inset-bottom));
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 20;
-            pointer-events: none;
-            display: flex; flex-direction: column; align-items: center;
-            gap: 6px;
-            padding: 9px 16px 11px;
-            min-width: 146px;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 14px;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: var(--glass-shadow);
-        }
-        .speed-readout { display: flex; align-items: baseline; gap: 6px; }
-        .speed-val {
-            font-family: var(--font-ui);
-            font-size: 32px;
-            font-weight: 300;
-            line-height: 1;
-            letter-spacing: 1px;
-            color: var(--text);
-            font-variant-numeric: tabular-nums;
-            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
-        }
-        .speed-unit {
-            font-family: var(--font-ui);
-            font-size: 10px;
-            font-weight: 600;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: var(--text-dim);
-        }
-        .speed-bar-container {
-            width: 132px;
-            height: 2px;
-            background: rgba(255, 255, 255, 0.12);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        .speed-bar {
-            height: 100%;
-            width: var(--spd-w, 0%) !important;
-            background: #eef2f6;
-            border-radius: 2px;
-        }
-
-        /* ---------- KEY HINTS ---------- */
-        .dashboard {
-            position: absolute;
-            bottom: calc(18px + env(safe-area-inset-bottom));
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-            z-index: 20;
-            pointer-events: none;
-            max-width: calc(100vw - 24px);
-        }
-        .control-card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 8px 12px 9px;
-            display: flex; flex-direction: column; align-items: center;
-            gap: 6px;
-            pointer-events: auto;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: var(--glass-shadow);
-        }
-        .control-card .title {
-            font-family: var(--font-ui);
-            font-size: 9px;
-            font-weight: 600;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: var(--text-dim);
-        }
-        .key-row { display: flex; gap: 4px; }
-        .key {
-            min-width: 28px;
-            height: 28px;
-            padding: 0 7px;
-            display: flex; align-items: center; justify-content: center;
-            border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            background: rgba(255, 255, 255, 0.04);
-            color: rgba(255, 255, 255, 0.5);
-            font-family: var(--font-ui);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            touch-action: manipulation;
-            transition: background 0.08s ease, color 0.08s ease, border-color 0.08s ease, box-shadow 0.08s ease;
-        }
-        .key.active-key,
-        .key.is-pressed,
-        .key:active {
-            background: rgba(255, 255, 255, 0.92);
-            color: #0d1117;
-            border-color: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 0 14px rgba(255, 255, 255, 0.35);
-        }
-
-        /* ---------- CORNER BUTTONS ---------- */
-        .menu-btn,
-        .restart-btn {
-            position: absolute;
-            bottom: calc(18px + env(safe-area-inset-bottom));
-            z-index: 20;
-            padding: 8px 14px;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            color: var(--text-mid);
-            font-family: var(--font-ui);
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            cursor: pointer;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: var(--glass-shadow);
-            transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-        }
-        .menu-btn { left: calc(18px + env(safe-area-inset-left)); }
-        .restart-btn { right: calc(18px + env(safe-area-inset-right)); }
-        .menu-btn:hover,
-        .restart-btn:hover {
-            color: var(--text);
-            border-color: rgba(255, 255, 255, 0.2);
-            background: var(--glass-bg-strong);
-        }
-
-        /* ---------- OVERLAYS ---------- */
-        #shop-overlay,
-        #victory-overlay {
-            position: absolute; inset: 0;
-            background: rgba(5, 8, 12, 0.82);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            z-index: 1000;
-            display: none;
-            flex-direction: column; align-items: center; justify-content: center;
-            padding: 20px;
-        }
-        #shop-overlay.active,
-        #victory-overlay.active { display: flex; }
-
-        .shop-box,
-        .victory-box {
-            background: rgba(20, 25, 33, 0.92);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 32px 30px;
-            width: 100%;
-            max-width: 520px;
-            text-align: center;
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
-        }
-        .shop-box h1,
-        .victory-box h1 {
-            font-family: 'Montserrat', var(--font-ui);
-            font-size: 22px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            color: var(--text);
-            margin-bottom: 22px;
-        }
-        .victory-box h1 { color: var(--amber); }
-        .victory-box p {
-            font-family: var(--font-ui);
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-mid);
-            margin-bottom: 6px;
-        }
-
-        .upgrade-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            padding: 16px;
-            border-radius: 10px;
-            margin-bottom: 12px;
-        }
-        .upgrade-info h3 {
-            font-family: var(--font-ui);
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--text);
-            margin-bottom: 2px;
-            text-align: left;
-        }
-        .upgrade-info p {
-            font-family: var(--font-ui);
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--text-dim);
-            text-align: left;
-        }
-        .buy-btn {
-            flex-shrink: 0;
-            background: rgba(255, 176, 32, 0.14);
-            border: 1px solid rgba(255, 176, 32, 0.55);
-            color: var(--amber);
-            font-family: var(--font-ui);
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            padding: 9px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.15s ease, color 0.15s ease;
-        }
-        .buy-btn:hover:not(:disabled) { background: rgba(255, 176, 32, 0.24); }
-        .buy-btn:disabled {
-            background: rgba(255, 255, 255, 0.03);
-            border-color: rgba(255, 255, 255, 0.08);
-            color: rgba(255, 255, 255, 0.25);
-            cursor: default;
-        }
-        .close-btn,
-        .restart-main-btn {
-            margin-top: 16px;
-            background: rgba(255, 255, 255, 0.06);
-            color: var(--text);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            padding: 11px 36px;
-            border-radius: 9px;
-            font-family: var(--font-ui);
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: background 0.15s ease, border-color 0.15s ease;
-        }
-        .close-btn:hover,
-        .restart-main-btn:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.25);
-        }
-
-        /* ---------- RESPONSIVE ---------- */
-        @media (max-width: 700px) {
-            .top-hud {
-                top: calc(10px + env(safe-area-inset-top));
-                width: 56vw;
-            }
-            .mission-title { font-size: 9px; letter-spacing: 2px; }
-            .mission-desc { font-size: 10px; }
-            .mission-status { font-size: 12px; letter-spacing: 1.5px; }
-
-            .coins-ui {
-                top: calc(10px + env(safe-area-inset-top));
-                left: calc(10px + env(safe-area-inset-left));
-                font-size: 12px;
-                padding: 5px 10px;
-            }
-
-            .minimap-container {
-                top: calc(10px + env(safe-area-inset-top));
-                right: calc(10px + env(safe-area-inset-right));
-                width: 104px; height: 104px;
-            }
-            .compass-n { font-size: 9px; top: 4px; }
-            .compass-s { display: none; }
-
-            .camera-ui {
-                top: calc(124px + env(safe-area-inset-top));
-                right: calc(10px + env(safe-area-inset-right));
-                gap: 6px;
-            }
-            .cam-btn { font-size: 10px; letter-spacing: 1px; }
-
-            .speedometer-ui {
-                bottom: calc(132px + env(safe-area-inset-bottom));
-                padding: 7px 14px 9px;
-                min-width: 118px;
-                gap: 5px;
-            }
-            .speed-val { font-size: 26px; }
-            .speed-unit { font-size: 9px; letter-spacing: 1.5px; }
-            .speed-bar-container { width: 104px; }
-
-            .dashboard {
-                bottom: calc(12px + env(safe-area-inset-bottom));
-                gap: 8px;
-            }
-            .control-card { padding: 7px 10px 8px; gap: 5px; border-radius: 11px; }
-            .control-card .title { font-size: 8px; letter-spacing: 1.5px; }
-            .key {
-                min-width: 42px;
-                height: 42px;
-                font-size: 16px;
-                padding: 0 8px;
-                border-radius: 8px;
-            }
-            .key-row { gap: 5px; }
-
-            .menu-btn,
-            .restart-btn {
-                bottom: calc(84px + env(safe-area-inset-bottom));
-                padding: 8px 12px;
-                font-size: 10px;
-                letter-spacing: 1px;
-            }
-            .menu-btn { left: calc(10px + env(safe-area-inset-left)); }
-            .restart-btn { right: calc(10px + env(safe-area-inset-right)); }
-
-            .shop-box, .victory-box { padding: 24px 18px; }
-            .shop-box h1, .victory-box h1 { font-size: 18px; margin-bottom: 16px; }
-            .upgrade-item { padding: 12px; }
-            .upgrade-info h3 { font-size: 13px; }
-            .upgrade-info p { font-size: 11px; }
-            .buy-btn { font-size: 11px; padding: 8px 12px; }
-        }
-
-        @media (max-width: 380px) {
-            .key { min-width: 38px; height: 38px; font-size: 15px; }
-            .camera-ui { display: none; }
-        }
-            /* ---------- P1.6 CLEANUP: old HUD pieces replaced by GameUI ---------- */
-        .je-counter { display: none !important; }
-        .top-hud, .coins-ui, .speedometer-ui { display: none !important; }
-        .cam-btn { font-size: 14px; padding: 6px 0; }
-        .menu-btn, .restart-btn { font-size: 13px; }
-        @media (pointer: coarse) {
-            .dashboard, .camera-ui, .menu-btn { display: none !important; }
-            .restart-btn { bottom: auto; top: calc(176px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); }
-            @media (min-width: 701px) { .restart-btn { top: calc(252px + env(safe-area-inset-top)); } }
-        }
-    </style>
+/* pause window */
+#pause-overlay{position:fixed;inset:0;z-index:400;display:none;align-items:center;justify-content:center;background:rgba(6,10,16,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#pause-overlay.active{display:flex}
+.ps-card{width:min(420px,92vw);border-radius:16px;overflow:hidden;color:#e2e8f0;background:linear-gradient(180deg,#34445f,#151d2b);border:2px solid #0a0f18;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 6px 0 #0a0f18,0 18px 40px rgba(0,0,0,.55)}
+.ps-head{padding:10px 18px;text-align:center;font-weight:900;font-size:24px;letter-spacing:.14em;color:#1a1204;text-shadow:none;background:repeating-linear-gradient(-45deg,#fbbf24 0 16px,#1a1204 16px 32px)}
+.ps-head span{display:inline-block;padding:0 14px;background:#fbbf24;border-radius:6px}
+.ps-body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px}
+.ps-btn{font:inherit;cursor:pointer;border-radius:12px;border:2px solid #0a0f18;color:#fff;font-weight:800;font-size:16px;height:48px;background:linear-gradient(#3a4c68,#1d2839);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 5px 0 #0a0f18;outline:none;touch-action:manipulation}
+.ps-btn:active{transform:translateY(3px);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 0 #0a0f18}
+.ps-main{height:58px;font-size:20px;letter-spacing:.1em;color:#1a1204;background:linear-gradient(#fde68a,#f59e0b);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 6px 0 #b45309,0 0 18px rgba(251,191,36,.4)}
+.ps-main:active{box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 2px 0 #b45309}
+.ps-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ps-keys{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;padding:10px 14px;border-radius:10px;background:#0b111a;box-shadow:inset 0 3px 6px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.12);font-weight:700;font-size:16px;color:#cbd5e1}
+.ps-keys b{display:inline-block;min-width:26px;padding:2px 7px;margin-right:8px;text-align:center;border-radius:6px;color:#fbbf24;background:linear-gradient(#3a4c68,#1d2839);border:2px solid #0a0f18;box-shadow:0 2px 0 #0a0f18}
+@media (max-height:420px){
+  .ps-head{font-size:20px;padding:6px 14px}
+  .ps-body{padding:10px 14px 12px;gap:8px}
+  .ps-btn{height:48px}
+  .ps-main{height:52px;font-size:18px}
+  .ps-keys{padding:6px 12px;gap:4px 12px}
+}
+#tf-hold{display:none}
+</style>
 </head>
 <body>
-    <div id="loading-screen"><div class="spinner"></div><div class="loading-text">INITIALIZING...</div></div>
-    <canvas id="game-container"></canvas>
+<canvas id="game-container"></canvas>
 
-    <div class="top-hud">
-        <div class="mission-title">CURRENT JOB</div>
-        <div class="mission-desc" id="mission-desc">Clear the rubble from the highway and load it into the blue truck.</div>
-        <div class="mission-status" id="job-status-val">SCOOP DIRT (0/3)</div>
+<div id="tf-hold">
+  <canvas id="minimap-canvas" width="180" height="180"></canvas>
+  <span id="coin-count">0</span>
+</div>
+
+<div id="pause-overlay">
+  <div class="ps-card">
+    <div class="ps-head"><span>PAUSED</span></div>
+    <div class="ps-body">
+      <button class="ps-btn ps-main" data-act="resume" tabindex="-1">RESUME</button>
+      <div class="ps-grid">
+        <button class="ps-btn" data-act="restart" tabindex="-1">Restart</button>
+        <button class="ps-btn" data-act="contracts" tabindex="-1">Contracts</button>
+        <button class="ps-btn" data-act="garage" tabindex="-1">Garage</button>
+        <button class="ps-btn" data-act="resume2" tabindex="-1">Close</button>
+      </div>
+      <div class="ps-keys">
+        <div><b>W A S D</b>Drive</div>
+        <div><b>F</b>Scoop / dump</div>
+        <div><b>C</b>Camera</div>
+        <div><b>R</b>Restart</div>
+        <div><b>M</b>Sound</div>
+        <div><b>J</b> / <b>U</b>Menus</div>
+      </div>
     </div>
+  </div>
+</div>
 
-    <div class="coins-ui">
-        <div class="coin-icon"></div>
-        <span id="coin-count">0</span>
-    </div>
+<div id="loading-screen">
+  <div class="ld-logo">TERRAFORM 3D</div>
+  <div class="ld-bar"><i></i></div>
+  <div class="ld-txt">Loading the site...</div>
+</div>
 
-    <div class="minimap-container" id="minimap-container">
-        <div class="compass-n">N</div>
-        <div class="compass-s">S</div>
-        <canvas id="minimap-canvas" width="180" height="180"></canvas>
-    </div>
-
-    <div class="camera-ui">
-        <button class="cam-btn" data-mode="orbit">Orbit</button>
-        <button class="cam-btn" data-mode="chase">Chase</button>
-        <button class="cam-btn" data-mode="cab">Cab</button>
-        <button class="cam-btn active" data-mode="bucket">Bucket</button>
-    </div>
-
-    <div class="speedometer-ui">
-        <div class="speed-readout">
-            <div class="speed-val" id="speed-val">0</div>
-            <div class="speed-unit">km/h</div>
-        </div>
-        <div class="speed-bar-container">
-            <div class="speed-bar" id="speed-bar"></div>
-        </div>
-    </div>
-
-    <button class="menu-btn" id="shop-btn">Upgrades</button>
-    <button class="restart-btn" id="restart-btn">Restart Job</button>
-
-    <div class="dashboard">
-        <div class="control-card">
-            <div class="title">Drive</div>
-            <div class="key-row">
-                <div class="key" data-mobile="forward">W</div>
-                <div class="key" data-mobile="left">A</div>
-                <div class="key" data-mobile="backward">S</div>
-                <div class="key" data-mobile="right">D</div>
-            </div>
-        </div>
-        <div class="control-card">
-            <div class="title">Hydraulics</div>
-            <div class="key-row">
-                <div class="key" data-mobile="toggleArm">E</div>
-                <div class="key" data-mobile="toggleBucket">F</div>
-            </div>
-        </div>
-    </div>
-
-    <div id="shop-overlay">
-        <div class="shop-box">
-            <h1>Vehicle Upgrades</h1>
-            <div class="upgrade-item">
-                <div class="upgrade-info"><h3>Engine Power</h3><p>Increase top speed and acceleration.</p></div>
-                <button class="buy-btn" id="buy-engine-btn">Upgrade (100 Coins)</button>
-            </div>
-            <div class="upgrade-item">
-                <div class="upgrade-info"><h3>Hydraulic Speed</h3><p>Move the arm and bucket faster.</p></div>
-                <button class="buy-btn" id="buy-hydraulic-btn">Upgrade (100 Coins)</button>
-            </div>
-            <button class="close-btn" id="close-shop-btn">Close</button>
-        </div>
-    </div>
-
-    <div id="victory-overlay">
-        <div class="victory-box">
-            <h1>JOB COMPLETE</h1>
-            <p>Highway cleared! +150 Coins</p>
-            <button class="restart-main-btn" id="victory-replay-btn">Next Job</button>
-        </div>
-    </div>
-
-    <script type="module" src="/src/main.js"></script>
-
-    <script>
-        (function () {
-            var valEl = document.getElementById('speed-val');
-            var barEl = document.getElementById('speed-bar');
-
-            if (valEl && barEl) {
-                // Intercept the raw speed writes coming from main.js so we can
-                // lerp the displayed value without fighting it every frame.
-                var nodeDesc = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
-                var rawSpeed = 0;
-
-                if (nodeDesc && nodeDesc.get && nodeDesc.set) {
-                    Object.defineProperty(valEl, 'textContent', {
-                        configurable: true,
-                        get: function () { return nodeDesc.get.call(this); },
-                        set: function (v) { rawSpeed = parseFloat(v) || 0; }
-                    });
-                    nodeDesc.set.call(valEl, '0');
-                } else {
-                    var last = '0';
-                    Object.defineProperty(valEl, 'textContent', {
-                        configurable: true,
-                        get: function () { return last; },
-                        set: function (v) { rawSpeed = parseFloat(v) || 0; last = String(v); }
-                    });
-                }
-
-                var smooth = 0;
-                var MAX_REF = 42; // top-of-scale reference in km/h
-
-                var tick = function () {
-                    requestAnimationFrame(tick);
-
-                    smooth += (rawSpeed - smooth) * 0.12;
-                    if (Math.abs(rawSpeed - smooth) < 0.05) smooth = rawSpeed;
-
-                    if (nodeDesc && nodeDesc.set) {
-                        nodeDesc.set.call(valEl, String(Math.round(smooth)));
-                    }
-
-                    var t = smooth / MAX_REF;
-                    if (t < 0) t = 0;
-                    if (t > 1) t = 1;
-
-                    // white -> amber ramp
-                    var r = Math.round(238 + (255 - 238) * t);
-                    var g = Math.round(242 + (176 - 242) * t);
-                    var b = Math.round(246 + (32 - 246) * t);
-                    barEl.style.background = 'rgb(' + r + ',' + g + ',' + b + ')';
-                    barEl.style.setProperty('--spd-w', (t * 100).toFixed(1) + '%');
-                };
-                requestAnimationFrame(tick);
-            }
-
-            // Keycaps light up on physical keydown/keyup
-            var actionMap = {};
-            document.querySelectorAll('.key[data-mobile]').forEach(function (el) {
-                actionMap[el.dataset.mobile] = el;
-            });
-            var keyToAction = {
-                'w': 'forward', 'arrowup': 'forward',
-                's': 'backward', 'arrowdown': 'backward',
-                'a': 'left', 'arrowleft': 'left',
-                'd': 'right', 'arrowright': 'right',
-                'e': 'toggleArm',
-                'f': 'toggleBucket'
-            };
-            var setPressed = function (action, on) {
-                var el = actionMap[action];
-                if (el) el.classList.toggle('is-pressed', on);
-            };
-            window.addEventListener('keydown', function (e) {
-                var a = keyToAction[(e.key || '').toLowerCase()];
-                if (a) setPressed(a, true);
-            });
-            window.addEventListener('keyup', function (e) {
-                var a = keyToAction[(e.key || '').toLowerCase()];
-                if (a) setPressed(a, false);
-            });
-            window.addEventListener('blur', function () {
-                Object.keys(actionMap).forEach(function (a) { setPressed(a, false); });
-            });
-        })();
-    </script>
+<!-- Buttons must never keep focus: Space is the brake, not a click. -->
+<script>
+  document.addEventListener('mousedown', function (e) {
+    if (e.target && e.target.closest && e.target.closest('button')) e.preventDefault();
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('button') : null;
+    if (b) setTimeout(function () { b.blur(); }, 0);
+  }, true);
+</script>
+<script type="module" src="/src/main.js"></script>
 </body>
 </html>
