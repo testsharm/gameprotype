@@ -4,11 +4,12 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 export class Vehicle {
     constructor(scene, world, RAPIER) {
         this.scene = scene; this.world = world; this.RAPIER = RAPIER;
-        this.mode = 'jcb'; this.hasDirt = false;
+        this.mode = 'backhoe'; this.hasDirt = false;
         
         this.armIsDown = false; this.bucketIsCurled = false;
         this.targetBoomAngle = -0.2; this.targetBucketAngle = 0.2;
         this.engineMultiplier = 1.0; this.hydraulicMultiplier = 1.0;
+        this.tyreGrip = 1.0; this.paintMats = null;
 
         this.particles = []; this.particlePool = []; this.particleGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
         // soft round smoke / dust puffs (sprites with a painted radial gradient)
@@ -44,9 +45,20 @@ export class Vehicle {
 
     setUpgrades(saveData) {
         if(saveData) {
-            this.engineMultiplier = 1 + (saveData.engineLevel - 1) * 0.5;
-            this.hydraulicMultiplier = 1 + (saveData.hydraulicLevel - 1) * 0.6;
+            this.engineMultiplier = 1 + (Math.max(1, saveData.engineLevel || 1) - 1) * 0.5;
+            this.hydraulicMultiplier = 1 + (Math.max(1, saveData.hydraulicLevel || 1) - 1) * 0.6;
+            this.tyreGrip = 1 + (Math.max(1, saveData.tyreLevel || 1) - 1) * 0.12;
+            if (this.beaconMesh) this.beaconMesh.visible = (saveData.beaconLevel || 1) > 1;
         }
+    }
+
+    // TIER 6: six paint colours really change the machine (code-made material).
+    setPaint(hex) {
+        if (!this.paintMats) return;
+        const c = new THREE.Color(hex);
+        this.paintMats[0].color.copy(c);
+        this.paintMats[1].color.copy(c).multiplyScalar(0.78);
+        this.paintMats[0].needsUpdate = this.paintMats[1].needsUpdate = true;
     }
 
     createChassis() {
@@ -163,6 +175,7 @@ export class Vehicle {
         // ---------- materials (plain standard materials: cheap and stable) ----------
         const paint = new THREE.MeshStandardMaterial({ color: 0xffb400, roughness: 0.42, metalness: 0.1 });
         const paintDark = new THREE.MeshStandardMaterial({ color: 0xc98a00, roughness: 0.5, metalness: 0.1 });
+        this.paintMats = [paint, paintDark];
         const blackPlastic = new THREE.MeshStandardMaterial({ color: 0x23262b, roughness: 0.7, metalness: 0.2 });
         const darkSteel = new THREE.MeshStandardMaterial({ color: 0x3a3e45, roughness: 0.55, metalness: 0.35 });
         const steel = new THREE.MeshStandardMaterial({ color: 0xb4b9bf, roughness: 0.35, metalness: 0.3 });
@@ -197,56 +210,59 @@ export class Vehicle {
         };
 
         const visualGroup = new THREE.Group(); visualGroup.position.y = -0.1; group.add(visualGroup);
-        const jcbGroup = new THREE.Group(); visualGroup.add(jcbGroup);
+        const backhoeGroup = new THREE.Group(); visualGroup.add(backhoeGroup);
+        // TIER 8: visual-only suspension. The physics body never changes.
+        this.bodyGroup = backhoeGroup; this._bodyRoll = 0; this._bodyPitch = 0;
 
         // ---------- main body ----------
-        rbox(jcbGroup, 2.2, 0.8, 4.0, 0.2, paint, 0, 0.6, 0);
-        box(jcbGroup, 1.7, 0.3, 3.6, blackPlastic, 0, 0.1, 0);
+        rbox(backhoeGroup, 2.2, 0.8, 4.0, 0.2, paint, 0, 0.6, 0);
+        box(backhoeGroup, 1.7, 0.3, 3.6, blackPlastic, 0, 0.1, 0);
 
         // ---------- hood (rounded) + sloped top ----------
-        rbox(jcbGroup, 2.0, 0.8, 2.3, 0.28, paint, 0, 1.0, 0.85);
-        const hoodTop = rbox(jcbGroup, 1.8, 0.5, 1.2, 0.22, paint, 0, 1.42, 1.45);
+        rbox(backhoeGroup, 2.0, 0.8, 2.3, 0.28, paint, 0, 1.0, 0.85);
+        const hoodTop = rbox(backhoeGroup, 1.8, 0.5, 1.2, 0.22, paint, 0, 1.42, 1.45);
         hoodTop.rotation.x = 0.18;
 
         // front: grille, bumper, headlights
-        box(jcbGroup, 1.3, 0.6, 0.3, darkSteel, 0, 0.85, 2.0);
-        rbox(jcbGroup, 2.4, 0.4, 0.5, 0.15, darkSteel, 0, 0.35, 2.15);
+        box(backhoeGroup, 1.3, 0.6, 0.3, darkSteel, 0, 0.85, 2.0);
+        rbox(backhoeGroup, 2.4, 0.4, 0.5, 0.15, darkSteel, 0, 0.35, 2.15);
         [-1, 1].forEach((s) => {
-            box(jcbGroup, 0.3, 0.35, 0.3, headlightMat, s * 1.02, 1.15, 2.0);
+            box(backhoeGroup, 0.3, 0.35, 0.3, headlightMat, s * 1.02, 1.15, 2.0);
         });
 
         // ---------- side tool boxes, fenders, mudguards, steps ----------
         [-1, 1].forEach((s) => {
-            rbox(jcbGroup, 0.3, 0.6, 1.2, 0.1, darkSteel, s * 1.15, 0.55, 1.0);
-            rbox(jcbGroup, 0.8, 0.3, 1.5, 0.12, paint, s * 1.0, 0.55, -1.1);
-            rbox(jcbGroup, 0.5, 0.3, 0.9, 0.1, paintDark, s * 0.95, 0.2, 1.2);
-            rbox(jcbGroup, 0.5, 0.3, 0.9, 0.1, darkSteel, s * 1.2, 0.85, -0.7);
+            rbox(backhoeGroup, 0.3, 0.6, 1.2, 0.1, darkSteel, s * 1.15, 0.55, 1.0);
+            rbox(backhoeGroup, 0.8, 0.3, 1.5, 0.12, paint, s * 1.0, 0.55, -1.1);
+            rbox(backhoeGroup, 0.5, 0.3, 0.9, 0.1, paintDark, s * 0.95, 0.2, 1.2);
+            rbox(backhoeGroup, 0.5, 0.3, 0.9, 0.1, darkSteel, s * 1.2, 0.85, -0.7);
         });
 
         // ---------- cab ----------
-        rbox(jcbGroup, 1.9, 0.44, 2.0, 0.1, paintDark, 0, 1.2, -0.65);
-        const glassBox = box(jcbGroup, 1.5, 1.4, 1.5, glass, 0, 2.1, -0.65);
+        rbox(backhoeGroup, 1.9, 0.44, 2.0, 0.1, paintDark, 0, 1.2, -0.65);
+        const glassBox = box(backhoeGroup, 1.5, 1.4, 1.5, glass, 0, 2.1, -0.65);
         glassBox.castShadow = false;
         glassBox.userData.cabHide = true;
         [-1, 1].forEach((s) => {
-            rbox(jcbGroup, 0.3, 1.5, 0.3, 0.1, paint, s * 0.77, 2.1, 0.15);
-            rbox(jcbGroup, 0.3, 1.5, 0.3, 0.1, paint, s * 0.77, 2.1, -1.45);
+            rbox(backhoeGroup, 0.3, 1.5, 0.3, 0.1, paint, s * 0.77, 2.1, 0.15);
+            rbox(backhoeGroup, 0.3, 1.5, 0.3, 0.1, paint, s * 0.77, 2.1, -1.45);
         });
-        rbox(jcbGroup, 2.1, 0.3, 2.2, 0.12, paint, 0, 2.95, -0.65).userData.cabHide = true;
+        rbox(backhoeGroup, 2.1, 0.3, 2.2, 0.12, paint, 0, 2.95, -0.65).userData.cabHide = true;
         // interior
-        rbox(jcbGroup, 0.8, 0.9, 0.8, 0.15, blackPlastic, 0, 1.95, -1.0);
-        rbox(jcbGroup, 1.0, 0.5, 0.4, 0.1, blackPlastic, 0, 1.75, -0.1);
-        const steeringWheel = cyl(jcbGroup, 0.25, 0.3, 'y', blackPlastic, 0, 2.1, -0.35);
+        rbox(backhoeGroup, 0.8, 0.9, 0.8, 0.15, blackPlastic, 0, 1.95, -1.0);
+        rbox(backhoeGroup, 1.0, 0.5, 0.4, 0.1, blackPlastic, 0, 1.75, -0.1);
+        const steeringWheel = cyl(backhoeGroup, 0.25, 0.3, 'y', blackPlastic, 0, 2.1, -0.35);
         steeringWheel.rotation.x = -1.0;
         // roof gear
-        rbox(jcbGroup, 0.9, 0.3, 0.6, 0.1, darkSteel, 0, 3.2, -1.15).userData.cabHide = true;
+        rbox(backhoeGroup, 0.9, 0.3, 0.6, 0.1, darkSteel, 0, 3.2, -1.15).userData.cabHide = true;
         [-1, 1].forEach((s) => {
-            box(jcbGroup, 0.45, 0.3, 0.3, headlightMat, s * 0.7, 3.2, 0.3).userData.cabHide = true;
+            box(backhoeGroup, 0.45, 0.3, 0.3, headlightMat, s * 0.7, 3.2, 0.3).userData.cabHide = true;
         });
 
         // amber beacon (blinking)
-        cyl(jcbGroup, 0.2, 0.3, 'y', darkSteel, -0.6, 3.25, -1.3, 12);
-        const beaconMesh = cyl(jcbGroup, 0.18, 0.3, 'y', beaconMat, -0.6, 3.55, -1.3, 12);
+        cyl(backhoeGroup, 0.2, 0.3, 'y', darkSteel, -0.6, 3.25, -1.3, 12);
+        const beaconMesh = cyl(backhoeGroup, 0.18, 0.3, 'y', beaconMat, -0.6, 3.55, -1.3, 12);
+        this.beaconMesh = beaconMesh;
         beaconMesh.castShadow = false;
         this.beaconMesh = beaconMesh;
         const blinkLoop = () => {
@@ -258,30 +274,30 @@ export class Vehicle {
         requestAnimationFrame(blinkLoop);
 
         // ---------- exhaust ----------
-        this.exhaustTip = new THREE.Object3D(); this.exhaustTip.position.set(0.9, 3.55, 1.15); jcbGroup.add(this.exhaustTip);
-        cyl(jcbGroup, 0.15, 1.8, 'y', darkSteel, 0.9, 2.3, 1.15, 12).userData.cabHide = true;
-        cyl(jcbGroup, 0.2, 0.3, 'y', steel, 0.9, 3.3, 1.15, 12).userData.cabHide = true;
+        this.exhaustTip = new THREE.Object3D(); this.exhaustTip.position.set(0.9, 3.55, 1.15); backhoeGroup.add(this.exhaustTip);
+        cyl(backhoeGroup, 0.15, 1.8, 'y', darkSteel, 0.9, 2.3, 1.15, 12).userData.cabHide = true;
+        cyl(backhoeGroup, 0.2, 0.3, 'y', steel, 0.9, 3.3, 1.15, 12).userData.cabHide = true;
 
         // ---------- mirrors ----------
         [-1, 1].forEach((s) => {
-            box(jcbGroup, 0.5, 0.3, 0.3, blackPlastic, s * 1.15, 2.5, 0.15);
-            rbox(jcbGroup, 0.3, 0.6, 0.35, 0.1, blackPlastic, s * 1.35, 2.4, 0.2);
+            box(backhoeGroup, 0.5, 0.3, 0.3, blackPlastic, s * 1.15, 2.5, 0.15);
+            rbox(backhoeGroup, 0.3, 0.6, 0.35, 0.1, blackPlastic, s * 1.35, 2.4, 0.2);
         });
 
         // ---------- rear: counterweight, hazard band, tail lights ----------
-        rbox(jcbGroup, 2.3, 0.9, 0.9, 0.2, darkSteel, 0, 0.5, -2.1);
+        rbox(backhoeGroup, 2.3, 0.9, 0.9, 0.2, darkSteel, 0, 0.5, -2.1);
         for (let i = 0; i < 6; i++) {
-            box(jcbGroup, 0.34, 0.3, 0.3, i % 2 === 0 ? hazardYellow : hazardBlack, -0.85 + i * 0.34, 0.3, -2.6);
+            box(backhoeGroup, 0.34, 0.3, 0.3, i % 2 === 0 ? hazardYellow : hazardBlack, -0.85 + i * 0.34, 0.3, -2.6);
         }
         [-1, 1].forEach((s) => {
-            box(jcbGroup, 0.3, 0.4, 0.3, taillightMat, s * 0.9, 0.75, -2.55);
+            box(backhoeGroup, 0.3, 0.4, 0.3, taillightMat, s * 0.9, 0.75, -2.55);
             // rear stabiliser legs
-            box(jcbGroup, 0.4, 1.0, 0.4, steel, s * 1.35, 0.15, -1.95);
-            rbox(jcbGroup, 0.8, 0.3, 0.8, 0.1, darkSteel, s * 1.35, -0.45, -1.95);
+            box(backhoeGroup, 0.4, 1.0, 0.4, steel, s * 1.35, 0.15, -1.95);
+            rbox(backhoeGroup, 0.8, 0.3, 0.8, 0.1, darkSteel, s * 1.35, -0.45, -1.95);
         });
 
         // ---------- boom (two thick beams, pins, cross tube, hydraulics) ----------
-        this.boomPivot = new THREE.Group(); this.boomPivot.position.set(0, 1.0, 2.0); this.boomPivot.rotation.x = this.targetBoomAngle; jcbGroup.add(this.boomPivot);
+        this.boomPivot = new THREE.Group(); this.boomPivot.position.set(0, 1.0, 2.0); this.boomPivot.rotation.x = this.targetBoomAngle; backhoeGroup.add(this.boomPivot);
         [-1, 1].forEach((s) => {
             rbox(this.boomPivot, 0.4, 0.55, 3.3, 0.15, paint, s * 0.75, 0, 1.25);
             cyl(this.boomPivot, 0.2, 1.1, 'z', paintDark, s * 0.75, 0.5, 0.7, 14);   // cylinder barrel
@@ -346,7 +362,13 @@ export class Vehicle {
         this.particles.push(particle);
     }
 
-    spawnExhaust() { const pos = new THREE.Vector3(); this.exhaustTip.getWorldPosition(pos); const vel = new THREE.Vector3((Math.random() - 0.5) * 1.5, Math.random() * 2 + 1, (Math.random() - 0.5) * 1.5); const k = this._smokePower || 0; const g = Math.round(154 - k * 70); this.spawnPuff(pos, vel.multiplyScalar(0.55), g * 65793, 1.4 + Math.random() * 0.8, 0.3, 1.7 + k * 1.0, 0.5 + k * 0.25); }
+    // B8: max 12 small grey-white puffs, 0.6 s life, only while the throttle is held.
+    spawnExhaust() {
+        if (this.puffs.length >= 12) return;
+        const pos = new THREE.Vector3(); this.exhaustTip.getWorldPosition(pos);
+        const vel = new THREE.Vector3((Math.random() - 0.5) * 0.7, 0.7 + Math.random() * 0.5, (Math.random() - 0.5) * 0.7);
+        this.spawnPuff(pos, vel, 0xc9ced6, 0.55 + Math.random() * 0.15, 0.20, 0.55, 0.26);
+    }
     spawnTireDust(wheelIndex) { const pos = new THREE.Vector3(); this.wheelMeshes[wheelIndex].group.getWorldPosition(pos); pos.y = 0.2; const vel = new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 1.5, (Math.random() - 0.5) * 2); this.spawnPuff(pos, vel.multiplyScalar(0.4), 0xb5a58a, 0.8 + Math.random() * 0.5, 0.4, 1.8, 0.32); }
     spawnDirtBurst() { if (!this.hasDirt) return; const pos = new THREE.Vector3(); this.bucketPivot.getWorldPosition(pos); for (let i = 0; i < 15; i++) { const vel = new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 4, (Math.random() - 0.5) * 6); this.spawnParticle(pos, vel, 0x5c3a21, 0.8 + Math.random() * 0.4, 2.0); } }
 
@@ -524,7 +546,8 @@ export class Vehicle {
         // === Speed-sensitive steering ===
         const speedAbs = Math.abs(currentFwdSpeed);
         const speedFactor = Math.max(0.25, 1 - speedAbs / 12);
-        const maxSteerAngle = 0.55 * speedFactor;
+        // TIER 6: Tyres upgrade gives a little more grip at speed.
+        const maxSteerAngle = 0.55 * speedFactor * Math.min(1.35, this.tyreGrip || 1);
         let steerInput = 0;
         if (input.left) steerInput = 1;
         else if (input.right) steerInput = -1;
@@ -585,7 +608,7 @@ export class Vehicle {
         }
         
         // === Hydraulics ===
-        if (this.mode === 'jcb') {
+        if (this.mode === 'backhoe') {
             const hydraulicSpeed = 1 - Math.pow(1 - Math.min(0.25, 0.09 * this.hydraulicMultiplier), Math.min(dt, 0.05) * 60); this._autoStep(dt);
             this.boomPivot.rotation.x = THREE.MathUtils.lerp(this.boomPivot.rotation.x, this.targetBoomAngle, hydraulicSpeed);
             this.bucketPivot.rotation.x = THREE.MathUtils.lerp(this.bucketPivot.rotation.x, this.targetBucketAngle, hydraulicSpeed);
@@ -605,11 +628,26 @@ export class Vehicle {
         this.signedSpeedKmh = fwdKmh;
         
         // exhaust smoke is counted by time (same at 60 and 144 fps): a little at idle, more when working
-        this._smokePower = Math.min(1, Math.abs(this.throttleState)); this._smokeAcc += Math.min(dt, 0.05) * (7 + this._smokePower * 15);
-        while (this._smokeAcc >= 1) { this._smokeAcc -= 1; this.spawnExhaust(); }
-        if (this.currentSpeed > 5) {
-            // (exhaust smoke is spawned above)
-            this._dustAcc += Math.min(dt, 0.05) * 6; while (this._dustAcc >= 1) { this._dustAcc -= 1; this.spawnTireDust(2); this.spawnTireDust(3); }
+        // B8: light exhaust only while the throttle is actually held.
+        this._smokePower = Math.min(1, Math.abs(this.throttleState));
+        if (this._smokePower > 0.08) {
+            this._smokeAcc += Math.min(dt, 0.05) * (2.5 + this._smokePower * 5);
+            while (this._smokeAcc >= 1) { this._smokeAcc -= 1; this.spawnExhaust(); }
+        } else this._smokeAcc = 0;
+        if (this.currentSpeed > 18 && this.puffs.length < 12) {
+            this._dustAcc += Math.min(dt, 0.05) * 2.5;
+            while (this._dustAcc >= 1 && this.puffs.length < 12) { this._dustAcc -= 1; this.spawnTireDust(2); }
+        } else this._dustAcc = 0;
+        // TIER 8: body leans into a turn and squats under throttle. Wheels
+        // stay on the ground (they are outside bodyGroup), no physics change.
+        if (this.bodyGroup) {
+            const k = 1 - Math.exp(-dt * 6);
+            const rollTarget = -this.currentSteerAngle * Math.min(1, this.currentSpeed / 26) * 0.13;
+            const pitchTarget = this.throttleState * 0.035;
+            this._bodyRoll += (rollTarget - this._bodyRoll) * k;
+            this._bodyPitch += (pitchTarget - this._bodyPitch) * k;
+            this.bodyGroup.rotation.z = this._bodyRoll;
+            this.bodyGroup.rotation.x = this._bodyPitch;
         }
         this.updateParticles(dt);
     }

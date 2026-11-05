@@ -34,6 +34,7 @@ export default class Guidance {
         this.renderer = renderer;
 
         this._target = null;
+        this._visible = true;
         this._ringGeo = new THREE.RingGeometry(0.55, 0.85, 40);
         this._ringMat = new THREE.MeshBasicMaterial({
             color: 0xffb84a, transparent: true, opacity: 0.75,
@@ -43,6 +44,20 @@ export default class Guidance {
         this._ring.rotation.x = -Math.PI / 2;
         this._ring.visible = false;
         this.scene.add(this._ring);
+
+        // TIER 5: a soft bobbing chevron above the glowing ground ring.
+        this._float = new THREE.Group();
+        this._floatMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true,
+            opacity: 0.9, depthWrite: false, side: THREE.DoubleSide, fog: false });
+        const shape = new THREE.Shape();
+        shape.moveTo(-1, 0.22); shape.lineTo(0, -0.22); shape.lineTo(1, 0.22);
+        shape.lineTo(1, 0.02); shape.lineTo(0, -0.42); shape.lineTo(-1, 0.02); shape.closePath();
+        const v = new THREE.Mesh(new THREE.ShapeGeometry(shape), this._floatMat);
+        v.rotation.x = -0.35;
+        this._float.add(v);
+        this._float.visible = false;
+        this.scene.add(this._float);
+        this._nearFade = 0;
 
         this._pulseTime = 0;
         this._chevrons = null;
@@ -64,12 +79,23 @@ export default class Guidance {
             this._target = target.clone();
             this._ring.position.copy(this._target);
             this._ring.position.y += 0.06;
-            this._ring.visible = true;
+            this._ring.visible = this._visible;
         } else {
             this._target = null;
             this._ring.visible = false;
+            this._float.visible = false;
         }
     }
+
+    // Settings -> Guide arrows. Hides the ring and the painted chevrons.
+    setVisible(on) {
+        this._visible = on !== false;
+        if (this._ring) this._ring.visible = this._visible && !!this._target;
+        if (this._chevrons) this._chevrons.group.visible = this._visible;
+        if (!this._visible && this._float) this._float.visible = false;
+        return this._visible;
+    }
+    isVisible() { return this._visible; }
 
     // Painted ground chevrons from the start pose to the first pile (Level 1 only).
     setChevrons(from, to) {
@@ -146,7 +172,8 @@ export default class Guidance {
         try { localStorage.setItem(this._tutKey, '1'); } catch (e) { /* ignore */ }
     }
 
-    update(dt) {
+    // playerPos lets the ring / beam / chevron fade out near the goal.
+    update(dt, playerPos) {
         if (dt <= 0) return;
         if (this._target && this._ring.visible) {
             this._pulseTime += dt;
@@ -154,17 +181,25 @@ export default class Guidance {
             const s = 1 + pulse * 0.18;
             this._ring.scale.set(s, s, s);
             this._ringMat.opacity = 0.35 + pulse * 0.5;
-        }
+            const d = playerPos ? Math.hypot(playerPos.x - this._target.x, playerPos.z - this._target.z) : 40;
+            this._nearFade = Math.max(0, Math.min(1, (d - 7) / 24));
+            this._float.visible = this._visible && this._nearFade > 0.03;
+            this._float.position.set(this._target.x, 3.1 + Math.sin(this._pulseTime * 2.4) * 0.35, this._target.z);
+            this._floatMat.opacity = 0.9 * this._nearFade;
+        } else { this._float.visible = false; this._nearFade = 0; }
         if (this._chevrons && this._chevFade >= 0) {
             this._chevFade = Math.max(0, this._chevFade - dt / 1.4);
             this._chevMat.opacity = 0.85 * this._chevFade;
             if (this._chevFade <= 0) this._clearChevrons();
         }
     }
+    nearFade() { return this._nearFade; }
 
     reset() {
         this._target = null;
         if (this._ring) this._ring.visible = false;
+        if (this._float) this._float.visible = false;
+        this._nearFade = 0;
         this._pulseTime = 0;
         this._clearChevrons();
         this._cardActive = false;

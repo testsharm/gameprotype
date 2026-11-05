@@ -1,5 +1,61 @@
 # STATE - TerraForm 3D (live status)
 
+## LATEST - FINAL PRODUCT PUSH (2026-11-05) - BUILT, NOT VERIFIED
+
+- Branch `arena/66b14966-gameprotype`, based on `clean-v1` HEAD `8c57ed6` (PR #2 merge).
+  `main` was NOT touched. No force push, no reset, no discarded work.
+- Note on workflow: the master prompt asked for ONE new branch from `clean-v1`. Arena
+  fixes the session to this one active branch, so work stayed here. It was fast-forwarded
+  to `8c57ed6` before any code, which makes it equivalent to a branch from `clean-v1`.
+- TIER 1 (`199dad0`, `bcb7c98`): no auto-complete; goal objects visible from frame 0;
+  3rd load has dirt; debug box off unless `?debug` / backquote; light smoke; cab view;
+  real `hub.setVolumes(master,music,effects)`; RUSH expiry is a MISS, not free progress;
+  scoop and dump are ALWAYS a 3-second HOLD with a visible progress ring.
+- TIER 2 (`76cd59a`): new `src/ui/GameUI.js`, portrait first-class (440x956, 390x844),
+  landscape 844x390, desktop 1920x1080 / 1280x720. Left icon stack, right Drive, left
+  Action, big buttons, left-handed swap. No rotate-lock / rotate overlay.
+- TIER 3 (`899108c`): new `src/ui/Menus.js` - start screen before driving, PLAY 64 px,
+  4 icon tiles, 2x3 pause grid, 44x44 red X on every window, 3 real volume sliders,
+  graphics / big / lefty / guide toggles, 4-page HELP, level picker with 3 tabs,
+  result / time-up with star + coin count-up, 6-card garage. Old `JobPanels` windows
+  (296 dead lines in `Jobs.js`) deleted. `index.html` old pause overlay removed.
+- TIER 4 (`d7ab7cb`): real pointer holds (mouse + touch, pointerId, capture, release on
+  all 5 paths), no fake KeyboardEvent, real keyboard light-up (`scale(.94)`), zoom +/-
+  buttons + Equal/NumpadAdd/Minus/NumpadSubtract + wheel, 2 px press on every button.
+- TIER 5 (`72e64ad`): 15-level walk table (`scripts/level-walk.mjs`) - 15/15 walked,
+  8 types, 7 skies, 15 distinct starts. Per-verb visuals (FILL mound, TRENCH deepening
+  + spoil, MOVE snap/drop, CLEAR into bins, CONE penalties, RUSH 3/5 trucks + boss truck).
+  Glowing ring + soft beam fading near + bobbing chevron + amber minimap target.
+  Mission card = name + ONE goal line + 3 dots. Guide forced on for L1 until first dump.
+- TIER 6: 6 upgrades x 4 paid steps (100/250/500/900), 5 pips, one stat, green/grey
+  price button, small MAX badge, 6 paint swatches that really change machine colour,
+  save migration from old 3-upgrade saves. `scripts/garage-check.mjs` PASS.
+- TIER 7: new `src/gameplay/StuntPark.js` - 160x160 m park at (0,620), 6 ramps with
+  physics colliders, hill, 360 turntable, 22-clod dig field, 12-cone slalom, 8 coin
+  rings, pond, 3 jump pads, no timer/fail, capped 300 coin reward, best air time.
+  32 meshes / draw calls (<150). `scripts/park-check.mjs` PASS.
+- TIER 8: visual-only suspension body roll, wheel dust only above 18 km/h, dig dust
+  only on scoop, traffic cars slow/stop for the machine, half-size car colliders,
+  internal `jcb` names renamed to `backhoe`.
+- TIER 9: one `src/core/Ads.js` using the documented `SDK.ad.requestAd` with
+  `adStarted/adFinished/adError`; no-op without SDK; `?fakeads` 3 s overlay; mute+pause
+  and restore; rewarded x2 coins / +60 s; midgame ONLY on NEXT after 120 s and 180 s
+  cooldown; never during driving or on PLAY. `scripts/ads-check.mjs` PASS.
+- TIER 10: full-screen big map with rounded roads, park / water blocks, player arrow,
+  goal markers, landmark, compass, scale bar, X close and automatic pause.
+- Docs: `src/docs/RESEARCH_UI.md`, `src/docs/UI_SPEC.md`, `docs/DEPTH_REPORT.md`.
+  `docs/screenshots/` intentionally has NO PNGs - no browser exists here.
+- EVIDENCE (all Node / static, NOT a browser): `npx vite build` OK; `ui-audit` PASS;
+  `ui-runtime-check` 84 controls / 0 failures / 0 runtime errors; `layout-check` 5 sizes
+  0 overlaps / 0 off-screen / 0 targets <48 px; `tier1-check` PASS; `level-walk` 15/15;
+  `garage-check`, `park-check`, `ads-check` PASS.
+- STATUS: **BUILT, NOT VERIFIED**. No real click/touch, no F12 console, no phone, no
+  screenshot, no fps, no CrazyGames portal test. Do NOT claim "fixed" or "done".
+- NEXT: real browser play-test at the 5 sizes, capture 15 screenshots, check console,
+  then merge the PR into `clean-v1` and submit to CrazyGames.
+
+---
+
 Updated 2026-11-05 (end of a very long chat; a new chat must continue from here).
 Read order for a new AI: CONTINUE.md, then this file, then FILE_MAP.md, then HANDOFF.md.
 

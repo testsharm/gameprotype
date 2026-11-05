@@ -534,7 +534,9 @@ export class World {
       intervals.forEach((zInt) => {
         if (Math.abs(xInt.center) < 1 && Math.abs(zInt.center) < 1) return;
         if (Math.abs(xInt.center) < 1 && Math.abs(zInt.center + 120) < 1) return;
-        blocks.push({ x: xInt.center, z: zInt.center, w: xInt.size, d: zInt.size, park: R() < 0.14 });
+        const water = R() < 0.10;
+        blocks.push({ x: xInt.center, z: zInt.center, w: xInt.size, d: zInt.size,
+          park: !water && R() < 0.16, water: water });
       });
     });
     this.blocks = blocks;
@@ -1196,6 +1198,9 @@ export class World {
     }
   }
 
+  // Player position for car-avoidance (set once per frame by main.js).
+  setPlayerPos(p) { this.playerPos = p; }
+
   startTrafficAI() {
     const clock = new THREE.Clock();
     const animateTraffic = () => {
@@ -1222,6 +1227,15 @@ export class World {
         const safeGap = 9;
         if (minGap < safeGap) targetSpeed = Math.max(0, car.baseSpeed * (minGap / safeGap));
         else if (minGap < 22) targetSpeed = car.baseSpeed * 0.6;
+        // TIER 8: cars slow to a stop when the machine is close in front.
+        if (this.playerPos) {
+          const dx = this.playerPos.x - car.mesh.position.x;
+          const dz = this.playerPos.z - car.mesh.position.z;
+          const ahead = car.isXAxis ? dx * car.dir : dz * car.dir;
+          const side = Math.abs(car.isXAxis ? dz : dx);
+          if (ahead > 0 && ahead < 16 && side < 6) targetSpeed = 0;
+          else if (ahead > 0 && ahead < 26 && side < 8) targetSpeed = Math.min(targetSpeed, car.baseSpeed * 0.35);
+        }
         car.speed += (targetSpeed - car.speed) * Math.min(1, dt * 4);
         if (car.speed < 0) car.speed = 0;
         const move = car.speed * car.dir * dt;
@@ -1708,11 +1722,15 @@ export class World {
   // ---------------------------------------------------------- game functions
 
   shrinkDirtPile() {
-    for (let i = 0; i < 15; i++) {
-      if (this.allDirtClods.length > 0) {
-        this.dirtPileGroup.remove(this.allDirtClods.pop());
-      }
+    // B3: shrink VISUALLY only. Never drop clods below a third of the pile,
+    // so the third load always has something to scoop. resetDirtPile() is
+    // called by LevelEngine after every completed goal.
+    const floor = Math.ceil(this._masterClods.length / 3);
+    let n = 0;
+    for (let i = 0; i < 8 && this.allDirtClods.length > floor; i++, n++) {
+      this.dirtPileGroup.remove(this.allDirtClods.pop());
     }
+    this.dirtPileGroup.visible = true;
   }
 
   resetDirtPile() {

@@ -457,4 +457,30 @@ Round 1 (M4f) applied, backup 2026-11-05T07-51-19-422Z-lgp, NOT saved. New HUD v
   awaiting user play-test. NEXT after merge: fix anything the play-test finds; then DEPTH PACK
   parts B-H in separate safe rounds (full per-level mechanics, economy, visual depth, QA, SDK/ads).
   The 15-level design remains LOCKED; do not rebuild all 15 levels in one risky change.
+
+- 2026-11-05 (Arena agent, branch arena/66b14966-gameprotype) FINAL PRODUCT PUSH, TIER 1-10.
+  Base clean-v1 8c57ed6. NEVER ask questions; simple short English; no browser exists here.
+  NEW: src/ui/Menus.js, src/gameplay/StuntPark.js, src/core/Ads.js, rewritten GameUI.js;
+  old JobPanels windows deleted from Jobs.js; index.html old pause overlay removed.
+  Exact portrait-first HUD, 3 s hold scoop/dump, 6 upgrades + 6 paints, 15-level walk,
+  per-verb visuals, fading beam + bobbing chevron, big map, safe ads wrapper, body roll.
+  Repo checks (Node only, NOT a browser): npx vite build OK; scripts/ui-audit.mjs PASS;
+  scripts/ui-runtime-check.mjs 84 controls / 0 failures / 0 runtime errors;
+  scripts/layout-check.mjs 5 sizes / 0 overlaps / 0 off-screen / 0 targets <48 px;
+  scripts/tier1-check.mjs PASS (3 scoops + 3 dumps, RUSH expiry = miss);
+  scripts/level-walk.mjs 15/15 levels, 8 types, 7 skies, 15 distinct starts;
+  scripts/garage-check.mjs / park-check.mjs / ads-check.mjs PASS.
+  Official pages read (exact): https://docs.crazygames.com/sdk/game/ ,
+  https://docs.crazygames.com/sdk/intro/ , https://docs.crazygames.com/sdk/video-ads/ ,
+  https://docs.crazygames.com/sdk/data/ , https://docs.crazygames.com/requirements/technical/ ,
+  https://docs.crazygames.com/resources/crazygames-app/ ,
+  https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events ,
+  https://developer.mozilla.org/en-US/docs/Web/API/Element/setPointerCapture ,
+  https://developer.mozilla.org/en-US/docs/Web/API/Element/lostpointercapture_event .
+  NOT VERIFIED: real click/touch, F12 console, phone, screenshots, fps, ads in portal,
+  15 real level play-throughs. docs/screenshots/ has NO PNGs on purpose - never fake evidence.
+  STATUS: BUILT, NOT VERIFIED. NEXT: real browser play-test at 1920x1080 / 1280x720 /
+  844x390 / 440x956 / 390x844, capture the 15 screenshots, check the console, then merge
+  the PR into clean-v1 and submit to CrazyGames. Old notes below are history only.
+
 SESSION LOG END MARKER (do not remove this line)

@@ -1,8 +1,11 @@
 import * as THREE from 'three';
 
 // Cab camera settings (positions are local to the vehicle)
-const CAB_EYE = new THREE.Vector3(0, 2.4, -0.2);
-const CAB_LOOK = new THREE.Vector3(0, 1.4, 20);
+// B7: sit ABOVE and BEHIND the cab roof. Inside the cab the roof, seat and
+// the yellow hood filled the screen with a black block. From up here the road,
+// the arms and the bucket are all visible.
+const CAB_EYE = new THREE.Vector3(0, 3.45, -3.25);
+const CAB_LOOK = new THREE.Vector3(0, 1.25, 20);
 const CAB_NEAR = 0.3;
 
 export const CAMERA_MODES = ['chase', 'orbit', 'cab', 'bucket'];
@@ -183,7 +186,7 @@ export class CameraManager {
         const zoom = this._zoom * this._distFactor;
 
         // A little FOV widening at speed, but never so wide that a phone loses the road.
-        const baseFov = 70;
+        const baseFov = aspect < 0.85 ? 65 : 70;
         const speedRatio = Math.min(Math.abs(currentSpeed || 0) / 40, 1);
         const targetFov = baseFov + speedRatio * 12;
         this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, k(3));
