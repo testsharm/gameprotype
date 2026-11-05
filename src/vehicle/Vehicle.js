@@ -128,32 +128,39 @@ export class Vehicle {
         window.dispatchEvent(new CustomEvent('bh-hint', { detail: msg }));
     }
 
-    autoAction() {
-        if (this._auto || window.__digBusy) return;
+    // A7/A8: two explicit verbs. autoAction() kept for old QA hooks.
+    scoop() {
+        if (this._auto || window.__digBusy) return false;
+        if (this.hasDirt) { this._hint('Bucket full. Dump it first.'); return false; }
         const bp = new THREE.Vector3(); this.bucketPivot.getWorldPosition(bp);
-        if (!this.hasDirt) {
-            if (!this.pilePos || bp.distanceTo(this.pilePos) > 9) { this._hint('Drive the bucket over the dirt pile'); return; }
-            window.dispatchEvent(new CustomEvent('bh-dig', { detail: 'scoop' }));
-        } else {
-            if (!this.truckPos || bp.distanceTo(this.truckPos) > 8) { this._hint('Drive closer: bucket over the truck bed'); return; }
-            window.dispatchEvent(new CustomEvent('bh-dig', { detail: 'dump' }));
-        }
+        if (!this.pilePos || bp.distanceTo(this.pilePos) > 9) { this._hint('Drive to the dirt pile'); return false; }
+        window.dispatchEvent(new CustomEvent('bh-dig', { detail: 'scoop' }));
+        return true;
     }
+    dump() {
+        if (this._auto || window.__digBusy) return false;
+        if (!this.hasDirt) { this._hint('SCOOP FIRST'); return false; }
+        const bp = new THREE.Vector3(); this.bucketPivot.getWorldPosition(bp);
+        if (!this.truckPos || bp.distanceTo(this.truckPos) > 8) { this._hint('Drive to the blue truck'); return false; }
+        window.dispatchEvent(new CustomEvent('bh-dig', { detail: 'dump' }));
+        return true;
+    }
+    autoAction() { return this.hasDirt ? this.dump() : this.scoop(); }
 
     _autoStep(dt) {
         const a = this._auto; if (!a) return;
         a.t += dt;
         if (a.type === 'scoop') {
             if (a.step === 0) { this.armIsDown = true; this.targetBoomAngle = 0.8; this.targetBucketAngle = -0.5; a.step = 1; a.t = 0; }
-            else if (a.step === 1 && a.t > 0.55) { this.targetBucketAngle = 1.2; this.bucketIsCurled = true; a.step = 2; a.t = 0; }
-            else if (a.step === 2 && a.t > 0.5) { this.scoopDirt(); this.spawnDirtBurst(); a.step = 3; a.t = 0; }
-            else if (a.step === 3 && a.t > 0.3) { this.targetBoomAngle = -0.2; this.armIsDown = false; a.step = 4; a.t = 0; }
-            else if (a.step === 4 && a.t > 0.6) { this._auto = null; }
+            else if (a.step === 1 && a.t > 0.44) { this.targetBucketAngle = 1.2; this.bucketIsCurled = true; a.step = 2; a.t = 0; }
+            else if (a.step === 2 && a.t > 0.40) { this.scoopDirt(); this.spawnDirtBurst(); a.step = 3; a.t = 0; }
+            else if (a.step === 3 && a.t > 0.26) { this.targetBoomAngle = -0.2; this.armIsDown = false; a.step = 4; a.t = 0; }
+            else if (a.step === 4 && a.t > 0.50) { this._auto = null; }
         } else {
             if (a.step === 0) { this.targetBoomAngle = -0.2; this.targetBucketAngle = -0.9; a.step = 1; a.t = 0; }
-            else if (a.step === 1 && a.t > 0.6) { if (this.hasDirt) { this.spawnDirtBurst(); this.dropDirt(); } a.step = 2; a.t = 0; }
-            else if (a.step === 2 && a.t > 0.5) { this.targetBucketAngle = 0.2; this.targetBoomAngle = -0.2; this.bucketIsCurled = false; this.armIsDown = false; a.step = 3; a.t = 0; }
-            else if (a.step === 3 && a.t > 0.5) { this._auto = null; }
+            else if (a.step === 1 && a.t > 0.45) { if (this.hasDirt) { this.spawnDirtBurst(); this.dropDirt(); } a.step = 2; a.t = 0; }
+            else if (a.step === 2 && a.t > 0.40) { this.targetBucketAngle = 0.2; this.targetBoomAngle = -0.2; this.bucketIsCurled = false; this.armIsDown = false; a.step = 3; a.t = 0; }
+            else if (a.step === 3 && a.t > 0.35) { this._auto = null; }
         }
     }
 

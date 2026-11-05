@@ -1,4 +1,4 @@
-// TerraForm 3D - HUD v7. Portrait phone is a FIRST-CLASS layout.
+// TerraForm 3D - HUD v8 QUALITY PASS. Portrait phone is FIRST-CLASS.
 // Exact positions live in src/docs/UI_SPEC.md. All art is code-made SVG.
 // Real pointer input: one API (opts.hold / opts.tap) shared by mouse, touch
 // and keyboard. No fake KeyboardEvent dispatch. Multi-touch by pointerId.
@@ -19,185 +19,248 @@ const ICON = {
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   brake: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
   dig: '<path d="M4 18l7-7M11 11l3-6 6 3-3 6z"/><path d="M3 20h18"/>',
+  dump: '<path d="M4 8h16l-2 7H6z"/><path d="M9 15l-2 4M15 15l2 4"/><path d="M12 4v4"/>',
   wheel: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>',
   map: '<path d="M3 5l6-2 6 2 6-2v16l-6 2-6-2-6 2z"/><path d="M9 3v16M15 5v16"/>'
 };
 const svg = (n, cls) => `<svg class="tf-ic ${cls || ''}" viewBox="0 0 24 24" aria-hidden="true">${ICON[n] || ''}</svg>`;
 
 const CSS = `
-#tf-hud{--u:1px;position:fixed;inset:0;z-index:100;pointer-events:none;color:#f1f5f9;
-  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-weight:700;font-size:14px;line-height:1.2;
-  user-select:none;-webkit-user-select:none}
+/* All look tokens come from the ONE :root block in index.html.
+   Default: joystick LEFT, actions RIGHT. .tf-lefty swaps them.
+   --u is a unitless multiplier; Big buttons sets it to 1.2. */
+#tf-hud{position:fixed;inset:0;z-index:100;pointer-events:none;--u:1;
+  font:800 16px/1.2 var(--font);color:var(--ink);
+  -webkit-user-select:none;user-select:none;touch-action:none}
 #tf-hud *{box-sizing:border-box}
-#tf-hud button{font:inherit;color:inherit;cursor:pointer;pointer-events:auto;touch-action:none;
-  -webkit-tap-highlight-color:transparent;outline:none;margin:0;border:0;background:none}
-#tf-hud button:focus-visible{outline:3px solid #fbbf24;outline-offset:2px}
+#tf-hud button{font-family:var(--font);font-weight:900;color:var(--ink);
+  pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;outline:none;cursor:pointer}
+#tf-hud button:focus-visible{outline:3px solid var(--goal);outline-offset:2px}
 #tf-hud button:active{transform:translateY(2px)}
-/* TIER 1: 3-second hold ring around the Action button + PC F keycap. */
-.tf-action::after,.tf-pad [data-code="KeyF"]::after{content:'';position:absolute;inset:-7px;border-radius:50%;pointer-events:none;
-  background:conic-gradient(from -90deg,#34d399 0deg,#34d399 var(--act,0deg),rgba(255,255,255,.10) var(--act,0deg));
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));
-  mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));
-  opacity:0;transition:opacity .12s}
-.tf-action.acting::after,.tf-pad [data-code="KeyF"].acting::after{opacity:1}
-.tf-pad [data-code="KeyF"]{position:relative}
-/* press feedback: every button moves 2px and scales slightly */
-#tf-hud .tf-ic{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.tf-p{background:linear-gradient(180deg,#34445f,#151d2b);border:2px solid #0a0f18;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 4px 0 #0a0f18,0 8px 16px rgba(0,0,0,.45)}
-.tf-b{background:linear-gradient(180deg,#3a4c68,#1d2839);border:2px solid #0a0f18;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 4px 0 #0a0f18}
-.tf-b.on{background:linear-gradient(#fde68a,#f59e0b);color:#1a1204;box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 4px 0 #b45309}
-.tf-b:disabled{opacity:.42;cursor:default;filter:grayscale(.5)}
-.tf-b.held{background:linear-gradient(#34d399,#059669);color:#052e21;transform:translateY(2px) scale(.94)}
+#tf-hud.off,#tf-hud.hide{display:none}
+body.tf-menu #tf-hud{display:none !important}
+#tf-hud .tf-ic{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#tf-hud .tf-p{position:absolute;background:var(--panel);border:2px solid var(--border);
+  border-radius:var(--radius);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),var(--shadow);
+  pointer-events:auto;display:flex;align-items:center}
+/* Every base is SOLID dark steel - no transparent blends with the world. */
+.tf-b{position:relative;display:flex;align-items:center;justify-content:center;
+  background:var(--steel-flat);border:2px solid var(--border);border-radius:12px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 3px 0 var(--border);color:var(--ink)}
+#tf-hud .tf-b.on{background:var(--green);color:#052e21}
+#tf-hud .tf-b .kb{position:absolute;bottom:2px;right:4px;font-size:14px;font-weight:900;color:var(--muted);letter-spacing:.04em}
+#tf-hud .tf-dot{position:absolute;top:5px;right:5px;width:9px;height:9px;border-radius:50%;background:var(--danger);display:none}
+#tf-hud .tf-dot.on{display:block}
 
-/* ---------- top row ---------- */
-.tf-timer,.tf-coins,.tf-pause{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:12px}
-.tf-timer{left:calc(16px + ${SAFE_L});top:calc(16px + ${SAFE_T});width:150px;height:52px;gap:8px;color:#fbbf24;font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
-.tf-timer .tf-ic{width:22px;height:22px}
-.tf-timer.warn{color:#f87171}
-.tf-timer.off{display:none}
-.tf-coins{right:calc(80px + ${SAFE_R});top:calc(16px + ${SAFE_T});height:52px;min-width:132px;gap:7px;padding:0 14px;border-radius:999px;color:#fbbf24;font-size:19px;font-weight:900}
-.tf-coins .tf-ic{width:22px;height:22px}
-.tf-pause{right:calc(16px + ${SAFE_R});top:calc(16px + ${SAFE_T});width:56px;height:56px;border-radius:12px}
-.tf-pause .tf-ic{width:26px;height:26px}
-.tf-dot{position:absolute;right:5px;top:5px;width:11px;height:11px;border-radius:50%;background:#34d399;border:2px solid #0a0f18;display:none}
-.tf-dot.on{display:block}
-
-/* ---------- mission card: small, one line only ---------- */
-.tf-mission{position:absolute;left:50%;top:calc(16px + ${SAFE_T});transform:translateX(-50%);
-  width:560px;height:72px;border-radius:12px;display:flex;align-items:center;gap:10px;padding:0 12px;overflow:hidden}
-.tf-mission i.bar{position:absolute;left:0;top:0;bottom:0;width:6px;background:linear-gradient(#fde68a,#f59e0b)}
-.tf-mission .txt{flex:1;min-width:0;padding-left:6px}
-.tf-mission .nm{font-size:16px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:#fbbf24;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tf-mission .st{font-size:14px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+/* ---- top row ------------------------------------------------------------ */
+.tf-timer{left:50%;transform:translateX(-50%);top:calc(12px + ${SAFE_T});height:48px;min-width:152px;
+  justify-content:center;gap:8px;padding:0 14px;font-size:22px;font-variant-numeric:tabular-nums}
+.tf-timer .tf-ic{color:var(--goal);width:22px;height:22px}
+.tf-timer.warn{color:#fff;background:var(--red)}
+.tf-coins{right:calc(76px + ${SAFE_R});top:calc(12px + ${SAFE_T});height:48px;min-width:120px;
+  gap:6px;padding:0 12px;justify-content:center;font-size:18px;font-variant-numeric:tabular-nums}
+.tf-coins .tf-ic{color:var(--goal);width:22px;height:22px}
+.tf-pause{position:absolute;right:calc(12px + ${SAFE_R});top:calc(12px + ${SAFE_T});
+  width:56px;height:56px;border-radius:50%;background:var(--steel-flat);border:2px solid var(--border);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 3px 0 var(--border);display:flex;align-items:center;justify-content:center}
+.tf-pause .tf-ic{width:26px;height:26px;color:var(--goal)}
+.tf-mission{left:calc(12px + ${SAFE_L});top:calc(12px + ${SAFE_T});width:330px;height:64px;
+  gap:10px;padding:0 12px 0 20px;overflow:hidden}
+.tf-mission::before{content:'';position:absolute;left:0;top:0;bottom:0;width:8px;
+  background:var(--hazard);border-radius:12px 0 0 12px}
+.tf-mission .txt{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.tf-mission .nm{font-size:15px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tf-mission .st{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tf-pips{display:flex;gap:5px;flex:none}
-.tf-pips i{width:12px;height:12px;border-radius:50%;background:#0b111a;border:2px solid #0a0f18}
-.tf-pips i.on{background:#fbbf24}
+.tf-pips i{width:11px;height:11px;border-radius:50%;background:var(--well);border:2px solid var(--border)}
+.tf-pips i.on{background:var(--goal)}
+.tf-mini{position:absolute;left:calc(12px + ${SAFE_L});top:calc(88px + ${SAFE_T});
+  width:140px;height:140px;padding:6px;border-radius:14px;overflow:hidden}
+.tf-mini canvas{display:block;width:100%;height:100%}
+.tf-tools{position:absolute;right:calc(12px + ${SAFE_R});top:calc(76px + ${SAFE_T});
+  display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.tf-tools .tf-b{width:56px;height:56px;border-radius:12px}
+.tf-tools .tf-b .tf-ic{color:var(--goal)}
 
-/* ---------- minimap + left icon stack ---------- */
-.tf-mini{position:absolute;left:calc(16px + ${SAFE_L});top:calc(80px + ${SAFE_T});width:140px;height:140px;border-radius:50%;
-  overflow:hidden;pointer-events:auto;cursor:pointer;padding:0}
-.tf-mini canvas{width:100%;height:100%;display:block;border-radius:50%}
-.tf-tools{position:absolute;left:calc(16px + ${SAFE_L});top:calc(236px + ${SAFE_T});display:flex;flex-direction:column;gap:8px}
-.tf-tools button{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative}
-.tf-tools button .kb{position:absolute;bottom:2px;right:4px;font-size:9px;font-weight:900;color:#94a3b8}
-.tf-tools button.on .kb{color:#1a1204}
-
-/* ---------- desktop key pad ---------- */
-.tf-pad{position:absolute;left:calc(16px + ${SAFE_L});bottom:calc(16px + ${SAFE_B});display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:12px}
+/* ---- keyboard hint pad (desktop only) --------------------------------- */
+.tf-pad{position:absolute;left:calc(12px + ${SAFE_L});top:calc(240px + ${SAFE_T});width:200px;
+  flex-direction:column;gap:6px;display:none;pointer-events:none}
+#tf-hud .tf-pad{display:none !important}
 .tf-pad .r{display:flex;gap:6px;justify-content:center}
-.tf-pad button{width:56px;height:56px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:15px;font-weight:900}
-.tf-pad button small{font-size:9px;font-weight:800;color:#94a3b8;letter-spacing:.02em;text-transform:uppercase}
-.tf-pad button.wide{width:118px}
+.tf-pad .tf-b{width:56px;height:56px;font-size:15px;flex-direction:column;gap:1px}
+.tf-pad .tf-b.wide{width:116px}
+.tf-pad small{font-size:8px;letter-spacing:.06em;color:var(--muted)}
 
-/* ---------- speedometer ---------- */
-.tf-speed{position:absolute;right:calc(16px + ${SAFE_R});bottom:calc(16px + ${SAFE_B});width:150px;height:150px;border-radius:50%;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
-.tf-speed .v{font-size:46px;font-weight:900;font-variant-numeric:tabular-nums;color:#f1f5f9;line-height:1}
-.tf-speed .u{font-size:13px;color:#94a3b8;font-weight:900}
+/* ---- speedometer ------------------------------------------------------- */
+.tf-speed{left:50%;transform:translateX(-50%);bottom:calc(18px + ${SAFE_B});
+  width:120px;height:120px;border-radius:50%;flex-direction:column;justify-content:center;gap:0;
+  background:radial-gradient(circle at 50% 40%,var(--panel-solid),var(--well));
+  border:3px solid var(--border);box-shadow:inset 0 2px 0 rgba(255,255,255,.16),var(--shadow)}
+#tf-hud .tf-speed{border-radius:50%}
+.tf-speed .v{font-size:44px;line-height:1;font-weight:900;color:var(--ink);font-variant-numeric:tabular-nums}
+.tf-speed .u{font-size:14px;letter-spacing:.14em;color:var(--goal);margin-top:2px}
 
-/* ---------- touch controls ---------- */
-.tf-touch{display:none;pointer-events:none}
-.tf-drive{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:auto;touch-action:none;
-  background:radial-gradient(circle,rgba(58,76,104,.75),rgba(11,17,26,.85));border:2px solid #0a0f18;box-shadow:0 4px 0 #0a0f18}
-.tf-drive .knob{width:44%;height:44%;border-radius:50%;background:linear-gradient(180deg,#3a4c68,#1d2839);border:2px solid #0a0f18;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;color:#94a3b8}
-.tf-drive .knob .tf-ic{width:26px;height:26px}
-.tf-action,.tf-brake{position:absolute;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;font-weight:900}
-.tf-action{background:linear-gradient(#fde68a,#f59e0b);color:#1a1204;border:2px solid #0a0f18;box-shadow:0 4px 0 #b45309}
-.tf-action .tf-ic{width:30px;height:30px}
-.tf-brake{background:linear-gradient(#f87171,#b91c1c);color:#fff;border:2px solid #0a0f18;box-shadow:0 4px 0 #7f1d1d}
-.tf-brake .tf-ic{width:24px;height:24px}
+/* ---- touch controls: SOLID steel bases -------------------------------- */
+.tf-touch{position:absolute;inset:0;pointer-events:none;display:block}
+.tf-drive,.tf-action,.tf-dump,.tf-brake{position:absolute;display:flex;align-items:center;justify-content:center;
+  background:var(--steel-flat);border:3px solid var(--border);border-radius:50%;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.14),var(--shadow),0 10px 26px rgba(0,0,0,.45);
+  pointer-events:auto;flex-direction:column;gap:2px;overflow:hidden}
+.tf-drive{left:calc(20px + ${SAFE_L});bottom:calc(20px + ${SAFE_B});
+  width:${U('132px')};height:${U('132px')}}
+.tf-drive::after{content:'';position:absolute;inset:12%;border-radius:50%;border:2px dashed #44577a;opacity:.7;pointer-events:none}
+.tf-drive .knob{width:56%;height:56%;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:var(--steel);border:2px solid var(--border);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 3px 6px rgba(0,0,0,.5)}
+.tf-drive .knob .tf-ic{width:36px;height:36px;color:var(--goal)}
+.tf-action{right:calc(20px + ${SAFE_R});bottom:calc(20px + ${SAFE_B});
+  width:${U('96px')};height:${U('96px')};border-color:var(--amber-dark)}
+.tf-action .tf-ic{width:36px;height:36px;color:var(--goal)}
+.tf-action span,.tf-dump span,.tf-brake span{font-size:14px;letter-spacing:.08em;color:var(--ink)}
+.tf-dump{right:calc(124px + ${SAFE_R});bottom:calc(28px + ${SAFE_B});
+  width:${U('72px')};height:${U('72px')}}
+.tf-dump .tf-ic{width:28px;height:28px;color:var(--cyan)}
+.tf-dump span{font-size:14px}
+.tf-brake{right:calc(32px + ${SAFE_R});bottom:calc(128px + ${SAFE_B});
+  width:${U('56px')};height:${U('56px')};border-color:#7f1d1d;background:#2a171c}
+.tf-brake .tf-ic{width:24px;height:24px;color:#fca5a5}
+.tf-brake span{font-size:14px}
+/* radial hold ring on the action button */
+.tf-ring{position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:conic-gradient(var(--goal) calc(var(--p,0) * 1turn),transparent 0);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 8px),#000 calc(100% - 7px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 8px),#000 calc(100% - 7px));
+  opacity:0}
+.tf-ring.on{opacity:1}
+.tf-action.holding,.tf-dump.holding{border-color:var(--goal);box-shadow:0 0 0 4px rgba(251,191,36,.35),inset 0 2px 0 rgba(255,255,255,.14),var(--shadow)}
 
-/* ---------- toast / hint lanes ---------- */
-.tf-toasts{position:absolute;top:calc(100px + ${SAFE_T});left:170px;right:120px;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
-.tf-toast{padding:8px 14px;border-radius:10px;font-size:14px;font-weight:900;max-width:100%;text-align:center;
-  animation:tf-in .2s ease-out;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tf-toast.success{color:#052e21;background:linear-gradient(#34d399,#059669)}
-.tf-toast.warn{color:#fff;background:linear-gradient(#f87171,#b91c1c)}
-.tf-toast.info{color:#f1f5f9;background:linear-gradient(180deg,#34445f,#151d2b)}
-@keyframes tf-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-.tf-hint{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(180px + ${SAFE_B});max-width:min(420px,80vw);
-  padding:8px 14px;border-radius:10px;font-size:14px;text-align:center;pointer-events:none;display:none}
-.tf-hint.on{display:block}
+/* ---- toasts / hint / announce ------------------------------------------ */
+.tf-toasts{position:absolute;top:auto;bottom:calc(160px + ${SAFE_B});left:50%;transform:translateX(-50%);
+  width:min(360px,86vw);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;z-index:12}
+.tf-toast{background:var(--well);color:var(--ink);border:2px solid var(--border);border-left:6px solid var(--goal);
+  border-radius:10px;padding:10px 14px;font-size:15px;font-weight:900;text-align:center;
+  box-shadow:var(--shadow);animation:tfpop .2s ease-out;max-width:100%}
+.tf-toast.ok{border-left-color:var(--success)}
+.tf-toast.warn{border-left-color:var(--danger)}
+@keyframes tfpop{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+.tf-hint{position:absolute;left:50%;transform:translateX(-50%);top:calc(90px + ${SAFE_T});
+  padding:8px 14px;font-size:14px;font-weight:800;color:var(--ink);white-space:nowrap;display:none}
+.tf-hint.on{display:flex}
+.tf-announce{position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);text-align:center;
+  pointer-events:none;z-index:14;opacity:0;transition:opacity .3s;max-width:90vw}
+.tf-announce.on{opacity:1}
+.tf-announce .t1{font-size:34px;font-weight:900;letter-spacing:.1em;color:var(--goal);text-shadow:0 3px 0 var(--border)}
+.tf-announce .t2{font-size:16px;color:var(--ink);margin-top:6px}
+#tf-loads{position:absolute;left:50%;transform:translateX(-50%);top:calc(150px + ${SAFE_T});
+  background:var(--well);border:2px solid var(--amber-dark);border-radius:999px;padding:8px 18px;
+  font-size:16px;font-weight:900;color:var(--goal);display:none;pointer-events:none;z-index:11}
+#tf-loads.on{display:block}
 
-/* ---------- hide HUD on the start screen ---------- */
-body.tf-menu #tf-hud{visibility:hidden}
-html.tf-playing,html.tf-holding{overflow:hidden}
-html.tf-playing body,html.tf-holding body{overflow:hidden;user-select:none;-webkit-user-select:none}
-/* Only the canvas and HUD lock touch gestures; windows must still scroll. */
-html.tf-playing #game-container,html.tf-holding #game-container{touch-action:none}
+/* Swap sides: joystick RIGHT, actions LEFT. */
+#tf-hud.tf-lefty .tf-drive{left:auto;right:calc(20px + ${SAFE_R})}
+#tf-hud.tf-lefty .tf-action{right:auto;left:calc(20px + ${SAFE_L})}
+#tf-hud.tf-lefty .tf-dump{right:auto;left:calc(124px + ${SAFE_L})}
+#tf-hud.tf-lefty .tf-brake{right:auto;left:calc(32px + ${SAFE_L})}
+#tf-hud.tf-lefty .tf-mini{left:auto;right:calc(12px + ${SAFE_R})}
+#tf-hud.tf-lefty .tf-tools{right:auto;left:calc(12px + ${SAFE_L})}
+#tf-hud.tf-lefty .tf-mission{left:auto;right:calc(12px + ${SAFE_R})}
+#tf-hud.tf-lefty .tf-coins{right:auto;left:calc(76px + ${SAFE_L})}
+#tf-hud.tf-lefty .tf-pause{right:auto;left:calc(12px + ${SAFE_L})}
+#tf-hud.tf-lefty .tf-pad{left:auto;right:calc(12px + ${SAFE_R})}
 
-/* ---------- landscape phone 844x390 (short, wide) ---------- */
-@media (max-height:480px){
-  .tf-timer{left:calc(10px + ${SAFE_L});top:calc(8px + ${SAFE_T});width:96px;height:36px;font-size:16px;gap:5px;border-radius:9px}
-  .tf-timer .tf-ic{width:17px;height:17px}
-  .tf-coins{right:calc(62px + ${SAFE_R});top:calc(8px + ${SAFE_T});height:36px;min-width:96px;font-size:14px;padding:0 9px}
-  .tf-coins .tf-ic{width:17px;height:17px}
-  .tf-pause{right:calc(10px + ${SAFE_R});top:calc(8px + ${SAFE_T});width:48px;height:48px;border-radius:10px}
-  .tf-mission{left:50%;top:calc(8px + ${SAFE_T});width:300px;height:44px;gap:6px;padding:0 9px}
-  .tf-mission .nm{font-size:14px}.tf-mission .st{font-size:12px;margin-top:1px}
-  /* 104 instead of 96: keeps a clear 6px gap under the 48px icon row. */
-  .tf-mini{left:calc(10px + ${SAFE_L});top:calc(104px + ${SAFE_T});width:76px;height:76px}
-  .tf-tools{left:calc(10px + ${SAFE_L});top:calc(50px + ${SAFE_T});flex-direction:row;gap:6px}
-  .tf-tools button{width:48px;height:48px;border-radius:10px}
-  .tf-pad{display:none}
-  .tf-speed{right:auto;left:50%;transform:translateX(-50%);bottom:calc(6px + ${SAFE_B});width:64px;height:64px}
-  .tf-speed .v{font-size:20px}.tf-speed .u{font-size:9px}
-  .tf-touch{display:block}
-  .tf-drive{width:130px;height:130px;right:calc(16px + ${SAFE_R});bottom:calc(12px + ${SAFE_B})}
-  .tf-action{width:84px;height:84px;left:calc(16px + ${SAFE_L});bottom:calc(18px + ${SAFE_B});font-size:11px}
-  .tf-brake{width:56px;height:56px;right:calc(24px + ${SAFE_R});bottom:calc(152px + ${SAFE_B});font-size:10px}
-  .tf-toasts{top:calc(56px + ${SAFE_T});left:100px;right:120px}
-  .tf-hint{bottom:calc(100px + ${SAFE_B});font-size:13px;max-width:44vw}
+/* ------------------------------------------------------------ big desktop */
+@media (min-width:1600px){
+  .tf-mission{width:440px;height:72px}
+  .tf-mission .nm{font-size:17px}.tf-mission .st{font-size:14px}
+  .tf-mini{top:calc(96px + ${SAFE_T});width:160px;height:160px}
+  .tf-pad{top:calc(268px + ${SAFE_T})}
 }
 
-/* ---------- portrait phone 440x956 / 390x844 / 360x800 ---------- */
-@media (max-width:600px) and (min-height:481px){
-  .tf-timer{left:calc(12px + ${SAFE_L});top:calc(12px + ${SAFE_T});width:104px;height:40px;font-size:17px;border-radius:10px}
+/* -------------------------------------------------------- phone landscape */
+@media (max-height:560px) and (orientation:landscape){
+  #tf-hud{font-size:14px}
+  .tf-timer{top:calc(8px + ${SAFE_T});height:36px;min-width:96px;font-size:16px;gap:5px;padding:0 8px}
   .tf-timer .tf-ic{width:18px;height:18px}
-  .tf-coins{right:calc(68px + ${SAFE_R});top:calc(12px + ${SAFE_T});width:112px;height:40px;min-width:0;font-size:15px;padding:0 8px}
-  .tf-coins .tf-ic{width:18px;height:18px}
-  .tf-pause{right:calc(12px + ${SAFE_R});top:calc(12px + ${SAFE_T});width:48px;height:48px;border-radius:10px}
-  .tf-mission{left:calc(12px + ${SAFE_L});right:calc(12px + ${SAFE_R});top:calc(60px + ${SAFE_T});
-    width:auto;height:52px;transform:none;gap:6px;padding:0 10px}
+  .tf-mission{left:calc(10px + ${SAFE_L});top:calc(8px + ${SAFE_T});width:300px;height:44px;padding-left:16px}
   .tf-mission .nm{font-size:15px}.tf-mission .st{font-size:14px}
-  .tf-mini{left:calc(12px + ${SAFE_L});top:calc(124px + ${SAFE_T});width:88px;height:88px}
-  .tf-tools{left:calc(12px + ${SAFE_L});top:calc(224px + ${SAFE_T});flex-direction:column;gap:8px}
-  .tf-tools button{width:48px;height:48px;border-radius:10px}
+  .tf-coins{left:calc(10px + ${SAFE_L});right:auto;top:calc(58px + ${SAFE_T});height:36px;min-width:96px;font-size:14px;padding:0 8px}
+  .tf-coins .tf-ic{width:18px;height:18px}
+  .tf-pause{top:calc(8px + ${SAFE_T});right:calc(10px + ${SAFE_R});width:48px;height:48px}
+  .tf-pause .tf-ic{width:22px;height:22px}
+  .tf-tools{top:calc(8px + ${SAFE_T});right:calc(66px + ${SAFE_R});flex-direction:row;gap:6px}
+  .tf-tools .tf-b{width:48px;height:48px}
+  .tf-tools .tf-b .tf-ic{width:22px;height:22px}
+  .tf-mini{left:auto;right:calc(10px + ${SAFE_R});top:calc(64px + ${SAFE_T});width:104px;height:104px}
+  .tf-drive{left:calc(10px + ${SAFE_L});bottom:calc(12px + ${SAFE_B});width:${U('104px')};height:${U('104px')}}
+  .tf-action{right:calc(16px + ${SAFE_R});bottom:calc(14px + ${SAFE_B});width:${U('84px')};height:${U('84px')}}
+  .tf-action .tf-ic{width:30px;height:30px}
+  .tf-dump{right:calc(108px + ${SAFE_R});bottom:calc(20px + ${SAFE_B});width:${U('64px')};height:${U('64px')}}
+  .tf-dump .tf-ic{width:24px;height:24px}
+  .tf-brake{right:calc(26px + ${SAFE_R});bottom:calc(108px + ${SAFE_B});width:${U('56px')};height:${U('56px')}}
+  .tf-speed{bottom:calc(8px + ${SAFE_B});width:88px;height:88px}
+  .tf-speed .v{font-size:32px}
+  .tf-toasts{bottom:calc(160px + ${SAFE_B});width:min(320px,60vw)}
+  .tf-toast{font-size:14px;padding:7px 10px}
+  .tf-hint{top:calc(52px + ${SAFE_T})}
+  #tf-loads{top:calc(52px + ${SAFE_T})}
   .tf-pad{display:none}
-  .tf-speed{right:auto;left:50%;transform:translateX(-50%);bottom:calc(24px + ${SAFE_B});width:64px;height:64px}
-  .tf-speed .v{font-size:18px}.tf-speed .u{font-size:9px}
-  .tf-touch{display:block}
-  .tf-drive{width:150px;height:150px;right:calc(20px + ${SAFE_R});bottom:calc(28px + ${SAFE_B})}
-  .tf-action{width:92px;height:92px;left:calc(20px + ${SAFE_L});bottom:calc(40px + ${SAFE_B})}
-  .tf-brake{width:56px;height:56px;right:calc(34px + ${SAFE_R});bottom:calc(190px + ${SAFE_B})}
-  .tf-toasts{top:calc(120px + ${SAFE_T});left:112px;right:12px}
-  .tf-hint{bottom:calc(196px + ${SAFE_B});font-size:14px;max-width:76vw}
+  #tf-hud.tf-lefty .tf-drive{left:auto;right:calc(10px + ${SAFE_R})}
+  #tf-hud.tf-lefty .tf-action{right:auto;left:calc(16px + ${SAFE_L})}
+  #tf-hud.tf-lefty .tf-dump{right:auto;left:calc(108px + ${SAFE_L})}
+  #tf-hud.tf-lefty .tf-brake{right:auto;left:calc(26px + ${SAFE_L})}
+  #tf-hud.tf-lefty .tf-mini{right:auto;left:calc(10px + ${SAFE_L})}
+  #tf-hud.tf-lefty .tf-tools{right:auto;left:calc(66px + ${SAFE_L})}
+  #tf-hud.tf-lefty .tf-mission{left:auto;right:calc(10px + ${SAFE_R})}
+  #tf-hud.tf-lefty .tf-coins{left:auto;right:calc(10px + ${SAFE_R})}
+  #tf-hud.tf-lefty .tf-pause{right:auto;left:calc(10px + ${SAFE_L})}
 }
 
-/* Narrow portrait: nudge the speed dial left so it never touches Drive. */
-@media (max-width:400px) and (min-height:481px){
-  .tf-speed{left:calc(50% - 14px)}
+/* --------------------------------------------------------- phone portrait */
+@media (max-width:560px) and (orientation:portrait){
+  #tf-hud{font-size:14px}
+  .tf-timer{top:calc(12px + ${SAFE_T});height:44px;min-width:120px;font-size:18px;gap:6px;padding:0 10px}
+  .tf-timer .tf-ic{width:20px;height:20px}
+  .tf-coins{left:calc(12px + ${SAFE_L});right:auto;top:calc(12px + ${SAFE_T});height:44px;min-width:108px;font-size:15px;padding:0 10px}
+  .tf-coins .tf-ic{width:20px;height:20px}
+  .tf-pause{top:calc(12px + ${SAFE_T});right:calc(12px + ${SAFE_R});width:56px;height:56px}
+  .tf-mission{top:calc(66px + ${SAFE_T});left:calc(12px + ${SAFE_L});right:calc(76px + ${SAFE_R});
+    width:auto;height:56px;padding-left:18px}
+  .tf-mission .nm{font-size:15px}.tf-mission .st{font-size:14px}
+  .tf-mini{top:calc(132px + ${SAFE_T});left:calc(12px + ${SAFE_L});width:88px;height:88px}
+  .tf-tools{top:calc(76px + ${SAFE_T});right:calc(12px + ${SAFE_R});flex-direction:column;gap:6px}
+  .tf-tools .tf-b{width:52px;height:52px}
+  .tf-tools .tf-b .tf-ic{width:23px;height:23px}
+  .tf-drive{left:calc(12px + ${SAFE_L});bottom:calc(20px + ${SAFE_B});width:${U('132px')};height:${U('132px')}}
+  .tf-action{right:calc(12px + ${SAFE_R});bottom:calc(20px + ${SAFE_B});width:${U('96px')};height:${U('96px')}}
+  .tf-dump{right:calc(116px + ${SAFE_R});bottom:calc(30px + ${SAFE_B});width:${U('72px')};height:${U('72px')}}
+  .tf-brake{right:calc(32px + ${SAFE_R});bottom:calc(128px + ${SAFE_B});width:${U('56px')};height:${U('56px')}}
+  .tf-speed{left:calc(50% + 10px);bottom:calc(156px + ${SAFE_B});width:104px;height:104px}
+  .tf-speed .v{font-size:36px}
+  .tf-toasts{bottom:calc(276px + ${SAFE_B});width:min(320px,84vw)}
+  .tf-toast{font-size:14px;padding:9px 12px}
+  .tf-hint{top:calc(230px + ${SAFE_T})}
+  #tf-loads{top:calc(230px + ${SAFE_T})}
+  .tf-pad{display:none}
+  #tf-hud.tf-lefty .tf-drive{left:auto;right:calc(12px + ${SAFE_R})}
+  #tf-hud.tf-lefty .tf-action{right:auto;left:calc(12px + ${SAFE_L})}
+  #tf-hud.tf-lefty .tf-dump{right:auto;left:calc(116px + ${SAFE_L})}
+  #tf-hud.tf-lefty .tf-brake{right:auto;left:calc(32px + ${SAFE_L})}
+  #tf-hud.tf-lefty .tf-mini{left:auto;right:calc(12px + ${SAFE_R})}
+  #tf-hud.tf-lefty .tf-tools{right:auto;left:calc(12px + ${SAFE_L})}
+  #tf-hud.tf-lefty .tf-mission{left:auto;right:calc(76px + ${SAFE_R})}
+  #tf-hud.tf-lefty .tf-coins{left:auto;right:calc(12px + ${SAFE_R})}
+  #tf-hud.tf-lefty .tf-pause{right:auto;left:calc(12px + ${SAFE_L})}
+}
+@media (max-width:400px) and (orientation:portrait){
+  .tf-mission{right:calc(72px + ${SAFE_R})}
+  .tf-drive{width:${U('124px')};height:${U('124px')}}
+  .tf-action{width:${U('92px')};height:${U('92px')}}
+  .tf-dump{right:calc(110px + ${SAFE_R});width:${U('68px')};height:${U('68px')}}
 }
 
-/* 1280x720 desktop: the mission card is 440x64, not the 1920px 560x72. */
-@media (min-width:601px) and (max-width:1366px) and (min-height:481px){
-  .tf-mission{width:440px;height:64px}
-}
-
-/* Left-handed: swap Drive (right) and Action (left). */
-#tf-hud.tf-lefty .tf-drive{right:auto;left:calc(20px + ${SAFE_L})}
-#tf-hud.tf-lefty .tf-action{left:auto;right:calc(20px + ${SAFE_R})}
-#tf-hud.tf-lefty .tf-brake{right:auto;left:calc(34px + ${SAFE_L})}
-@media (max-height:480px){
-  #tf-hud.tf-lefty .tf-drive{right:auto;left:calc(16px + ${SAFE_L})}
-  #tf-hud.tf-lefty .tf-action{left:auto;right:calc(16px + ${SAFE_R})}
-  #tf-hud.tf-lefty .tf-brake{right:auto;left:calc(24px + ${SAFE_L})}
-}
 `;
 
-const HOLD_CODES = { KeyW: 1, KeyA: 1, KeyS: 1, KeyD: 1, Space: 1, KeyF: 1 };
-const CODE_TO_KEY = { KeyW: 'W', KeyA: 'A', KeyS: 'S', KeyD: 'D', KeyF: 'F', KeyC: 'C', KeyM: 'M', KeyP: 'P', Space: 'SPC' };
+const HOLD_CODES = { KeyW: 1, KeyA: 1, KeyS: 1, KeyD: 1, Space: 1, KeyF: 1, KeyG: 1 };
+const CODE_TO_KEY = { KeyW: 'W', KeyA: 'A', KeyS: 'S', KeyD: 'D', KeyF: 'F', KeyG: 'G', KeyC: 'C', KeyM: 'M', KeyP: 'P', Space: 'SPC' };
 
 export default class GameUI {
   constructor(opts) {
@@ -253,6 +316,7 @@ export default class GameUI {
         <button class="tf-b" id="tf-snd" data-a="sound" aria-label="Sound on or off" title="Sound (M)">${svg('sound')}<span class="kb">M</span></button>
         <button class="tf-b" id="tf-zin" data-a="zoomIn" aria-label="Zoom in" title="Zoom in (+)">${svg('plus')}<span class="kb">+</span></button>
         <button class="tf-b" id="tf-zout" data-a="zoomOut" aria-label="Zoom out" title="Zoom out (-)">${svg('minus')}<span class="kb">−</span></button>
+        <button class="tf-b" id="tf-map" data-a="map" aria-label="Open big site map" title="Site map">${svg('map')}<span class="kb">M</span></button>
       </div>
 
       <div class="tf-pad tf-p" id="tf-pad">
@@ -263,7 +327,8 @@ export default class GameUI {
           <button class="tf-b" data-code="KeyD" aria-label="Steer right">D</button>
         </div>
         <div class="r">
-          <button class="tf-b" data-code="KeyF" aria-label="Scoop or dump">F<small>ACTION</small></button>
+          <button class="tf-b" data-code="KeyF" aria-label="Scoop">F<small>SCOOP</small></button>
+          <button class="tf-b" data-code="KeyG" aria-label="Dump">G<small>DUMP</small></button>
           <button class="tf-b" data-code="KeyC" aria-label="Camera">C<small>CAM</small></button>
           <button class="tf-b wide" data-code="Space" aria-label="Brake">SPACE<small>BRAKE</small></button>
         </div>
@@ -273,10 +338,13 @@ export default class GameUI {
 
       <div class="tf-touch" id="tf-touch">
         <div class="tf-drive" id="tf-joy" aria-label="Steering pad"><div class="knob" id="tf-knob">${svg('wheel')}</div></div>
-        <button class="tf-action" id="tf-f" data-code="KeyF" aria-label="Scoop or dump">${svg('dig')}<span id="tf-f-label">SCOOP</span></button>
+        <button class="tf-action" id="tf-f" data-code="KeyF" aria-label="Scoop">${svg('dig')}<span>SCOOP</span><i class="tf-ring" id="tf-f-ring"></i></button>
+        <button class="tf-dump" id="tf-g" data-code="KeyG" aria-label="Dump">${svg('dump')}<span>DUMP</span><i class="tf-ring" id="tf-g-ring"></i></button>
         <button class="tf-brake" id="tf-brk" data-code="Space" aria-label="Brake">${svg('brake')}<span>BRK</span></button>
       </div>
 
+      <div id="tf-loads">LOADS LEFT 3</div>
+      <div class="tf-announce" id="tf-announce"><div class="t1" id="tf-ann-t1"></div><div class="t2" id="tf-ann-t2"></div></div>
       <div class="tf-toasts" id="tf-toasts"></div>
       <div class="tf-hint tf-p" id="tf-hint"></div>`;
     document.body.appendChild(root);
@@ -286,10 +354,12 @@ export default class GameUI {
       timer: $('tf-timer'), time: $('tf-time'), coins: $('tf-coins-v'), cdot: $('tf-dot-coins'),
       mdot: $('tf-dot-menu'), pause: $('tf-pause'), mission: $('tf-mission'), job: $('tf-job'),
       step: $('tf-step'), pips: $('tf-pips'), mini: $('tf-mini'), tools: $('tf-tools'),
-      cam: $('tf-cam'), snd: $('tf-snd'), zin: $('tf-zin'), zout: $('tf-zout'),
+      cam: $('tf-cam'), snd: $('tf-snd'), zin: $('tf-zin'), zout: $('tf-zout'), map: $('tf-map'),
       pad: $('tf-pad'), speed: $('tf-speed-v'), joy: $('tf-joy'), knob: $('tf-knob'),
-      fBtn: $('tf-f'), fLabel: $('tf-f-label'), brk: $('tf-brk'),
-      toasts: $('tf-toasts'), hint: $('tf-hint')
+      fBtn: $('tf-f'), gBtn: $('tf-g'), fRing: $('tf-f-ring'), gRing: $('tf-g-ring'),
+      fLabel: $('tf-f-label'), brk: $('tf-brk'),
+      toasts: $('tf-toasts'), hint: $('tf-hint'), loads: $('tf-loads'),
+      announce: $('tf-announce'), annT1: $('tf-ann-t1'), annT2: $('tf-ann-t2')
     };
     // The real minimap canvas comes from index.html (#tf-hold).
     const mm = document.getElementById('minimap-canvas');
@@ -400,8 +470,9 @@ export default class GameUI {
       if (HOLD_CODES[code]) this._bindHold(b, code);
       else this._bindTap(b, code);
     });
-    // TIER 1/TIER 4: Action is a 3-second HOLD, not a one-tap cheat.
+    // SCOOP 1.6s and DUMP 1.2s are real HOLDs. No one-tap cheat.
     this._bindHold(this.el.fBtn, 'KeyF');
+    this._bindHold(this.el.gBtn, 'KeyG');
     this._bindHold(this.el.brk, 'Space');
 
     // Joystick: 8 directions, one pointerId, release on all paths.
@@ -508,7 +579,7 @@ export default class GameUI {
     this.el.zin.setAttribute('aria-label', zoomable ? 'Zoom in' : 'Zoom in unavailable in Cab view');
     this.el.zout.setAttribute('aria-label', zoomable ? 'Zoom out' : 'Zoom out unavailable in Cab view');
     this.el.coins.textContent = Number(s.coins || 0).toLocaleString('en-US');
-    this.root.style.setProperty('--u', (d.big ? 1.2 : 1) + 'px');
+    this.root.style.setProperty('--u', String(d.big ? 1.2 : 1));
     this.root.classList.toggle('tf-lefty', !!d.lefty);
     if (this.menus.isOpen()) this.menus.refresh();
   }
@@ -550,14 +621,31 @@ export default class GameUI {
   }
   showLocked(msg) { this.toast(msg || 'Locked', 'warn'); }
   // Visible 3-second hold ring on every F control (PC keycap + phone pad).
-  setActionProgress(p) {
-    const v = Math.max(0, Math.min(1, +p || 0));
-    const deg = (v * 360).toFixed(1) + 'deg';
-    const nodes = this.root.querySelectorAll('[data-code="KeyF"]');
-    nodes.forEach(n => {
-      n.style.setProperty('--act', deg);
-      n.classList.toggle('acting', v > 0 && v < 1);
-    });
+  setActionProgress(p, code) {
+    const v = Math.max(0, Math.min(1, p || 0));
+    const pick = code === 'KeyG' ? this.el.gRing : this.el.fRing;
+    for (const r of [this.el.fRing, this.el.gRing]) {
+      if (!r) continue;
+      r.style.setProperty('--p', r === pick ? String(v) : '0');
+      r.classList.toggle('on', r === pick && v > 0);
+    }
+    if (this.el.fBtn) this.el.fBtn.classList.toggle('holding', code !== 'KeyG' && v > 0);
+    if (this.el.gBtn) this.el.gBtn.classList.toggle('holding', code === 'KeyG' && v > 0);
+    const h = document.getElementById('tf-hold');
+    if (h) { const i = h.querySelector('i'); if (i) i.style.width = Math.round(v * 100) + '%'; }
+  }
+  setLoads(n) {
+    if (!this.el.loads) return;
+    this.el.loads.textContent = 'LOADS LEFT ' + Math.max(0, n | 0);
+    this.el.loads.classList.toggle('on', n > 0);
+  }
+  announce2(t1, t2) {
+    if (!this.el.announce) return;
+    this.el.annT1.textContent = t1 || '';
+    this.el.annT2.textContent = t2 || '';
+    this.el.announce.classList.add('on');
+    clearTimeout(this._annT);
+    this._annT = setTimeout(() => this.el.announce.classList.remove('on'), 1600);
   }
   setKey(code, on) {
     // TIER 4: a real keyboard press lights the matching on-screen key.
@@ -566,6 +654,6 @@ export default class GameUI {
     if (code === 'KeyC') this.el.cam.classList.toggle('held', !!on);
     if (code === 'KeyM') this.el.snd.classList.toggle('held', !!on);
   }
-  setBig(v) { this.root.style.setProperty('--u', (v ? 1.2 : 1) + 'px'); }
+  setBig(v) { this.root.style.setProperty('--u', String(v ? 1.2 : 1)); }
   setLefty(v) { this.root.classList.toggle('tf-lefty', !!v); }
 }

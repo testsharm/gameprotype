@@ -6,7 +6,7 @@ const LEVELS = {
   master: 0.9,
   music: 0.3,
   ambience: 0.22,
-  engine: 0.7,
+  engine: 0.28,   // A11: ~60% quieter than the old 0.7
   sfx: 0.8,
   reverb: 0.4,
 };
