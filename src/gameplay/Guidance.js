@@ -119,73 +119,44 @@ export default class Guidance {
     }
   }
 
+  // The old floating centre card overlapped the mission card. Tutorial steps now go
+  // through the HUD v5 hint + toast system (GameUI listens for 'tf-tutorial').
   startTutorial() {
     let done = false;
-    try {
-      done = localStorage.getItem(this._tutKey) === '1';
-    } catch (e) {
-      done = false;
-    }
+    try { done = localStorage.getItem(this._tutKey) === '1'; } catch (e) { done = false; }
     if (done) return;
-
     this._stepIndex = 0;
     this._cardActive = true;
-
-    if (!this._card) {
-      const card = document.createElement('div');
-      card.className = 'guid-card';
-      card.addEventListener('click', () => this.nextTutorialStep());
-      document.body.appendChild(card);
-      this._card = card;
-    }
-    this._renderStep();
-    requestAnimationFrame(() => {
-      if (this._card) this._card.classList.add('show');
-    });
+    this._emitStep();
   }
 
-  _renderStep() {
-    if (!this._card) return;
-    if (this._stepIndex < 0 || this._stepIndex >= this._steps.length) {
-      this._endTutorial();
-      return;
-    }
-    const text = this._steps[this._stepIndex];
-    const num = this._stepIndex + 1;
-    const total = this._steps.length;
-    this._card.innerHTML = '';
-    const t = document.createElement('div');
-    t.textContent = text;
-    this._card.appendChild(t);
-    const s = document.createElement('span');
-    s.className = 'guid-step';
-    s.textContent = 'Step ' + num + ' / ' + total + ' — tap to continue';
-    this._card.appendChild(s);
+  _emitStep() {
+    if (this._stepIndex < 0 || this._stepIndex >= this._steps.length) { this._endTutorial(); return; }
+    try {
+      window.dispatchEvent(new CustomEvent('tf-tutorial', {
+        detail: { text: this._steps[this._stepIndex], step: this._stepIndex + 1, total: this._steps.length }
+      }));
+    } catch (e) { /* storage or browser restriction */ }
   }
+
+  _renderStep() { this._emitStep(); }
 
   nextTutorialStep() {
     if (!this._cardActive) return;
     this._stepIndex++;
-    if (this._stepIndex >= this._steps.length) {
-      this._endTutorial();
-    } else {
-      this._renderStep();
-    }
+    if (this._stepIndex >= this._steps.length) this._endTutorial();
+    else this._emitStep();
   }
 
   _endTutorial() {
     this._cardActive = false;
     this._stepIndex = -1;
-    try {
-      localStorage.setItem(this._tutKey, '1');
-    } catch (e) {}
+    try { localStorage.setItem(this._tutKey, '1'); } catch (e) { /* ignore */ }
     if (this._card) {
       this._card.classList.remove('show');
       const card = this._card;
       this._card = null;
-      setTimeout(() => {
-        if (card.parentNode) card.parentNode.removeChild(card);
-      }, 260);
+      setTimeout(() => { if (card.parentNode) card.parentNode.removeChild(card); }, 260);
     }
   }
 

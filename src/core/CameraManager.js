@@ -74,16 +74,7 @@ export class CameraManager {
             this.spherical.radius = Math.max(8, Math.min(60, this.spherical.radius));
         }, { passive: true });
 
-        document.querySelectorAll('.cam-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const target = e.currentTarget;
-                const mode = target && target.dataset ? target.dataset.mode : null;
-                if (!mode) return;
-                this.setMode(mode);
-                document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
-                target.classList.add('active');
-            });
-        });
+        // HUD v5 owns the camera button; key C cycles the camera modes.
     }
 
     setMode(mode) {

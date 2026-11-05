@@ -4,12 +4,13 @@ Updated 2026-11-05 (end of a very long chat; a new chat must continue from here)
 Read order for a new AI: CONTINUE.md, then this file, then FILE_MAP.md, then HANDOFF.md.
 
 ## Status in one look
-- Saved to GitHub (clean-v1, commit 9e342f9): M0, M1, M2 audio, M3a-e, top speed 32/14, CONTINUE.md, M4a-e dial v3, M7a part 1 (Jobs.js 642 lines).
-- Applied, NOT saved: M7a part 2 (Jobs.js 896 lines, main.js 1135 lines, backup 2026-11-03T16-54-45-373Z-wpw) and Round 1 / M4f new HUD v5 (backup 2026-11-05T07-51-19-422Z-lgp).
-- Do NOT tell the user to click Save to GitHub for a build with a known bug. Save after the index.html fix works.
+- clean-v1 tip 2868983 (2026-11-05 08:15) already contains M7a part 2 (Jobs.js 895, main.js 1134) and HUD v5 (GameUI.js 375). All milestones M0-M4f are in the repo.
+- WORKING MODE CHANGED (2026-11-05): an Arena agent edits this repository directly (read, edit, node --check, npx vite build, commit, push). The chat paste-box / Executor / "ask for ONE file" rules no longer apply. Commits are pushed to the session branch origin/arena/e2054f9b-gameprotype; the Codespace pulls that branch.
+- Round 1b DONE (built, awaiting user test): ROOT index.html is now the new HUD page; stray src/index.html deleted; old HUD creators removed from main.js, CameraManager.js, JobEffects.js and Guidance.js. Evidence below.
+- Evidence: npx vite build OK (dist/index.html 5.63 kB, main 881 kB, rapier 4.34 MB). jsdom DOM check at 4 sizes: all 11 new HUD ids present, 0 old HUD ids, no JS errors. No headless browser in the sandbox, so no screenshots were possible.
 
 ## Known problems right now
-1. OLD HUD pieces show under the new HUD, because the new page was created as src/index.html but the game loads the ROOT index.html. Details and fix plan: FILE_MAP.md section 2. This is the FIRST task.
+1. (Round 1b, BUILT, awaiting visual test) Old HUD pieces should be gone: root index.html replaced, stray src/index.html deleted, JS creators disabled. If any old piece still shows, ask the user for one screenshot and inspect F12 Elements.
 2. Tall phone (440x956) squeezes the mission card. The HUD was made for wide phone 844x390. Touch controls did not appear in that test (touch not detected).
 3. User feedback on phone: buttons are in different places, hard to tap, not the ones we selected. Required: every touch button at least 48 px, same fixed corner positions, nothing overlapping, test at 844x390 and 440x956.
 4. Game feels generic: every job is the same scoop and dump loop. Solved by the 15-level engine (rounds 2-4).
@@ -17,8 +18,8 @@ Read order for a new AI: CONTINUE.md, then this file, then FILE_MAP.md, then HAN
 6. Not verified: menu drawer, pause overlay, touch controls, site finder on free ground, prop collider format guess, sky colours at night, fixed Rapier box at moved truck, old Job 1 dirt patch and cones stay visible in other jobs, fog lock vs updateEnv, 36 vs 42 top speed, audio items (duck, silence when hidden, reverse beeper, dig sounds), dust trail look.
 
 ## Plan (about 12 rounds, one round = one paste plus one test)
-- Round 1b (NEXT): fix root index.html. Ask the user for src/index.html (ONE file), write FILE block for ROOT index.html (allow big shrink, only if Preview OK). Then test desktop 1910x900 and report leftovers.
-- Round 1c: HUD polish: portrait layout for tall phones, touch targets 48 px or more, fixed button positions, auto touch detection check, remove double camera binding, check JobEffects popup position, remove old creators of HUD pieces if JS makes them. Acceptance: no overlap or clipped text at 800x450, 1280x720, 1920x900, 844x390 and 440x956.
+- Round 1b (DONE in repo): root index.html fixed, JS HUD creators disabled, build + DOM check OK. User must still confirm on screen.
+- Round 1c (NEXT): HUD polish: portrait layout for tall phones, touch targets 48 px or more, fixed button positions, auto touch detection check, remove double camera binding, check JobEffects popup position, remove old creators of HUD pieces if JS makes them. Acceptance: no overlap or clipped text at 800x450, 1280x720, 1920x900, 844x390 and 440x956.
 - Round 2: level engine plus levels 1-5 (rewrite or extend Jobs.js: JOBS from 6 to 15, job types HAUL, CONE, FILL, TRENCH, RUSH, CLEAR, MOVE, MIX, level dressing, per-level sky and fog). Ask for World.js createJobSite and propColliders format first.
 - Round 3: levels 6-10. Round 4: levels 11-15.
 - Round 5: garage (6 upgrades x 4 levels), contracts board, result window, fail window, picker in the new steel look (settings, profile, main menu if time).
@@ -26,7 +27,7 @@ Read order for a new AI: CONTINUE.md, then this file, then FILE_MAP.md, then HAN
 - Round 7: CrazyGames SDK and ads. The user pastes SDK pages (/sdk/game, /sdk/data) ONE at a time. Write core/Portal.js: init in try/catch, gameplayStart/gameplayStop, happytime on job complete, SDK data save with localStorage fallback, ads wrapper hiding buttons when no ad ready. Ad spots: result double coins, garage half price, time-is-up plus 60 s (showFail has onAd hook, jm.addTime exists), daily bonus x2 (claimDaily(mult) exists), one midgame ad on tapping Next job. Pause and silence during ads. Ads are always optional.
 - Round 8: quality tiers, performance and size (limit 50 MB and 1500 files, now about 5 MB), engine sound polish, skill course, delete old files.
 - Round 9 (M9): submission pack. User pastes /requirements/game-covers and /resources/getting-to-the-first-frame. Covers, favicon, loading screen, final QA, final docs.
-- Progress estimate: overall about 65 percent. Driving/physics/camera 90, 3D look 72, audio 80, HUD 85 (needs the fix), jobs/levels/economy 70 (needs rebuild), shop 75, phone controls 40, SDK/ads 5, polish/submission 5.
+- Progress estimate: overall about 66 percent. Driving/physics/camera 90, 3D look 72, audio 80, HUD 85 (needs the fix), jobs/levels/economy 70 (needs rebuild), shop 75, phone controls 40, SDK/ads 5, polish/submission 5.
 
 ## Locked design (do not ask the user again, no more picture prompts)
 - 15 levels in 3 chapters: Rookie Yard (L1 First Scoop HAUL, L2 Cone School CONE, L3 Fill the Pothole FILL, L4 Park Clean-up HAUL, L5 Rush Hour Lite RUSH boss), Contractor (L6 Dig the Trench TRENCH, L7 Pipe Layer MOVE, L8 Night Shift HAUL, L9 Bridge Repair FILL, L10 Night Rush RUSH boss), Site Boss (L11 Storm Clean-up CLEAR, L12 Foundation Dig TRENCH, L13 Crane Support MOVE, L14 Skill Course CONE, L15 Mega Project MIX final boss).
@@ -54,3 +55,9 @@ Apply and Check OK. No red F12 errors except known (favicon 404, Brave extension
 Message 1: the starter text plus CONTINUE.md. Message 2: STATE.md. Message 3: FILE_MAP.md. Message 4 (optional): HANDOFF.md. Then say: continue.
 Starter text: "Hello. I am a non-technical user. My English is poor. You are the lead engineer of my browser game TerraForm 3D. I pasted CONTINUE.md. Read it fully and follow it exactly (ONE code box per answer, EDIT/FILE blocks, simple English, ask for ONE file at a time). Start with the short first reply described in section 0."
 The new AI first reply must be short: say it read the files, the state in 3 lines, ask for ONE file (src/index.html), no code before that.
+
+## Working mode (2026-11-05, read this first in future chats)
+- The agent has the whole repository. It reads files itself; it does NOT ask the user to paste files or run commands (except the one pull command at the end of a round).
+- One round = small edits + node --check on changed JS (copy to .mjs because package.json is CommonJS) + npx vite build + docs update + commit + push.
+- The user plays on the live game and reports with a screenshot or one short sentence. Never claim "fixed" without that evidence.
+- Push goes to origin/arena/e2054f9b-gameprotype (Arena session rule); the user pulls that branch in the Codespace. main and clean-v1 are never force-pushed.

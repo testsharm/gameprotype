@@ -6,18 +6,18 @@ Rule: this map comes from memory of the previous chat. Where it says "not read i
 ## 0. Repo and tools
 
 - GitHub repo testsharm/gameprotype, branch clean-v1, worked in a GitHub Codespace.
-- Last saved commit: 9e342f9 (M4e dial v3 plus M7a part 1).
+- Last clean-v1 commit: 2868983 (2026-11-05 08:15) = M7a part 2 + HUD v5. Work continues on the Arena session branch.
 - Executor (tools/executor.cjs, port 3002) applies blocks pasted in its Apply tab. Buttons: Preview, Apply, Check project, Undo last apply, Save to GitHub. Files tab has Copy selected.
-- Game runs at port 5173 (Vite dev). Preview build 4173.
+- Game runs at port 5173 (Vite dev). Preview build 4173. Agent mode: `npx vite build` is the syntax/import check.
 - URL flags: ?unlockall (all jobs open), ?rich (3000 coins, dev only), ?touch (forces touch HUD), ?debug (debug overlay).
 - Stack: Three.js, @dimforge/rapier3d-compat, Vite 8, plain JS ES modules. No new packages. Every file using THREE needs: import * as THREE from 'three'.
 
-## 1. Applied but NOT saved (as of this file)
+## 1. Repo state (2026-11-05)
 
-- M7a part 2 (Jobs.js grew to about 896 lines, main.js about 1135 lines).
-- Round 1 / M4f (new HUD v5). Apply backup id 2026-11-05T07-51-19-422Z-lgp.
+- M7a part 2 (Jobs.js 895 lines, main.js 1134 lines) and Round 1 / M4f (HUD v5) are BOTH in commit 2868983.
+- Round 1b (root index.html fix) is a later commit on the Arena session branch. See STATE.md.
 
-## 2. THE CURRENT BUG (first thing to fix)
+## 2. Round 1b bug (FIXED in code, awaiting the user's visual test)
 
 Round 1 Apply said: CREATE src/index.html (86 lines). It should have been an overwrite of the ROOT file index.html (the Vite entry, in the main project folder, NOT inside src).
 Result: the game still loads the OLD root index.html, so on screen we see NEW HUD (from GameUI.js, works) on top of OLD HUD pieces:
@@ -25,19 +25,22 @@ Result: the game still loads the OLD root index.html, so on screen we see NEW HU
 - ORBIT / CHASE / CAB / BUCKET list on the right
 - big yellow ring (old minimap frame) behind the coin pill and menu button
 - second key panel (DRIVE, W A S D, Space Brake) on top of the new hint panel (bottom-left)
-Fix plan:
-1. Ask the user for ONE file: src/index.html (Files tab, tick, Copy selected, paste).
-2. Write a FILE block for the ROOT path index.html with that same content. The script tag in the root file must be: script type="module" src="/src/main.js". The Executor will show an "allow big shrink" warning for it. The user ticks it only if Preview is OK.
-3. The stray src/index.html can stay for now (delete at the end with the final delete command).
-4. If old pieces STILL show after that, they are created by JavaScript, not by html. Suspects: MobileControls.js, Guidance.js, JobEffects.js, CameraManager.js (it binds .cam-btn), QAManager.js, main.js. Ask for the F12 Elements info or the ONE suspect file. Then remove the creator or stop importing it.
+Fix applied (Round 1b):
+1. ROOT index.html = the contents of src/index.html, plus a tiny inline script that removes focus from buttons (Space stays the brake). Vite script tag is `type="module" src="/src/main.js"`.
+2. src/index.html was deleted (nothing imported it).
+3. main.js: removed the dead old-shop wiring, the old `.key` pointer bindings, the old `.cam-btn` click bindings and the dead Jobs-button creator. All lookups of removed ids are already null-guarded.
+4. CameraManager.js: removed its `.cam-btn` click binding (only key C / the HUD camera button now changes the mode).
+5. JobEffects.js: `.je-counter` (second coin counter) is disabled, `.je-popup` (+coins) now appears under the coin pill instead of the screen centre, emoji removed.
+6. Guidance.js: the old centre tutorial card is gone; steps dispatch `tf-tutorial`, which GameUI.js shows as a hint + toast.
+7. MobileControls.js, LevelSystem.js, MissionManager.js, WorldPolish.js are NOT imported by main.js and create nothing.
+8. `npx vite build` passes. jsdom check: every new HUD id exists, zero old HUD ids in the page.
 
 Also seen in the phone test (F12 device mode 440x956, tall): the HUD was designed for WIDE phone 844x390, so the mission card is squeezed in portrait, and touch buttons (F SCOOP, joystick, BRK) did not show because touch mode was not detected. Console warning "AudioContext was not allowed to start" before first key is normal.
 
 ## 3. Files, one by one
 
 ### index.html (ROOT, old) and src/index.html (new, stray)
-- Root one: old HUD markup (shop button, restart/mute/pause buttons, cam buttons, shop overlay, victory overlay, speed value, mission desc). Must be replaced by the new content.
-- New one (86 lines): CrazyGames SDK script tag, inline SVG favicon, user-select:none on body, canvas id game-container, hidden div tf-hold holding minimap-canvas (180x180) and coin-count, pause-overlay (hazard header PAUSED, RESUME button, grid Restart / Contracts / Garage / Close, key list), loading-screen, module script.
+- Root index.html (85 lines + focus script) IS the new HUD page: SDK script, inline SVG favicon, user-select:none, canvas #game-container, hidden #tf-hold with #minimap-canvas and #coin-count, #pause-overlay with [data-act] buttons, #loading-screen, module script. src/index.html was deleted.
 - main.js guards old getElementById lookups with if checks, so removing old ids is safe.
 
 ### src/main.js (about 1135 lines) - the heart

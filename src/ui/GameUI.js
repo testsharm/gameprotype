@@ -230,6 +230,12 @@ export default class GameUI {
       el.muteIc.innerHTML = ic(m ? 'spkOff' : 'spkOn');
       el.muteTx.textContent = m ? 'Muted' : 'Sound';
     });
+    window.addEventListener('tf-tutorial', (e) => {
+      const d = e.detail || {};
+      if (!d.text) return;
+      this.setHint(d.text);
+      this.toast('Step ' + d.step + '/' + d.total + ' - ' + d.text, 'info');
+    });
 
     // pause window buttons
     document.querySelectorAll('#pause-overlay [data-act]').forEach(b => b.addEventListener('click', () => {

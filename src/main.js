@@ -106,7 +106,6 @@ const worldBuilder = new World(scene);
 cameraManager.setCollidables([...worldBuilder.buildingMeshes, ...worldBuilder.treeMeshes]);
 
 cameraManager.setMode('bucket');
-document.querySelectorAll('.cam-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === 'bucket'));
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -342,18 +341,7 @@ function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveD
 loadSave();
 document.getElementById('coin-count').textContent = saveData.coins;
 
-function updateShopUI() {
-    const engBtn = document.getElementById('buy-engine-btn');
-    if(engBtn) { engBtn.textContent = saveData.engineLevel >= 3 ? 'MAX' : `Upgrade (${saveData.engineLevel * 100} Coins)`; engBtn.disabled = saveData.coins < saveData.engineLevel * 100 || saveData.engineLevel >= 3; }
-    const hydBtn = document.getElementById('buy-hydraulic-btn');
-    if(hydBtn) { hydBtn.textContent = saveData.hydraulicLevel >= 3 ? 'MAX' : `Upgrade (${saveData.hydraulicLevel * 100} Coins)`; hydBtn.disabled = saveData.coins < saveData.hydraulicLevel * 100 || saveData.hydraulicLevel >= 3; }
-}
-
-const shopBtn = document.getElementById('shop-btn'); if(shopBtn) shopBtn.addEventListener('click', () => { openShop(); });
-const closeShopBtn = document.getElementById('close-shop-btn'); if(closeShopBtn) closeShopBtn.addEventListener('click', () => { document.getElementById('shop-overlay').classList.remove('active'); isGameRunning = true; });
-
-const buyEngBtn = document.getElementById('buy-engine-btn'); if(buyEngBtn) buyEngBtn.addEventListener('click', () => { const cost = saveData.engineLevel * 100; if (saveData.coins >= cost && saveData.engineLevel < 3) { saveData.coins -= cost; saveData.engineLevel++; writeSave(); document.getElementById('coin-count').textContent = saveData.coins; if (vehicle) vehicle.setUpgrades(saveData); updateShopUI(); } });
-const buyHydBtn = document.getElementById('buy-hydraulic-btn'); if(buyHydBtn) buyHydBtn.addEventListener('click', () => { const cost = saveData.hydraulicLevel * 100; if (saveData.coins >= cost && saveData.hydraulicLevel < 3) { saveData.coins -= cost; saveData.hydraulicLevel++; writeSave(); document.getElementById('coin-count').textContent = saveData.coins; if (vehicle) vehicle.setUpgrades(saveData); updateShopUI(); } });
+// The old index.html shop is gone. The Garage window is built by Jobs.js (key U / menu).
 
 const input = { forward: false, backward: false, left: false, right: false, brake: false };
 
@@ -424,7 +412,6 @@ window.addEventListener('keydown', (ev) => {
         const modes = ['chase', 'orbit', 'cab', 'bucket'];
         let nextIndex = (modes.indexOf(cameraManager.currentMode) + 1) % modes.length;
         cameraManager.setMode(modes[nextIndex]);
-        document.querySelectorAll('.cam-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === modes[nextIndex]));
     }
     if (keyMap[key]) { const btn = document.querySelector(`.key[data-mobile="${keyMap[key]}"]`); if (btn) btn.classList.add('active-key'); }
 });
@@ -440,36 +427,7 @@ window.addEventListener('keyup', (ev) => {
     if (keyMap[key]) { const btn = document.querySelector(`.key[data-mobile="${keyMap[key]}"]`); if (btn) btn.classList.remove('active-key'); }
 });
 
-document.querySelectorAll('.key').forEach(btn => {
-    const action = btn.dataset.mobile;
-    if(!action) return;
-    btn.addEventListener('pointerdown', (e) => {
-        e.preventDefault(); audio.init(); btn.classList.add('active-key');
-        if (action === 'forward') input.forward = true;
-        if (action === 'backward') input.backward = true;
-        if (action === 'left') input.left = true;
-        if (action === 'right') input.right = true;
-        if (action === 'toggleArm' && vehicle) vehicle.toggleArm();
-        if (action === 'toggleBucket' && vehicle) vehicle.autoAction();
-    });
-    const releaseBtn = (e) => {
-        if(e) e.preventDefault(); btn.classList.remove('active-key');
-        if (action === 'forward') input.forward = false;
-        if (action === 'backward') input.backward = false;
-        if (action === 'left') input.left = false;
-        if (action === 'right') input.right = false;
-    };
-    btn.addEventListener('pointerup', releaseBtn);
-    btn.addEventListener('pointerleave', releaseBtn);
-});
-
-document.querySelectorAll('.cam-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        cameraManager.setMode(e.target.dataset.mode);
-        document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-    });
-});
+// Touch driving and the camera button are owned by GameUI.js (they send normal keyboard events).
 
 window.restartJob = () => {
     hasScoopedDirt = false; jobCompleted = false; closeJobModal();
@@ -932,19 +890,8 @@ function openShop() {
     });
 }
 
-// Jobs button next to the Upgrades button (key J does the same)
-safe(() => {
-    const sb = document.getElementById('shop-btn');
-    if (sb && !document.getElementById('jobs-btn')) {
-        const b = document.createElement('button');
-        b.id = 'jobs-btn';
-        b.type = 'button';
-        b.className = sb.className;
-        b.textContent = 'Jobs';
-        b.addEventListener('click', () => { b.blur(); openPicker(); });
-        sb.insertAdjacentElement('afterend', b);
-    }
-});
+// Contracts open with key J or the HUD menu drawer.
+
 safe(() => { if (import.meta.env.DEV && /[?&]rich/.test(location.search)) saveData.coins = Math.max(saveData.coins, 3000); });
 setTimeout(() => safe(() => {
     ensureJobs();
