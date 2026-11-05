@@ -15,10 +15,9 @@ const MUTE_KEY = 'terraform_muted_v1';
 const BPM = 92;
 const STEP = 60 / BPM / 2; // one eighth note in seconds
 
+// B5: audio debug text is opt-in only (?debug). A dev server must be clean.
 let DEBUG = false;
-try {
-  DEBUG = !!(import.meta.env && import.meta.env.DEV) || /[?&]debug/.test(location.search);
-} catch (e) { /* ignore */ }
+try { DEBUG = /[?&]debug/.test(location.search); } catch (e) { /* ignore */ }
 
 // Debug only: count every AudioContext that gets created (should be 1).
 if (DEBUG && typeof window !== 'undefined' && !window.__acWrapped) {
@@ -844,11 +843,44 @@ export class AudioHub {
     s.stamp = performance.now();
   }
 
+  // TIER 3: three real volume sliders. Values are 0..1 and are saved.
+  setVolumes(master, music, effects) {
+    const c = (v, d) => Math.max(0, Math.min(1, typeof v === 'number' ? v : d));
+    this._vol = { master: c(master, 1), music: c(music, 1), effects: c(effects, 1) };
+    try { localStorage.setItem('terraform_volumes_v1', JSON.stringify(this._vol)); } catch (e) {}
+    this._applyVolumes();
+    return this._vol;
+  }
+  getVolumes() {
+    if (!this._vol) {
+      let v = null;
+      try { v = JSON.parse(localStorage.getItem('terraform_volumes_v1') || 'null'); } catch (e) {}
+      this._vol = { master: 1, music: 1, effects: 1 };
+      if (v && typeof v === 'object') {
+        for (const k of ['master', 'music', 'effects']) {
+          if (typeof v[k] === 'number') this._vol[k] = Math.max(0, Math.min(1, v[k]));
+        }
+      }
+    }
+    return { ...this._vol };
+  }
+  _applyVolumes() {
+    const v = this.getVolumes();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    try {
+      this.master.gain.setTargetAtTime(this.muted ? 0 : LEVELS.master * v.master, t, 0.05);
+      this.musicBus.gain.setTargetAtTime(LEVELS.music * v.music, t, 0.05);
+      this.sfxBus.gain.setTargetAtTime(LEVELS.sfx * v.effects, t, 0.05);
+      // B10: engine was too loud; keep it under the effects slider too.
+      this.engBus.gain.setTargetAtTime(LEVELS.engine * 0.72 * v.effects, t, 0.05);
+    } catch (e) { /* ignore */ }
+  }
   setMuted(v) {
     this.muted = !!v;
     try { localStorage.setItem(MUTE_KEY, this.muted ? '1' : '0'); } catch (e) { /* ignore */ }
     if (this.ctx && this.master) {
-      this.master.gain.setTargetAtTime(this.muted ? 0 : LEVELS.master, this.ctx.currentTime, 0.05);
+      this._applyVolumes();
     }
     return this.muted;
   }

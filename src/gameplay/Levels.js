@@ -227,7 +227,7 @@ export function chapterOf(id) { return CHAPTERS.find(c => id >= c.from && id <= 
 // ---------------------------------------------------------------------------
 const COL = {
   amber: 0xfbbf24, amberDark: 0x92400e, green: 0x34d399, blue: 0x2f6fdb,
-  steel: 0x8a93a1, dark: 0x0b111a, soil: 0x7a5233, cone: 0xff6a1a,
+  steel: 0x8a93a1, dark: 0x334155, soil: 0x7a5233, cone: 0xff6a1a,
   white: 0xf1f5f9, road: 0x3a3f47, pad: 0x223047, rust: 0xb45309
 };
 
@@ -328,7 +328,10 @@ export class LevelEngine {
     this.rushTarget = null;
     this.crossCar = null;
     this._buildGoals();
-    this._buildMarker();
+    // B2: every goal object exists from the FIRST frame. No lazy creation.
+    // B6: the old floating orange cone marker is gone; guidance uses the
+    // painted ground ring + chevrons in Guidance.js.
+    this.marker = null;
     this._setup(0);
     return this.goals.length;
   }
@@ -572,11 +575,18 @@ export class LevelEngine {
   }
 
   _rushExpire(g) {
+    // B1: an EXPIRED truck is a miss, not free progress. The job only
+    // completes when the player has actually served every truck.
     this.misses++;
     this.combo = 0; this.comboTime = 0;
     if (this.hooks.onToast) this.hooks.onToast('Truck ' + g.lane + ' left the queue!', 'warn');
-    this._advance();
-    if (this.hooks.onCount) this.hooks.onCount(0);
+    g.done = true;
+    g.mesh.userData.active = false;
+    g.mesh.userData.leave = 2.0;
+    if (!this._rushLeave.includes(g.mesh)) this._rushLeave.push(g.mesh);
+    this.index++;
+    if (this.index >= this.goals.length) this.finished = true;
+    this._setup(this.index);
   }
 
   _buildGate(g, num, total) {
@@ -712,37 +722,23 @@ export class LevelEngine {
     sign.castShadow = false;
   }
 
-  _buildMarker() {
-    const grp = new THREE.Group();
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.22, 8, 36),
-      this._mat(COL.amber, { emissive: COL.amber, emissiveIntensity: 1.1 }));
-    ring.rotation.x = -Math.PI / 2;
-    grp.add(ring);
-    const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 4),
-      this._mat(COL.amber, { emissive: COL.amber, emissiveIntensity: 1.0 }));
-    arrow.rotation.x = Math.PI;
-    arrow.position.y = 4.2;
-    grp.add(arrow);
-    grp.position.y = 0.4;
-    this.group.add(grp);
-    this.marker = grp;
-  }
-
   // ---- active goal --------------------------------------------------------
   _setup(i) {
     this.index = i;
     const g = this.goals[i];
     if (!g) { this.finished = true; return; }
-    const showTruck = (g.kind === 'haul');
+    // B2: the pile and the truck are visible for EVERY kind of goal from frame
+    // one. Hiding them was the reason objects "appeared after pressing F".
+    const showTruck = true;
     // RUSH levels use their own waiting trucks; the blue truck is hidden but moved
     // to the active lane so main.js's dump proximity check still works.
-    const showPile = (g.kind !== 'gate' && g.kind !== 'move');
+    const showPile = true;
     this.rushTarget = (g.kind === 'rush') ? { x: g.x, z: g.z } : null;
     const pile = (g.kind === 'trench' || g.kind === 'debris') ? { x: g.x, z: g.z } : this.site.pile;
-    // A fresh pile for each new goal: 45 clods would be empty after 3 scoops otherwise.
-    if (this.done > 0 && this.world && this.world.resetDirtPile) this.world.resetDirtPile();
+    // B3: restore the FULL pile after every goal, so load 3 always has dirt.
+    if (this.world && this.world.resetDirtPile) this.world.resetDirtPile();
     this._place('dirtPileGroup', pile.x, pile.z, showPile);
-    if (this.world && this.world.jobSiteBase) this.world.jobSiteBase.visible = (g.kind === 'haul' || g.kind === 'fill');
+    if (this.world && this.world.jobSiteBase) this.world.jobSiteBase.visible = true;
     const tz = this.rushTarget || this.site.truck;
     this._place('truckGroup', tz.x, tz.z, showTruck);
     if (this.hooks.truckSolid) this.hooks.truckSolid(showTruck, tz.x, tz.z);
@@ -793,7 +789,6 @@ export class LevelEngine {
       this.siteNow.pile.x = pile.x; this.siteNow.pile.z = pile.z;
       this.siteNow.truck.x = this.site.truck.x; this.siteNow.truck.z = this.site.truck.z;
     }
-    if (this.marker) this.marker.position.set(g.x, 0.4, g.z);
   }
 
   _advance() {
@@ -838,9 +833,9 @@ export class LevelEngine {
     const j = this.job;
     switch (g.kind) {
       case 'gate': return g.beam ? 'Lower bucket - drive under beam' : 'Drive through the amber gate';
-      case 'rush': return hasDirt ? ('Dump in waiting truck ' + g.lane) : ('Scoop dirt for truck ' + g.lane);
-      case 'trench': return 'Dig the marked trench';
-      case 'debris': return 'Clear the marked debris pile';
+      case 'rush': return hasDirt ? ('Dump in truck ' + g.lane) : ('Scoop for truck ' + g.lane);
+      case 'trench': return hasDirt ? 'Dump the spoil in the ring' : 'Dig the marked trench';
+      case 'debris': return hasDirt ? 'Dump debris in the ring' : 'Scoop the marked debris';
       case 'fill': return hasDirt ? j.dumpText : j.scoopText;
       case 'move': return hasDirt ? j.dumpText : j.scoopText;
       default: return hasDirt ? j.dumpText : j.scoopText;
@@ -859,7 +854,7 @@ export class LevelEngine {
     if (g.kind === 'rush') return 'Load the glowing truck before its timer ring runs out';
     return this.job.hints.scoop;
   }
-  wantsDump() { const k = this.activeKind(); return k === 'haul' || k === 'fill' || k === 'move' || k === 'rush'; }
+  wantsDump() { const k = this.activeKind(); return k === 'haul' || k === 'fill' || k === 'move' || k === 'rush' || k === 'trench' || k === 'debris'; }
   isFinished() { return this.finished; }
 
   // ---- called by main.js --------------------------------------------------
@@ -869,10 +864,12 @@ export class LevelEngine {
     const g = this.active();
     if (!g) return { ok: true, count: false, msg: '' };
     if (g.kind === 'trench' || g.kind === 'debris') {
+      // B1: a scoop NEVER completes a goal by itself. The player must still
+      // drive to the marked spot and dump (the dump grants the progress).
       const near = Math.hypot(bucketPos.x - g.x, bucketPos.z - g.z) < 13;
       if (!near) return { ok: false, count: false, msg: 'Wrong spot - drive to the glowing marker' };
-      this._advance();
-      return { ok: true, count: true, msg: g.kind === 'trench' ? 'Trench dug!' : 'Pile cleared!' };
+      g.dugAt = { x: g.x, z: g.z };
+      return { ok: true, count: false, msg: g.kind === 'trench' ? 'Trench spoil loaded - go dump it' : 'Debris loaded - go dump it' };
     }
     if (g.kind === 'move') {
       this._attachCarry(vehicle);
@@ -889,9 +886,18 @@ export class LevelEngine {
     const g = this.active();
     if (!g) return { ok: true, count: false, msg: '' };
     if (g.kind === 'move') this._detachCarry();
-    if (!this.wantsDump()) return { ok: true, count: false, msg: '' };
+    // B1: trench / debris / gate goals are only granted when the player DUMPS.
+    // Gate goals are still granted by driving through them (see update()).
     const target = this.rushTarget || this.site.truck;
     const near = Math.hypot(bucketPos.x - target.x, bucketPos.z - target.z) < 12;
+    if (g.kind === 'trench' || g.kind === 'debris') {
+      if (!g.dugAt) return { ok: false, count: false, msg: 'Dig the marked spot first' };
+      if (!near) { this.onMiss(); return { ok: false, count: false, msg: 'Dump inside the marked ring' }; }
+      g.dugAt = null;
+      this._advance();
+      return { ok: true, count: true, msg: g.kind === 'trench' ? 'Trench dug!' : 'Pile cleared!' };
+    }
+    if (!this.wantsDump()) return { ok: true, count: false, msg: '' };
     if (!near) { this.onMiss(); return { ok: false, count: false, msg: 'Missed the target - scoop again' }; }
     if (g.kind === 'fill' && this.hole) {
       const mound = this.hole.userData.mound;
@@ -936,10 +942,6 @@ export class LevelEngine {
   update(dt, vehicle) {
     if (!this.job || !this.group) return;
     this._t += dt;
-    if (this.marker) {
-      this.marker.position.y = 0.4 + Math.sin(this._t * 2.2) * 0.35;
-      this.marker.rotation.y += dt * 0.9;
-    }
     if (this.comboTime > 0) {
       this.comboTime -= dt;
       if (this.comboTime <= 0) this.combo = 0;

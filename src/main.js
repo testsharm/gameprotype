@@ -1236,10 +1236,11 @@ window.__testTimestep = function () {
 };
 
 // Debug overlay: press the Backquote key (`). Only in dev mode or with ?debug in the URL
-const DEBUG_ENABLED = !!import.meta.env.DEV || new URLSearchParams(location.search).has('debug');
+// B5: the debug box must NEVER appear in a normal dev-server run.
+// It is created only by the backquote key, or by ?debug at boot.
+const DEBUG_ENABLED = new URLSearchParams(location.search).has('debug');
 let dbgEl = null, dbgSteps = 0, dbgFrames = 0, dbgTime = 0;
 function toggleDebugOverlay() {
-    if (!DEBUG_ENABLED) return;
     if (!dbgEl) {
         dbgEl = document.createElement('div');
         dbgEl.style.cssText = 'position:fixed;left:8px;top:64px;z-index:2000;padding:4px 8px;background:rgba(0,0,0,0.65);color:#7cfc9a;font:12px/1.4 monospace;pointer-events:none;border-radius:4px;';
@@ -1249,6 +1250,7 @@ function toggleDebugOverlay() {
         dbgEl.style.display = dbgEl.style.display === 'none' ? 'block' : 'none';
     }
 }
+if (DEBUG_ENABLED) setTimeout(() => { if (!dbgEl) toggleDebugOverlay(); }, 400);
 function debugTick(frameDt, stepsThisFrame) {
     dbgSteps += stepsThisFrame; dbgFrames++; dbgTime += frameDt;
     if (dbgTime >= 1) {

@@ -1708,11 +1708,15 @@ export class World {
   // ---------------------------------------------------------- game functions
 
   shrinkDirtPile() {
-    for (let i = 0; i < 15; i++) {
-      if (this.allDirtClods.length > 0) {
-        this.dirtPileGroup.remove(this.allDirtClods.pop());
-      }
+    // B3: shrink VISUALLY only. Never drop clods below a third of the pile,
+    // so the third load always has something to scoop. resetDirtPile() is
+    // called by LevelEngine after every completed goal.
+    const floor = Math.ceil(this._masterClods.length / 3);
+    let n = 0;
+    for (let i = 0; i < 8 && this.allDirtClods.length > floor; i++, n++) {
+      this.dirtPileGroup.remove(this.allDirtClods.pop());
     }
+    this.dirtPileGroup.visible = true;
   }
 
   resetDirtPile() {
