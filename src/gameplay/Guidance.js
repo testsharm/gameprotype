@@ -34,6 +34,7 @@ export default class Guidance {
         this.renderer = renderer;
 
         this._target = null;
+        this._visible = true;
         this._ringGeo = new THREE.RingGeometry(0.55, 0.85, 40);
         this._ringMat = new THREE.MeshBasicMaterial({
             color: 0xffb84a, transparent: true, opacity: 0.75,
@@ -64,12 +65,21 @@ export default class Guidance {
             this._target = target.clone();
             this._ring.position.copy(this._target);
             this._ring.position.y += 0.06;
-            this._ring.visible = true;
+            this._ring.visible = this._visible;
         } else {
             this._target = null;
             this._ring.visible = false;
         }
     }
+
+    // Settings -> Guide arrows. Hides the ring and the painted chevrons.
+    setVisible(on) {
+        this._visible = on !== false;
+        if (this._ring) this._ring.visible = this._visible && !!this._target;
+        if (this._chevrons) this._chevrons.group.visible = this._visible;
+        return this._visible;
+    }
+    isVisible() { return this._visible; }
 
     // Painted ground chevrons from the start pose to the first pile (Level 1 only).
     setChevrons(from, to) {

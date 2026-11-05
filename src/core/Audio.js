@@ -869,12 +869,18 @@ export class AudioHub {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     try {
-      this.master.gain.setTargetAtTime(this.muted ? 0 : LEVELS.master * v.master, t, 0.05);
+      this.master.gain.setTargetAtTime((this.muted || this._adMuted) ? 0 : LEVELS.master * v.master, t, 0.05);
       this.musicBus.gain.setTargetAtTime(LEVELS.music * v.music, t, 0.05);
       this.sfxBus.gain.setTargetAtTime(LEVELS.sfx * v.effects, t, 0.05);
       // B10: engine was too loud; keep it under the effects slider too.
       this.engBus.gain.setTargetAtTime(LEVELS.engine * 0.72 * v.effects, t, 0.05);
     } catch (e) { /* ignore */ }
+  }
+  // TIER 9: mute for an ad without touching the player's saved sound setting.
+  setAdMuted(on) {
+    this._adMuted = !!on;
+    this._applyVolumes();
+    return this._adMuted;
   }
   setMuted(v) {
     this.muted = !!v;

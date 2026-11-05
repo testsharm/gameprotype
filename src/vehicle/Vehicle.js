@@ -9,6 +9,7 @@ export class Vehicle {
         this.armIsDown = false; this.bucketIsCurled = false;
         this.targetBoomAngle = -0.2; this.targetBucketAngle = 0.2;
         this.engineMultiplier = 1.0; this.hydraulicMultiplier = 1.0;
+        this.tyreGrip = 1.0; this.paintMats = null;
 
         this.particles = []; this.particlePool = []; this.particleGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
         // soft round smoke / dust puffs (sprites with a painted radial gradient)
@@ -44,9 +45,20 @@ export class Vehicle {
 
     setUpgrades(saveData) {
         if(saveData) {
-            this.engineMultiplier = 1 + (saveData.engineLevel - 1) * 0.5;
-            this.hydraulicMultiplier = 1 + (saveData.hydraulicLevel - 1) * 0.6;
+            this.engineMultiplier = 1 + (Math.max(1, saveData.engineLevel || 1) - 1) * 0.5;
+            this.hydraulicMultiplier = 1 + (Math.max(1, saveData.hydraulicLevel || 1) - 1) * 0.6;
+            this.tyreGrip = 1 + (Math.max(1, saveData.tyreLevel || 1) - 1) * 0.12;
+            if (this.beaconMesh) this.beaconMesh.visible = (saveData.beaconLevel || 1) > 1;
         }
+    }
+
+    // TIER 6: six paint colours really change the machine (code-made material).
+    setPaint(hex) {
+        if (!this.paintMats) return;
+        const c = new THREE.Color(hex);
+        this.paintMats[0].color.copy(c);
+        this.paintMats[1].color.copy(c).multiplyScalar(0.78);
+        this.paintMats[0].needsUpdate = this.paintMats[1].needsUpdate = true;
     }
 
     createChassis() {
@@ -163,6 +175,7 @@ export class Vehicle {
         // ---------- materials (plain standard materials: cheap and stable) ----------
         const paint = new THREE.MeshStandardMaterial({ color: 0xffb400, roughness: 0.42, metalness: 0.1 });
         const paintDark = new THREE.MeshStandardMaterial({ color: 0xc98a00, roughness: 0.5, metalness: 0.1 });
+        this.paintMats = [paint, paintDark];
         const blackPlastic = new THREE.MeshStandardMaterial({ color: 0x23262b, roughness: 0.7, metalness: 0.2 });
         const darkSteel = new THREE.MeshStandardMaterial({ color: 0x3a3e45, roughness: 0.55, metalness: 0.35 });
         const steel = new THREE.MeshStandardMaterial({ color: 0xb4b9bf, roughness: 0.35, metalness: 0.3 });
@@ -530,7 +543,8 @@ export class Vehicle {
         // === Speed-sensitive steering ===
         const speedAbs = Math.abs(currentFwdSpeed);
         const speedFactor = Math.max(0.25, 1 - speedAbs / 12);
-        const maxSteerAngle = 0.55 * speedFactor;
+        // TIER 6: Tyres upgrade gives a little more grip at speed.
+        const maxSteerAngle = 0.55 * speedFactor * Math.min(1.35, this.tyreGrip || 1);
         let steerInput = 0;
         if (input.left) steerInput = 1;
         else if (input.right) steerInput = -1;

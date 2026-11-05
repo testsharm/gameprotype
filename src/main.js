@@ -13,10 +13,11 @@ import DigAnimator from './vehicle/DigAnimator.js';
 import GameUI from './ui/GameUI.js';
 // (Music removed in M2)
 import TrafficPhysics from './core/TrafficPhysics.js';
-import { JobSystem, JobPanels, buildSiteDressing, upgradeCost, rankInfo } from './gameplay/Jobs.js';
-import { LevelEngine, levelStartPose } from './gameplay/Levels.js';
+import { JobSystem, buildSiteDressing, rankInfo, JOBS as LEVEL_LIST } from './gameplay/Jobs.js';
+import { LevelEngine, levelStartPose, CHAPTERS } from './gameplay/Levels.js';
 import { CAMERA_LABELS } from './core/CameraManager.js';
 import { Portal } from './core/Portal.js';
+import Ads from './core/Ads.js';
 
 let fx = null, guide = null, sfx = null, tutStep = 0, lastTarget = 'none';
 function safe(f) { try { return f(); } catch (e) { console.warn('[fx]', e); } }
@@ -35,6 +36,27 @@ let audioStarted = false;
 let rawSite = null;                // unmodified site used for per-level start poses
 let currentStartPose = null;
 const portal = new Portal();
+const UI_KEY = 'terraform_ui_v1';
+// TIER 6: six real upgrades, four paid steps (100 / 250 / 500 / 900).
+const GARAGE = [
+  { key: 'engine', name: 'ENGINE', icon: 'gear', save: 'engineLevel', stat: 'TOP SPEED', lines: ['32 km/h', '37 km/h', '42 km/h', '47 km/h', '52 km/h'] },
+  { key: 'hydraulic', name: 'HYDRAULICS', icon: 'dig', save: 'hydraulicLevel', stat: 'ARM SPEED', lines: ['100%', '160%', '220%', '280%', '340%'] },
+  { key: 'bucket', name: 'BIG BUCKET', icon: 'dig', save: 'bucketLevel', stat: 'TIP / LOAD', lines: ['10 coins', '16 coins', '24 coins', '34 coins', '44 coins'] },
+  { key: 'tyres', name: 'TYRES', icon: 'wheel', save: 'tyreLevel', stat: 'GRIP', lines: ['100%', '115%', '130%', '145%', '160%'] },
+  { key: 'light', name: 'WORK LIGHT', icon: 'spark', save: 'lightLevel', stat: 'NIGHT LIGHT', lines: ['100%', '125%', '150%', '175%', '200%'] },
+  { key: 'beacon', name: 'BEACON', icon: 'star', save: 'beaconLevel', stat: 'COIN BONUS', lines: ['+0%', '+3%', '+6%', '+10%', '+15%'] }
+];
+const GARAGE_PRICES = [100, 250, 500, 900];
+const PAINTS = [0xffb400, 0x2f6fdb, 0x34d399, 0xef4444, 0xe5e7eb, 0x7c3aed];
+const GARAGE_MAX = GARAGE_PRICES.length + 1;
+let uiSettings = { big: false, lefty: false, guide: true };
+try { const raw = localStorage.getItem(UI_KEY); if (raw) Object.assign(uiSettings, JSON.parse(raw)); } catch (e) {}
+function writeUiSettings() { try { localStorage.setItem(UI_KEY, JSON.stringify(uiSettings)); } catch (e) {} }
+const ads = new Ads({
+  onPause: (on) => { if (on) { pauseForMenu(); } else { resumeGame(); } },
+  onMute: (on) => { safe(() => hub.setAdMuted(on)); }
+});
+let lastResult = null, lastFail = null, freePlay = false;
 function readLastJob() {
     try { const n = parseInt(localStorage.getItem(LAST_JOB_KEY), 10); return (n >= 1 && n <= 15) ? n : 1; }
     catch (e) { return 1; }
@@ -86,7 +108,8 @@ function initUi() {
             hold: (code, on) => actionHold(code, on),
             tap: (code) => actionTap(code),
             unlock: () => unlockAudio(),
-            state: () => uiState()
+            state: () => uiState(),
+            data: () => uiData()
         });
         music = hub;
         ensureJobs();
@@ -112,7 +135,7 @@ function updateUi(dt) {
             }
         }
         // THE JOB CLOCK NEVER RUNS behind the start screen or any menu.
-        if (jm && !jobCompleted && gameState === 'playing' && !uiPaused && !modalOpen && !paused) jm.update(dt);
+        if (jm && !freePlay && !jobCompleted && gameState === 'playing' && !uiPaused && !modalOpen && !paused) jm.update(dt);
         if (music) music.setIntensity(Math.min(1, vehicle.currentSpeed / 40));
     });
 }
@@ -123,7 +146,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
 const SAVE_KEY = 'terraform_city_save_v6';
-let saveData = { coins: 0, engineLevel: 1, hydraulicLevel: 1 };
+let saveData = { coins: 0, engineLevel: 1, hydraulicLevel: 1, bucketLevel: 1, tyreLevel: 1, lightLevel: 1, beaconLevel: 1, paint: 0 };
 
 const canvas = document.getElementById('game-container');
 const scene = new THREE.Scene();
@@ -331,9 +354,68 @@ function uiState() {
         quality: currentQuality
     };
 }
+// All data Menus needs. Safe while GameUI is still being constructed (ui === null).
+function uiData() {
+  ensureJobs();
+  const ctx = jobCtx();
+  const jobs = (LEVEL_LIST || []).map(j => ({
+    id: j.id, name: j.name, chapter: j.chapter, type: j.type, rule: j.rule || '',
+    stars: jm.record(j.id).stars || 0, locked: !!jm.lockReason(j.id, ctx),
+    reason: jm.lockReason(j.id, ctx) || ''
+  }));
+  return {
+    coins: saveData.coins,
+    volumes: hub.getVolumes ? hub.getVolumes() : { master: 1, music: 1, effects: 1 },
+    muted: !!hub.isMuted(), quality: currentQuality,
+    big: !!uiSettings.big, lefty: !!uiSettings.lefty, guide: uiSettings.guide !== false,
+    jobs, chapters: (CHAPTERS || []).map(c => ({ id: c.id, name: c.name.toUpperCase() })),
+    currentJob,
+    upgrades: GARAGE.map(g => {
+      const lv = Math.max(1, Math.min(GARAGE_MAX, saveData[g.save] || 1));
+      return { key: g.key, name: g.name, icon: g.icon, level: lv, maxPips: GARAGE_MAX,
+        line: g.stat + ' · ' + g.lines[lv - 1], price: lv >= GARAGE_MAX ? null : GARAGE_PRICES[lv - 1] };
+    }),
+    paints: PAINTS.map(c => '#' + c.toString(16).padStart(6, '0')), paint: saveData.paint || 0,
+    ads: ads.rewardedAvailable(),
+    map: mapData()
+  };
+}
+function mapData() {
+  const blocks = (worldBuilder && worldBuilder.blocks ? worldBuilder.blocks : [])
+    .filter((_, i) => i % 3 === 0).slice(0, 420)
+    .map(b => ({ x: b.x, z: b.z, w: b.w, d: b.d, park: !!b.park }));
+  const goals = [];
+  if (siteNow) {
+    goals.push({ x: siteNow.pile.x, z: siteNow.pile.z, color: '#fbbf24' });
+    goals.push({ x: siteNow.truck.x, z: siteNow.truck.z, color: '#34d399' });
+  }
+  return {
+    blocks, goals,
+    player: vehicle && vehicle.mesh ? { x: vehicle.mesh.position.x, z: vehicle.mesh.position.z, yaw: 0 } : { x: 0, z: 0, yaw: 0 },
+    landmark: siteNow ? { x: siteNow.truck.x, z: siteNow.truck.z } : null
+  };
+}
+// TIER 1: scoop and dump are ALWAYS a 3-second hold, on keys and on screen.
+let actHolding = false, actT = 0, actFired = false;
+function actionProgress(p) { safe(() => { if (ui && ui.setActionProgress) ui.setActionProgress(p); }); }
+function updateActionHold(dt) {
+    if (actHolding && canPlay()) {
+        actT += dt;
+        actionProgress(Math.min(1, actT / 3));
+        if (actT >= 3) {
+            actHolding = false; actFired = true; actT = 0;
+            actionProgress(0);
+            if (vehicle) vehicle.autoAction();
+        }
+    } else if (!actHolding && actT > 0) { actT = 0; actionProgress(0); }
+}
 function actionHold(code, on) {
     const live = canPlay();
-    if (code === 'KeyW') input.forward = on && live;
+    if (code === 'KeyF') {
+        if (on) { actHolding = !!live; actT = 0; actFired = false; actionProgress(0); }
+        else { actHolding = false; actT = 0; actFired = false; actionProgress(0); }
+    }
+    else if (code === 'KeyW') input.forward = on && live;
     else if (code === 'KeyS') input.backward = on && live;
     else if (code === 'KeyA') input.left = on && live;
     else if (code === 'KeyD') input.right = on && live;
@@ -370,6 +452,7 @@ function resumeGame() {
 function pauseWindow() { pauseForMenu(); }
 function startGame() {
     unlockAudio();
+    freePlay = false;
     gameState = 'playing';
     uiPaused = false;
     cameraManager.setShowcase(false);
@@ -397,17 +480,33 @@ function handleUiAction(name, payload) {
         case 'garage': openShop(); break;
         case 'settings': pauseWindow(); safe(() => { if (ui) ui.showModal('settings'); }); break;
         case 'controls': pauseWindow(); safe(() => { if (ui) ui.showModal('controls'); }); break;
-        case 'resume': resumeGame(); break;
+        case 'resume': safe(() => { if (ui) ui.hideModal(); }); resumeGame(); break;
         case 'restart':
             pauseWindow();
             safe(() => { if (ui) ui.confirm({ title: 'Restart this job?', text: 'Your progress in this job will be lost.', yes: 'Restart job', onYes: () => { window.restartJob(); resumeGame(); } }); });
             break;
-        case 'mainmenu':
+        case 'mainmenu': case 'home':
             pauseWindow();
-            safe(() => { if (ui) ui.confirm({ title: 'Return to main menu?', text: 'This job will stop. Your saved progress stays.', yes: 'Main menu', onYes: () => returnToMenu() }); });
+            safe(() => { if (ui) ui.confirm({ title: 'Main menu?', text: 'This job will stop. Progress stays.', yes: 'Main menu', onYes: () => returnToMenu() }); });
             break;
         case 'camera': actionTap('KeyC'); break;
         case 'sound': toggleMute(); break;
+        case 'pause': togglePause(); break;
+        case 'map': pauseWindow(); safe(() => { if (ui) ui.showMap(); }); break;
+        case 'levels': case 'picker': openPicker(); break;
+        case 'shop': openShop(); break;
+        case 'help': pauseWindow(); safe(() => { if (ui) ui.showModal('help'); }); break;
+        case 'freeplay': startFreePlay(); break;
+        case 'start': if (typeof payload === 'number' && payload >= 1) goJob(payload); break;
+        case 'next': nextFromResult(); break;
+        case 'retry': window.restartJob(); resumeGame(); break;
+        case 'reward-coins': rewardCoins(); break;
+        case 'reward-time': rewardTime(); break;
+        case 'setting': setUiSetting(payload); break;
+        case 'buy': buyUpgrade(payload); safe(() => { if (ui) ui.refresh(); }); break;
+        case 'paint': setPaint(+payload); safe(() => { if (ui) ui.refresh(); }); break;
+        case 'window-open': pauseForMenu(); break;
+        case 'window-close': windowClosed(payload); break;
         case 'zoomIn': cameraManager.zoomIn(); safe(() => { if (ui) ui.refresh(); }); break;
         case 'zoomOut': cameraManager.zoomOut(); safe(() => { if (ui) ui.refresh(); }); break;
         case 'quality': window.setQuality(payload); break;
@@ -416,6 +515,67 @@ function handleUiAction(name, payload) {
         case 'modal-closed-play': resumeGame(); break;
         case 'modal-closed-menu': clearInput(); break;
     }
+}
+// TIER 3/4: one settings funnel. Every control really changes the game.
+function setUiSetting(p) {
+  if (!p || !p.key) return;
+  const k = p.key, v = p.value;
+  if (k === 'master' || k === 'music' || k === 'effects') {
+    const vols = hub.getVolumes();
+    vols[k] = Math.max(0, Math.min(1, +v || 0));
+    hub.setVolumes(vols.master, vols.music, vols.effects);
+  } else if (k === 'mute') { hub.setMuted(+v === 1); safe(() => { if (ui) ui.toast('Sound ' + (+v === 1 ? 'off' : 'on'), 'info'); }); }
+  else if (k === 'quality') { window.setQuality(String(v)); }
+  else if (k === 'big') { uiSettings.big = +v === 1; safe(() => { if (ui) ui.setBig(uiSettings.big); }); }
+  else if (k === 'lefty') { uiSettings.lefty = +v === 1; safe(() => { if (ui) ui.setLefty(uiSettings.lefty); }); }
+  else if (k === 'guide') { uiSettings.guide = +v === 1; safe(() => { if (guide) guide.setVisible(uiSettings.guide); }); }
+  writeUiSettings();
+  safe(() => { if (ui) ui.refresh(); });
+}
+function windowClosed(kind) {
+  // One path for every window: resumeGame() clears modalOpen/uiPaused/paused
+  // and restores gameplayStart. void kind keeps this safe for all windows.
+  void kind;
+  resumeGame();
+}
+function nextFromResult() {
+  const id = lastResult && lastResult.nextId ? lastResult.nextId : (ensureJobs().nextId(jobCtx()) || currentJob);
+  goJob(id);
+  safe(() => { if (ui) ui.hideModal(); });
+  // TIER 9: midgame ad ONLY on NEXT, never on start, never during driving.
+  if (ads.canMidgame()) ads.request('midgame');
+}
+function rewardCoins() {
+  if (!lastResult) return;
+  const extra = lastResult.coins || 0;
+  ads.request('rewarded', () => {
+    saveData.coins += extra; writeSave(); syncCoins();
+    safe(() => { if (ui) ui.toast('Coins doubled! +' + extra, 'success'); });
+  });
+}
+function rewardTime() {
+  ads.request('rewarded', () => {
+    ensureJobs().addTime(60);
+    safe(() => { if (ui) { ui.hideModal(); ui.toast('+60 seconds', 'success'); } });
+    resumeGame();
+  });
+}
+function setPaint(i) {
+  if (!(i >= 0 && i < PAINTS.length)) return;
+  saveData.paint = i; writeSave();
+  safe(() => { if (vehicle && vehicle.setPaint) vehicle.setPaint(PAINTS[i]); });
+}
+function startFreePlay() {
+  // TIER 7 (compact): no timer, no fail, same controls, free roam in the yard.
+  freePlay = true;
+  gameState = 'playing';
+  unlockAudio();
+  cameraManager.setShowcase(false);
+  cameraManager.setMode('chase');
+  safe(() => { if (ui) { ui.hideModal(); ui.setScreen('play'); ui.reset(); ui.setTimer(null); ui.setJob('Free Play', 'Drive, dig, explore', 'No timer · no fail'); ui.setHint('Free Play: drive anywhere. P opens the menu.'); } });
+  if (jm) { jm.state.running = false; }
+  clearInput();
+  resumeGame();
 }
 function menuPose() {
     if (!vehicle || !physReady) return;
@@ -525,7 +685,12 @@ audio.playDumpThud = () => {};
 audio.playSuccess = () => hub.complete();
 let qaManager = null;
 
-function loadSave() { try { const raw = localStorage.getItem(SAVE_KEY); if (raw) saveData = JSON.parse(raw); } catch(e) {} }
+function loadSave() {
+  try { const raw = localStorage.getItem(SAVE_KEY); if (raw) Object.assign(saveData, JSON.parse(raw)); } catch(e) {}
+  // TIER 6 migration: old saves only had 3 upgrades. Never break progress.
+  for (const g of GARAGE) if (!(typeof saveData[g.save] === 'number')) saveData[g.save] = 1;
+  if (!(typeof saveData.paint === 'number')) saveData.paint = 0;
+}
 function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveData)); } catch(e) {} }
 loadSave();
 document.getElementById('coin-count').textContent = saveData.coins;
@@ -583,6 +748,11 @@ const keyMap = { 'w': 'btn-w', 'arrowup': 'btn-w', 'a': 'btn-a', 'arrowleft': 'b
 window.addEventListener('keydown', (ev) => {
     if (ev.code === 'Backquote') { toggleDebugOverlay(); return; }
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    // TIER 4: real key presses light the matching on-screen key, even on the menu.
+    const lit = ev.code;
+    if (ui && ui.setKey) ui.setKey(lit, true);
+    if (lit === 'Equal' || lit === 'NumpadAdd') { cameraManager.zoomIn(); safe(() => { if (ui) ui.refresh(); }); return; }
+    if (lit === 'Minus' || lit === 'NumpadSubtract') { cameraManager.zoomOut(); safe(() => { if (ui) ui.refresh(); }); return; }
     if (gameState !== 'playing') return;          // no driving keys on the start screen
     if (canPlay() && (ev.code === 'Space' || ev.code.startsWith('Arrow'))) ev.preventDefault();
     const e = normKey(ev);
@@ -600,11 +770,12 @@ window.addEventListener('keydown', (ev) => {
     if (key === 'u') actionTap('KeyU');
     if (key === 'p') actionTap('KeyP');
     if (key === 'e') actionTap('KeyE');
-    if (key === 'f') actionTap('KeyF');
+    if (key === 'f') actionHold('KeyF', true);
     if (key === 'c') actionTap('KeyC');
 });
 
 window.addEventListener('keyup', (ev) => {
+    if (ui && ui.setKey) ui.setKey(ev.code, false);
     const e = normKey(ev);
     const key = e.key.toLowerCase();
     if (key === 'w' || key === 'arrowup') actionHold('KeyW', false);
@@ -612,6 +783,7 @@ window.addEventListener('keyup', (ev) => {
     if (key === 'a' || key === 'arrowleft') actionHold('KeyA', false);
     if (key === 'd' || key === 'arrowright') actionHold('KeyD', false);
     if (e.key === ' ') actionHold('Space', false);
+    if (key === 'f') actionHold('KeyF', false);
 });
 
 // Pointer buttons call the same API directly (see GameUI.js). No fake key events.
@@ -651,8 +823,11 @@ async function initPhysics() {
         world = new RAPIER.World({ x: 0, y: -9.81, z: 0 }); world.timestep = 1/60;
         worldBuilder.createPhysicsColliders(world, RAPIER);
         vehicle = new Vehicle(scene, world, RAPIER); vehicle.setUpgrades(saveData);
+        safe(() => { if (vehicle.setPaint) vehicle.setPaint(PAINTS[saveData.paint || 0]); });
         physReady = true;
         initUi();
+        safe(() => { if (ui) { ui.setBig(uiSettings.big); ui.setLefty(uiSettings.lefty); ui.setStartInfo(uiState()); } });
+        hub.setVolumes(hub.getVolumes().master, hub.getVolumes().music, hub.getVolumes().effects);
         prepareMenu();
         
         qaManager = new QAManager(scene, camera, renderer, vehicle, worldBuilder);
@@ -793,7 +968,15 @@ function keepCameraClear(dt) {
 // ======================================================================
 // M7a part 2: real jobs, sites per job, weather, shop, result windows
 // ======================================================================
-let panels = null;
+// TIER 3: all windows now belong to GameUI/Menus. JobPanels is no longer used.
+const panels = {
+  hide: () => safe(() => { if (ui) ui.hideModal(); }),
+  briefing: () => {},
+  showResult: (r) => safe(() => { lastResult = r; if (ui) ui.showResult({ stars: r.stars, coins: r.coins + (r.bonus ? r.bonus.coins : 0), bonusGot: !!(r.bonus && r.bonus.got), ads: ads.rewardedAvailable() }); }),
+  showFail: (job, loads) => safe(() => { lastFail = { loads, total: job ? job.loads : 3 }; if (ui) ui.showFail({ loads, total: job ? job.loads : 3, ads: ads.rewardedAvailable() }); }),
+  showPicker: () => safe(() => { if (ui) ui.showPicker(); }),
+  showShop: () => safe(() => { if (ui) ui.showGarage(); })
+};
 let modalOpen = false;
 const _truckOff = new THREE.Vector3(0, 2, -1);
 const _tmpC = new THREE.Color();
@@ -805,7 +988,6 @@ const siteGroups = new Map();
 function ensureJobs() {
     if (!jm) {
         jm = new JobSystem();
-        panels = new JobPanels();
         jm.layout(worldBuilder.buildingData, worldBuilder.propColliders);
         level = new LevelEngine(scene, worldBuilder, siteNow, {
             onCount: (tip) => engineProgress(tip),
@@ -917,7 +1099,7 @@ function setEnv(e, instant) {
     envGoal = {
         sun: 2.2 * e.sun, hemi: 0.8 * e.hemi, fog: e.fog, r: c.r, g: c.g, b: c.b,
         expo: ENV_EXPO[e.id] || 1, tint: ENV_TINT[e.id] || 0, bright: 0.5 + 0.5 * e.sun,
-        light: e.lights ? 230 : (e.rain ? 70 : 0), rain: !!e.rain
+        light: (e.lights ? 230 : (e.rain ? 70 : 0)) * (0.8 + 0.2 * (saveData.lightLevel || 1)), rain: !!e.rain
     };
     if (instant) Object.assign(envCur, envGoal);
 }
@@ -1007,6 +1189,7 @@ function goJob(id) {
     const why = jm.lockReason(id, jobCtx());
     if (why) { safe(() => { if (ui) ui.showLocked(why); }); return; }
     currentJob = id;
+    freePlay = false;
     writeLastJob(id);
     gameState = 'playing';
     cameraManager.setShowcase(false);
@@ -1077,64 +1260,52 @@ function finishJob() {
         r.bonus = b;
         r.coins += b.coins;
     }
+    r.coins += Math.round(r.coins * 0.03 * Math.max(0, (saveData.beaconLevel || 1) - 1));
     saveData.coins += r.coins;
     writeSave();
     setTimeout(() => safe(() => {
         if (!jobCompleted) return;
         openModalState();
         syncCoins();
-        panels.showResult(r, {
-            onNext: (id) => goJob(id),
-            onReplay: () => window.restartJob(),
-            onJobs: () => openPicker()
-        });
+        panels.showResult(r);
     }), 1700);
 }
 function onJobFail() {
     safe(() => {
         openModalState();
-        panels.showFail(jm.current, jm.state.loads, {
-            onRetry: () => window.restartJob(),
-            onJobs: () => openPicker()
-        });
+        panels.showFail(jm.current, jm.state.loads);
     });
 }
 function openPicker() {
     safe(() => {
         ensureJobs();
         openModalState();
-        panels.showPicker(jm, jobCtx(), {
-            onPick: (id) => goJob(id),
-            onClose: () => closeJobModal(),
-            onCoins: (amt) => {
-                saveData.coins += amt; writeSave(); syncCoins();
-                if (ui) { ui.toast('Daily bonus +' + amt + ' coins', 'success'); ui.setMenuDot(false); }
-                safe(() => hub.coin());
-            }
-        });
+        panels.showPicker();
+        safe(() => { if (ui) ui.refresh(); });
     });
 }
 function buyUpgrade(kind) {
-    const key = kind === 'engine' ? 'engineLevel' : kind === 'hydraulic' ? 'hydraulicLevel' : 'bucketLevel';
-    const lv = saveData[key] || 1;
-    const cost = upgradeCost(kind, lv, 0);
-    if (cost === null || saveData.coins < cost) return false;
+    const g = GARAGE.find(x => x.key === kind);
+    if (!g) return false;
+    const lv = Math.max(1, Math.min(GARAGE_MAX, saveData[g.save] || 1));
+    if (lv >= GARAGE_MAX) return false;
+    const cost = GARAGE_PRICES[lv - 1];
+    if (saveData.coins < cost) return false;
     saveData.coins -= cost;
-    saveData[key] = lv + 1;
+    saveData[g.save] = lv + 1;
     writeSave();
-    if (vehicle) vehicle.setUpgrades(saveData);
+    safe(() => { if (vehicle) vehicle.setUpgrades(saveData); });
     syncCoins();
     safe(() => hub.coin());
+    safe(() => { if (ui) ui.toast(g.name + ' upgraded', 'success'); });
     return true;
 }
 function openShop() {
     safe(() => {
         ensureJobs();
         openModalState();
-        panels.showShop(
-            () => ({ coins: saveData.coins, levels: { engine: saveData.engineLevel || 1, hydraulic: saveData.hydraulicLevel || 1, bucket: saveData.bucketLevel || 1 } }),
-            { onBuy: (k) => buyUpgrade(k), onClose: () => closeJobModal() }
-        );
+        panels.showShop();
+        safe(() => { if (ui) ui.refresh(); });
     });
 }
 
@@ -1210,7 +1381,9 @@ if (new URLSearchParams(location.search).has('qadebug')) {
             if (!g) return level.info();
             if (g.kind === 'gate') { level._advance(); level.hooks.onCount(0); }
             else if (g.kind === 'trench' || g.kind === 'debris') {
-                const r = level.onScoop(new THREE.Vector3(g.x, 2, g.z), vehicle);
+                level.onScoop(new THREE.Vector3(g.x, 2, g.z), vehicle);
+                const tgt = level.rushTarget || level.site.truck;
+                const r = level.onDump(new THREE.Vector3(tgt.x, 2, tgt.z), vehicle);
                 if (r.count) engineProgress(0);
             } else {
                 const tgt = level.rushTarget || level.site.truck;
@@ -1222,6 +1395,8 @@ if (new URLSearchParams(location.search).has('qadebug')) {
     };
 }
 // Console test: type __testTimestep() in the F12 console. Every row must show 60.0
+// QA shortcut only: ?qadebug lets a headless test trigger one instant action.
+window.__qaAct = function () { actionTap('KeyF'); return true; };
 window.__testTimestep = function () {
     const rates = [30, 60, 75, 120, 144, 165, 240];
     const seconds = 10;
@@ -1268,6 +1443,7 @@ function initFx() {
         sfx = { scoop() {}, complete() {}, coin() { hub.coin(); } };
         // Tutorial belongs to Level 1 only; other levels have their own hints.
         if (jm && jm.current && jm.current.tutorial) { guide.startTutorial(); tutStep = 1; }
+        if (guide && guide.setVisible) guide.setVisible(uiSettings.guide !== false);
         if (guide && jm && jm.current && jm.current.tutorial && currentStartPose && rawSite) {
             guide.setChevrons({ x: currentStartPose.x, z: currentStartPose.z }, { x: rawSite.pile.x, z: rawSite.pile.z });
         }
@@ -1302,6 +1478,7 @@ function animate() {
     const frameDt = clock.getDelta();
     if (isGameRunning && physReady && world && vehicle) {
         const dt = Math.min(frameDt, 0.05);
+        updateActionHold(dt);
         const adv = advanceAccumulator(physAcc, frameDt);
         physAcc = adv.acc;
         const driveInput = (gameState === 'playing' && !uiPaused && !modalOpen && !paused) ? input : ZERO_INPUT;
@@ -1342,7 +1519,7 @@ function animate() {
             hub.setEngine(signed, (input.forward || input.backward) ? 1 : 0);
         } else hub.setEngine(0, 0);
 
-        if (!jobCompleted && gameState === 'playing' && !uiPaused && !modalOpen) {
+        if (!jobCompleted && !freePlay && gameState === 'playing' && !uiPaused && !modalOpen) {
             const bucketPos = new THREE.Vector3(); vehicle.bucketPivot.getWorldPosition(bucketPos);
             
             if (!hasScoopedDirt && vehicle.hasDirt) {
@@ -1391,7 +1568,7 @@ function animate() {
         updateSunShadow();
         trackFPS(dt);
         updateFx(dt);
-        safe(() => { if (level && level.job && gameState === 'playing' && !uiPaused && !modalOpen) level.update(dt, vehicle); });
+        safe(() => { if (level && level.job && !freePlay && gameState === 'playing' && !uiPaused && !modalOpen) level.update(dt, vehicle); });
         vehicle.pilePos = worldBuilder.dirtPileGroup.position;
         if (!vehicle.truckPos) vehicle.truckPos = new THREE.Vector3();
         vehicle.truckPos.copy(worldBuilder.truckGroup.position).add(_truckOff);
