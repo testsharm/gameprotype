@@ -142,3 +142,35 @@ Also seen in the phone test (F12 device mode 440x956, tall): the HUD was designe
 - `npm install --no-save @sparticuz/chromium playwright-core` + `inflate(bin/al2023.tar.br)` + `setupLambdaEnvironment('/tmp/al2023/lib')` + `C.executablePath()` gives a working headless Chromium. Launch with `C.args` and `env: process.env` (LD_LIBRARY_PATH must include /tmp/al2023/lib).
 - `page.screenshot()` can hang on this WebGL game; use CDP `Page.captureScreenshot` instead. Serve `dist` with `npx vite preview --host 0.0.0.0 --port 4173` and abort the external SDK request with `ctx.route`. Launch a FRESH browser per level (one browser with many contexts crashes after the first page).
 - Level QA (2026-11-05): load /?unlockall&rich&job=N&qadebug, then window.__qaLevel.step() walks every goal; gateTest(x,z,bpy) drives gate detection deterministically; objects() counts level meshes; __levelInfo() reports the goal chain and all 15 site-finder results. Screenshots land in git-ignored qa/.
+
+## UX milestone file map (2026-11-05)
+- `index.html` - root page. SDK script now has `data-crazygames-sdk="1"` so Portal does not inject a
+  duplicate. Global `user-select:none`/`touch-action:none` removed; only GameUI's `.tf-playing` /
+  `.tf-holding` classes lock scrolling, so menus stay usable. Keeps the minimap canvas, the legacy
+  (unused) pause overlay, loading screen and focus-safety script.
+- `src/main.js` - `gameState`, `uiPaused`, `rawSite`, `currentStartPose`; real input API
+  (`actionHold`, `actionTap`, `unlockAudio`, `uiState`, `handleUiAction`); start screen flow
+  (`prepareMenu`, `startGame`, `returnToMenu`, `menuPose`, `setVehiclePose`, `pauseForMenu`,
+  `resumeGame`); per-level starts via `levelStartPose`; `Portal` wired with official gameplay
+  start/stop/happytime; signed engine speed; `__speedInfo()` / `__tfState()` QA hooks;
+  orientationchange + visualViewport resize handling; quality saved in `terraform_quality_v1`.
+- `src/ui/GameUI.js` - HUD v6 + `#tf-shell` start screen + settings/controls/confirm windows.
+  Real pointer controls (capture, multi-touch, release on all 5 paths), 7-button in-game menu,
+  persistent Camera/Sound/Zoom tools, PC clickable key pad, landscape/portrait CSS, safe-area insets.
+- `src/core/CameraManager.js` - Chase default; camera behind the machine; portrait distance factor;
+  zoom (min 0.75 / max 1.65), canZoom(), cycleMode(), showcase hero orbit for the start screen,
+  CAB near 0.3 kept, smooth lerps, wheel zoom in every zoomable mode.
+- `src/gameplay/Levels.js` - 15 `start` objects + `levelStartPose()`; L5/L10 replaced with the
+  'rush' goal (waiting trucks, countdown rings, lane numbers, expired truck leaves, L10 crossing
+  traffic + red danger strip); `_buildRushTruck`, `_updateRushRing`, `_rushExpire`,
+  `_buildCrossTraffic`; RUSH text/objective/bonus no longer says Gates.
+- `src/gameplay/Jobs.js` - `JobSystem.prepare(id)` shows a level on the start screen with
+  `running=false` (no timer, no load counting); `start(id)` unchanged.
+- `src/gameplay/Guidance.js` - floating screen arrow REMOVED; one ground ring + painted chevron
+  path on Level 1 (`setChevrons`, `onFirstLoad`, fade-out, `reset`).
+- `src/core/World.js` - `createCentralGarageHub()` rewritten: <=1.2 m walls with hazard texture,
+  painted markings plane, yard texture with oil/tyre/cracks/puddles, lit office, wash bay, 2 parked
+  machines, InstancedMesh barrels/tyres/cones, lamp posts, flag. `garageGroup` exposed.
+- `src/vehicle/Vehicle.js` - `signedSpeedKmh`; dial uses signed forward speed clamped to the
+  engine-level cap (32/14 base, Engine only), resetToSafe clears it.
+- `src/core/Portal.js` - now imported by main.js (was unused). Only documented v3 calls used.

@@ -26,6 +26,7 @@ export class Vehicle {
         this.currentSteerAngle = 0;
         this.smoothedSpeed = 0;
         this.currentSpeed = 0;
+        this.signedSpeedKmh = 0;
         this.tipTimer = 0;
         this.lastSafePosition = { x: 0, y: 1.2, z: 0 };
         this.lastSafeQuaternion = { x: 0, y: 0, z: 0, w: 1 };
@@ -465,6 +466,7 @@ export class Vehicle {
         this.throttleState = 0;
         this.smoothedSpeed = 0;
         this.currentSpeed = 0;
+        this.signedSpeedKmh = 0;
     }
 
     updateController(input, deltaTime) {
@@ -590,10 +592,17 @@ export class Vehicle {
         }
         
         // === Smoothed speed (km/h) ===
-        const vel = this.chassisBody.linvel();
-        const speedKmh = Math.sqrt(vel.x * vel.x + vel.z * vel.z) * 3.6;
-        this.smoothedSpeed = this.smoothedSpeed * 0.85 + speedKmh * 0.15;
+        // Base cap: 32 km/h forward, 14 km/h reverse. Only Engine Power changes it.
+        // The dial uses the SIGNED forward speed (lateral sliding must not inflate it)
+        // and is clamped to the current cap, so a physics overshoot cannot show 35 at level 1.
+        const capFwd = Math.min(32 + (this.engineMultiplier - 1) * 10, 60);
+        const capRev = Math.min(14 + (this.engineMultiplier - 1) * 2, 28);
+        const fwdKmh = this.getForwardSpeedMps() * 3.6;
+        const shown = Math.min(Math.abs(fwdKmh), fwdKmh >= 0 ? capFwd : capRev);
+        this.smoothedSpeed = this.smoothedSpeed * 0.85 + shown * 0.15;
         this.currentSpeed = Math.round(this.smoothedSpeed);
+        // Signed value for the reverse beeper / engine sound (Audio.js uses Math.abs for rpm).
+        this.signedSpeedKmh = fwdKmh;
         
         // exhaust smoke is counted by time (same at 60 and 144 fps): a little at idle, more when working
         this._smokePower = Math.min(1, Math.abs(this.throttleState)); this._smokeAcc += Math.min(dt, 0.05) * (7 + this._smokePower * 15);

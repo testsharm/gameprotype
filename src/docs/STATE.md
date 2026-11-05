@@ -14,6 +14,59 @@ Read order for a new AI: CONTINUE.md, then this file, then FILE_MAP.md, then HAN
 - Level evidence: all 15 levels load with the right name, type, goal count, timer and objective; every goal chain walks to 100 percent and opens the result window with a bonus row; 0 page errors. 15/15 site finder results ok (distinct free ground). Level group mesh counts: HAUL 2, FILL 5, MOVE 11, CONE 32-53, TRENCH 26-38, CLEAR 50, RUSH 26-32, MIX 23. `npx vite build` OK (main 907 kB, rapier 4.34 MB). 5-size HUD re-check: 0 overlaps, 0 clipped zones, 0 old HUD ids, 0 small touch targets on phone sizes.
 - QA helpers (guarded by ?qadebug): window.__levelInfo(), window.__qaLevel.info()/site()/step()/objects()/gateTest()/teleport(); ?job=N starts any level.
 
+## UX milestone (2026-11-05, current work) - built, awaiting real play-test
+- Scope fixed by the user: start screen, honest clickable controls, visible camera/sound/zoom,
+  landscape-first phone HUD, per-level starts, Rush Hour Lite mismatch, garage-yard depth.
+  The DEPTH PACK parts A-H remain LOCKED DESIGN for later rounds; all 15 levels were NOT rebuilt here.
+- NEW: first load opens a TerraForm 3D start screen over a showcase view of the backhoe in the
+  garage yard. Buttons: Play/Continue, Contracts, Garage/Upgrades, Settings, Controls/How to Play.
+  No job timer starts until Play. `gameState` ('menu' | 'playing') gates jm.update/level.update/
+  goal detection; `uiPaused` gates all in-game menus. JobSystem.prepare(id) shows a level without
+  starting its clock. Last selected job is saved in terraform_last_job_v1 (try/catch).
+- NEW: GameUI v6 owns a 7-button in-game menu (Resume, Contracts, Garage, Settings, Controls,
+  Restart + confirm, Main Menu + confirm) and a shared modal window (Settings/Controls/Confirm).
+  All are semantic <button>s with labels, tooltips and :focus-visible outlines.
+- NEW: real input API in main.js (actionHold/actionTap). PC W/A/S/D/F/C/Space are clickable/holdable
+  buttons; touch steering, F, BRK, camera, sound and zoom all call the SAME API. No fake KeyboardEvent
+  dispatch remains. Pointer capture + pointerup/pointercancel/lostpointercapture/blur/hidden release.
+  Multi-touch works (each pointerId is tracked separately). Keyboard still uses event.code.
+- NEW: Camera/Sound/Zoom+/Zoom- are persistent HUD tools (never inside the hamburger), show the
+  current camera mode and mute state, and disable with an explanation in Cab view. Chase is the
+  default (was Bucket). Chase/Bucket cameras sit BEHIND the machine; portrait windows get a longer
+  distance. CameraManager has zoomBy/setZoom/canZoom/setShowcase, smooth transitions, safe limits.
+- NEW: 844x390 is the primary phone layout. Portrait (440x956, 360x800) stays usable; no orientation
+  lock and no "rotate your phone" overlay. Safe-area insets used. Page scroll/selection is locked only
+  while playing or while a control is held. Minimap no longer touches the mission card on portrait
+  (card moved to top 220px). All touch targets >= 48 CSS px.
+- NEW: all 15 levels have explicit `start: {back,side,face,cam}` data; levelStartPose() computes a
+  safe absolute pose facing the first task. Node check: 15/15 distinct positions, 0 starts inside
+  their own pile/truck. Ground chevrons on Level 1 fade after the first load; the weak floating
+  screen arrow was removed. Level 1 hint now says "Drive to the highlighted dirt pile".
+- FIXED: "Rush Hour Lite" is no longer "Gates 0/8". L5 is 3 waiting trucks in 3 lanes, each with a
+  12-segment countdown ring + floating seconds; a truck drives away when its timer expires and the
+  bonus is "No missed truck". L10 is 5 night trucks with crossing traffic and a red danger strip.
+  New goal kind 'rush'; the blue truck is hidden but moved to the active lane so dump checks work.
+- FIXED: speedometer shows the signed forward speed clamped to the current cap (base 32 km/h forward,
+  14 reverse; only Engine Power changes it), so a physics overshoot cannot show 35 at level 1.
+  hub.setEngine() now receives a signed speed so the reverse beeper can trigger. __speedInfo() added.
+- FIXED: garage yard depth. All walls <= 1.2 m (no camera blocking). Painted service bays, hazard
+  band, tyre arcs, oil stains, cracks and puddles in textures; low wall with posts; small lit office,
+  wash bay, tool rack, 2 parked machines, cones, barrels/tyres/cones as InstancedMesh, lamp posts,
+  flag. Central driving lane stays clear. No outside art/assets.
+- SDK: src/core/Portal.js is now wired. Official v3 APIs used: SDK.init(), game.gameplayStart(),
+  game.gameplayStop(), game.happytime(), game.settings.muteAudio, addSettingsChangeListener.
+  gameplayStart fires only when the player first reaches playable state (menus excluded). Everything
+  is wrapped in try/catch; all menus/controls work when the SDK is absent.
+- Evidence this round: node --check OK on all 9 changed JS files; npx vite build OK
+  (dist/index.html 5.60 kB, main 947.49 kB gzip 257.72 kB, rapier 4,335.49 kB, dist 5.1 MB).
+  Node-only world check: sitesOk = 15/15, 486 building boxes, 947 prop colliders, 662 mesh/instanced
+  objects, 15/15 distinct start poses, 0 unsafe starts, L5 rush 3/3, L10 rush 5/5.
+  Static wiring audit: 33 HUD ids + 10 start/modal ids, 0 duplicate ids, 0 unbound start buttons,
+  0 missing id references, no fake KeyboardEvent, all 5 pointer-release paths present.
+- NOT VERIFIED: no Chromium/Playwright/jsdom binary is installed in this workspace and the user
+  forbade installing new packages for screenshots, so NO browser screenshots, NO real click/touch
+  test and NO measured DOM geometry were produced this round. Real Brave/F12 play-test is required.
+
 ## Known problems right now
 1. (Round 1b, BUILT, awaiting visual test) Old HUD pieces should be gone: root index.html replaced, stray src/index.html deleted, JS creators disabled. If any old piece still shows, ask the user for one screenshot and inspect F12 Elements.
 2. (Round 1c, BUILT, awaiting user test) Portrait layout and touch detection were rebuilt; headless-Chromium measurements show no overlap, no clipping and 48 px+ targets. Confirm on the real Brave F12 device mode.

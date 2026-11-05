@@ -13,17 +13,35 @@ import DigAnimator from './vehicle/DigAnimator.js';
 import GameUI from './ui/GameUI.js';
 // (Music removed in M2)
 import TrafficPhysics from './core/TrafficPhysics.js';
-import { JobSystem, JobPanels, buildSiteDressing, upgradeCost } from './gameplay/Jobs.js';
-import { LevelEngine } from './gameplay/Levels.js';
+import { JobSystem, JobPanels, buildSiteDressing, upgradeCost, rankInfo } from './gameplay/Jobs.js';
+import { LevelEngine, levelStartPose } from './gameplay/Levels.js';
+import { CAMERA_LABELS } from './core/CameraManager.js';
+import { Portal } from './core/Portal.js';
 
 let fx = null, guide = null, sfx = null, tutStep = 0, lastTarget = 'none';
 function safe(f) { try { return f(); } catch (e) { console.warn('[fx]', e); } }
 let lastHasDirt = false;
 const START_LEVEL = (() => {
-    try { const n = parseInt(new URLSearchParams(location.search).get('job'), 10); return n >= 1 && n <= 15 ? n : 1; }
-    catch (e) { return 1; }
+    try { const n = parseInt(new URLSearchParams(location.search).get('job'), 10); return n >= 1 && n <= 15 ? n : readLastJob(); }
+    catch (e) { return readLastJob(); }
 })();
 let ui = null, music = null, trafficPhys = null, jm = null, currentJob = START_LEVEL, lastLoads = 0, lastCoinsShown = -1;
+// UX milestone: the timer only exists while the player is actually playing.
+const LAST_JOB_KEY = 'terraform_last_job_v1';
+const QUALITY_KEY = 'terraform_quality_v1';
+let gameState = 'menu';            // 'menu' | 'playing'
+let uiPaused = false;              // drawer / window / pause open
+let audioStarted = false;
+let rawSite = null;                // unmodified site used for per-level start poses
+let currentStartPose = null;
+const portal = new Portal();
+function readLastJob() {
+    try { const n = parseInt(localStorage.getItem(LAST_JOB_KEY), 10); return (n >= 1 && n <= 15) ? n : 1; }
+    catch (e) { return 1; }
+}
+function writeLastJob(id) { try { localStorage.setItem(LAST_JOB_KEY, String(id)); } catch (e) {} }
+function readQuality() { try { return localStorage.getItem(QUALITY_KEY); } catch (e) { return null; } }
+function writeQuality(q) { try { localStorage.setItem(QUALITY_KEY, q); } catch (e) {} }
 let level = null;
 const JOB_TITLE = 'Clear the Highway', JOB_OBJ = 'Load the blue truck with dirt';
 let dig = null, digSound = null;
@@ -61,17 +79,23 @@ function updateDig(dt) {
     });
 }
 function initUi() {
+    if (ui) return;
     safe(() => {
-        ui = new GameUI();
+        ui = new GameUI({
+            action: (name, payload) => handleUiAction(name, payload),
+            hold: (code, on) => actionHold(code, on),
+            tap: (code) => actionTap(code),
+            unlock: () => unlockAudio(),
+            state: () => uiState()
+        });
         music = hub;
         ensureJobs();
-        jm.onTick = (t) => { if (ui) ui.setTimer(Math.ceil(t)); };
+        jm.onTick = (t) => { if (ui && gameState === 'playing' && !uiPaused) ui.setTimer(Math.ceil(t)); };
         jm.onFail = onJobFail;
-        jm.start(currentJob);
-        refreshCard();
         ui.setCoins(saveData.coins);
-        music.start(); music.startAmbience();
+        ui.setTimer(null);
         window.addEventListener('bh-hint', e => { if (ui) ui.toast(e.detail, 'warn'); });
+        refreshCard();
     });
 }
 function updateUi(dt) {
@@ -82,13 +106,13 @@ function updateUi(dt) {
         if (ui) {
             ui.setSpeed(vehicle.currentSpeed);
             if (saveData.coins !== lastCoinsShown) { lastCoinsShown = saveData.coins; ui.setCoins(saveData.coins); }
-            // Keep the mission card in sync when the bucket fills or empties.
             if (level && level.job) {
                 const hd = !!vehicle.hasDirt;
                 if (hd !== lastHasDirt) { lastHasDirt = hd; refreshCard(); }
             }
         }
-        if (jm && !jobCompleted) jm.update(dt);
+        // THE JOB CLOCK NEVER RUNS behind the start screen or any menu.
+        if (jm && !jobCompleted && gameState === 'playing' && !uiPaused && !modalOpen && !paused) jm.update(dt);
         if (music) music.setIntensity(Math.min(1, vehicle.currentSpeed / 40));
     });
 }
@@ -110,7 +134,9 @@ const cameraManager = new CameraManager(camera, canvas);
 const worldBuilder = new World(scene);
 cameraManager.setCollidables([...worldBuilder.buildingMeshes, ...worldBuilder.treeMeshes]);
 
-cameraManager.setMode('bucket');
+cameraManager.onChange = () => safe(() => { if (ui) ui.refresh(); });
+// Chase is the default for a new job and for phone play (never Bucket).
+cameraManager.setMode('chase');
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -252,18 +278,176 @@ function renderFrame() {
 }
 
 window.setQuality = (q) => {
-    if (QUALITY_PRESETS[q]) applyQualitySettings(q);
+    if (!QUALITY_PRESETS[q]) return;
+    applyQualitySettings(q);
+    writeQuality(q);
+    safe(() => { if (ui) ui.refresh(); });
 };
 
-// Initial quick hardware-based quality detection
+// Initial quick hardware-based quality detection (a saved setting wins).
 (function quickQualityDetect() {
-    let level = 'high';
-    const cores = navigator.hardwareConcurrency || 4;
-    const pxr = window.devicePixelRatio || 1;
-    if (cores <= 4 || pxr >= 2.5) level = 'medium';
-    if (cores <= 2) level = 'low';
+    let level = readQuality();
+    if (!QUALITY_PRESETS[level]) {
+        level = 'high';
+        const cores = navigator.hardwareConcurrency || 4;
+        const pxr = window.devicePixelRatio || 1;
+        if (cores <= 4 || pxr >= 2.5) level = 'medium';
+        if (cores <= 2) level = 'low';
+    }
     applyQualitySettings(level);
 })();
+
+// ---------------------------------------------------------------- start flow, menus, real input API
+function canPlay() {
+    return gameState === 'playing' && isGameRunning && !uiPaused && !modalOpen && !paused && physReady;
+}
+function clearInput() {
+    input.forward = false; input.backward = false; input.left = false; input.right = false; input.brake = false;
+    safe(() => hub.setEngine(0, 0));
+}
+function unlockAudio() {
+    // One AudioContext, created only inside a real click / touch / key gesture.
+    safe(() => hub.unlock());
+    if (!audioStarted) { audioStarted = true; safe(() => hub.start()); }
+}
+function uiState() {
+    ensureJobs();
+    const job = jm.current || jm.get(currentJob) || {};
+    const sv = jm.save || {};
+    let rank = 'ROOKIE';
+    try { rank = jm.rankInfo().name; } catch (e) {}
+    return {
+        level: currentJob,
+        jobName: job.name || 'First Scoop',
+        chapter: ['', 'ROOKIE YARD', 'CONTRACTOR', 'SITE BOSS'][job.chapter] || 'ROOKIE YARD',
+        coins: saveData.coins,
+        rank: rank,
+        hasProgress: !!((sv.stats && sv.stats.jobs > 0) || (sv.jobs && Object.keys(sv.jobs).length > 0) || (sv.last > 1)),
+        muted: !!hub.isMuted(),
+        cameraMode: cameraManager.currentMode,
+        cameraLabel: CAMERA_LABELS[cameraManager.currentMode] || 'Chase',
+        zoomable: cameraManager.canZoom(),
+        zoom: cameraManager.zoom,
+        quality: currentQuality
+    };
+}
+function actionHold(code, on) {
+    const live = canPlay();
+    if (code === 'KeyW') input.forward = on && live;
+    else if (code === 'KeyS') input.backward = on && live;
+    else if (code === 'KeyA') input.left = on && live;
+    else if (code === 'KeyD') input.right = on && live;
+    else if (code === 'Space') input.brake = on && live;
+}
+function actionTap(code) {
+    unlockAudio();
+    switch (code) {
+        case 'KeyF': if (canPlay() && vehicle) vehicle.autoAction(); break;
+        case 'KeyE': if (canPlay() && vehicle) vehicle.toggleArm(); break;
+        case 'KeyC': cameraManager.cycleMode(); safe(() => { if (ui) ui.refresh(); }); break;
+        case 'KeyR': if (gameState === 'playing') window.restartJob(); break;
+        case 'KeyM': toggleMute(); break;
+        case 'KeyJ': if (gameState === 'playing') openPicker(); break;
+        case 'KeyU': if (gameState === 'playing') openShop(); break;
+        case 'KeyP': if (gameState === 'playing') togglePause(); break;
+    }
+}
+function pauseForMenu() {
+    uiPaused = true;
+    clearInput();
+    safe(() => portal.gameplayStop());
+}
+function resumeGame() {
+    uiPaused = false;
+    modalOpen = false;
+    paused = false;
+    isGameRunning = true;
+    const ov = document.getElementById('pause-overlay');
+    if (ov) ov.classList.remove('active');
+    if (gameState === 'playing') safe(() => portal.gameplayStart());
+    safe(() => { if (ui) ui.refresh(); });
+}
+function pauseWindow() { pauseForMenu(); }
+function startGame() {
+    unlockAudio();
+    gameState = 'playing';
+    uiPaused = false;
+    cameraManager.setShowcase(false);
+    cameraManager.setMode('chase');
+    safe(() => { if (ui) { ui.hideModal(); ui.setScreen('play'); ui.reset(); } });
+    window.restartJob();
+    resumeGame();
+}
+function returnToMenu() {
+    closeJobModal();
+    gameState = 'menu';
+    uiPaused = false;
+    paused = false;
+    isGameRunning = true;
+    clearInput();
+    menuPose();
+    cameraManager.setShowcase(true);
+    safe(() => { if (ui) { ui.reset(); ui.setScreen('menu'); ui.setTimer(null); ui.refresh(); } });
+    safe(() => portal.gameplayStop());
+}
+function handleUiAction(name, payload) {
+    switch (name) {
+        case 'play': startGame(); break;
+        case 'contracts': openPicker(); break;
+        case 'garage': openShop(); break;
+        case 'settings': pauseWindow(); safe(() => { if (ui) ui.showModal('settings'); }); break;
+        case 'controls': pauseWindow(); safe(() => { if (ui) ui.showModal('controls'); }); break;
+        case 'resume': resumeGame(); break;
+        case 'restart':
+            pauseWindow();
+            safe(() => { if (ui) ui.confirm({ title: 'Restart this job?', text: 'Your progress in this job will be lost.', yes: 'Restart job', onYes: () => { window.restartJob(); resumeGame(); } }); });
+            break;
+        case 'mainmenu':
+            pauseWindow();
+            safe(() => { if (ui) ui.confirm({ title: 'Return to main menu?', text: 'This job will stop. Your saved progress stays.', yes: 'Main menu', onYes: () => returnToMenu() }); });
+            break;
+        case 'camera': actionTap('KeyC'); break;
+        case 'sound': toggleMute(); break;
+        case 'zoomIn': cameraManager.zoomIn(); safe(() => { if (ui) ui.refresh(); }); break;
+        case 'zoomOut': cameraManager.zoomOut(); safe(() => { if (ui) ui.refresh(); }); break;
+        case 'quality': window.setQuality(payload); break;
+        case 'menu-open': pauseForMenu(); break;
+        case 'menu-close': resumeGame(); break;
+        case 'modal-closed-play': resumeGame(); break;
+        case 'modal-closed-menu': clearInput(); break;
+    }
+}
+function menuPose() {
+    if (!vehicle || !physReady) return;
+    setVehiclePose(-8, 1.2, -6, { x: 0, y: 1, z: 0, w: 0 });
+}
+function setVehiclePose(x, y, z, q) {
+    if (!vehicle || !physReady) return;
+    try {
+        vehicle.chassisBody.setTranslation({ x: x, y: y, z: z }, true);
+        vehicle.chassisBody.setRotation(q, true);
+        vehicle.chassisBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        vehicle.chassisBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
+        if (vehicle.resetInterpolation) vehicle.resetInterpolation();
+        vehicle.hasDirt = false;
+        if (vehicle.bucketDirtGroup) vehicle.bucketDirtGroup.children.forEach(c => { c.visible = false; });
+        if (worldBuilder.truckDirtMeshes) {
+            worldBuilder.truckDirtMeshes.forEach(m => worldBuilder.truckGroup.remove(m));
+            worldBuilder.truckDirtMeshes = [];
+            worldBuilder.truckDirtLevel = 0;
+        }
+    } catch (e) { console.warn('[pose]', e); }
+}
+function prepareMenu() {
+    ensureJobs();
+    jm.prepare(currentJob);
+    placeSite(currentJob);
+    menuPose();
+    cameraManager.setMode('chase');
+    cameraManager.setShowcase(true);
+    safe(() => { if (ui) { ui.setScreen('menu'); ui.setTimer(null); ui.refresh(); } });
+    safe(() => portal.gameplayStop());
+}
 
 // ---- Shadow-camera follow + texel snapping ----
 const _sunOffset = new THREE.Vector3(80, 150, 80);
@@ -332,7 +516,7 @@ const audio = hub; // old name kept: Vehicle.updateVisuals(audio, dt) still rece
 function toggleMute() {
     const m = hub.toggleMute();
     window.dispatchEvent(new CustomEvent('bh-mute', { detail: !!m }));
-    safe(() => { if (ui) ui.toast(m ? 'Sound off (press M to turn on)' : 'Sound on', m ? 'warn' : 'success'); });
+    safe(() => { if (ui) { ui.toast(m ? 'Sound off (press M to turn on)' : 'Sound on', m ? 'warn' : 'success'); ui.refresh(); } });
 }
 // (Sfx2 removed in M2)
 audio.playDirtCrunch = () => {};
@@ -349,23 +533,33 @@ document.getElementById('coin-count').textContent = saveData.coins;
 // The old index.html shop is gone. The Garage window is built by Jobs.js (key U / menu).
 
 const input = { forward: false, backward: false, left: false, right: false, brake: false };
+const ZERO_INPUT = { forward: false, backward: false, left: false, right: false, brake: false };
 
 // ---- Pause (P key and the Pause / Resume buttons). The shop has its own pause. ----
 let paused = false;
 function togglePause() {
-    const shop = document.getElementById('shop-overlay');
-    if ((shop && shop.classList.contains('active')) || modalOpen) return;
-    paused = !paused;
-    isGameRunning = !paused;
-    const ov = document.getElementById('pause-overlay');
-    if (ov) ov.classList.toggle('active', paused);
-    if (paused) {
-        input.forward = false; input.backward = false; input.left = false; input.right = false; input.brake = false;
-        safe(() => hub.setEngine(0, 0));
-    }
+    if (gameState !== 'playing' || !ui) return;
+    ui.toggleMenu();
+    paused = false;
+    isGameRunning = true;
+    clearInput();
 }
 // tell the Sound button the saved mute state at start
 safe(() => window.dispatchEvent(new CustomEvent('bh-mute', { detail: !!hub.isMuted() })));
+// The v3 SDK must be initialised before use. Everything below is optional:
+// the game and all menus work without it.
+safe(() => {
+    portal.init().then(() => {
+        try {
+            const settings = portal.SDK && portal.SDK.game && portal.SDK.game.settings;
+            if (settings && settings.muteAudio) hub.setMuted(true);
+            if (portal.SDK && portal.SDK.game && typeof portal.SDK.game.addSettingsChangeListener === 'function') {
+                portal.SDK.game.addSettingsChangeListener((s) => { if (s && s.muteAudio) hub.setMuted(true); });
+            }
+        } catch (e) {}
+        safe(() => { if (ui) ui.refresh(); });
+    });
+});
 
 // ---- Keys by physical position (event.code), so AZERTY and other layouts work ----
 const CODE_TO_KEY = {
@@ -384,79 +578,67 @@ window.addEventListener('blur', () => {
 });
 const keyMap = { 'w': 'btn-w', 'arrowup': 'btn-w', 'a': 'btn-a', 'arrowleft': 'btn-a', 's': 'btn-s', 'arrowdown': 'btn-s', 'd': 'btn-d', 'arrowright': 'btn-d', 'e': 'btn-e', 'f': 'btn-f' };
 
+// Physical keys use event.code (AZERTY-safe). Both the keyboard and the
+// on-screen buttons end up in actionHold()/actionTap() - the same real input API.
 window.addEventListener('keydown', (ev) => {
     if (ev.code === 'Backquote') { toggleDebugOverlay(); return; }
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
-    if (isGameRunning && (ev.code === 'Space' || ev.code.startsWith('Arrow'))) ev.preventDefault();
+    if (gameState !== 'playing') return;          // no driving keys on the start screen
+    if (canPlay() && (ev.code === 'Space' || ev.code.startsWith('Arrow'))) ev.preventDefault();
     const e = normKey(ev);
-    audio.init();
+    unlockAudio();
     const key = e.key.toLowerCase();
     if (e.repeat) return;
-    if (key === 'w' || key === 'arrowup') input.forward = true;
-    if (key === 's' || key === 'arrowdown') input.backward = true;
-    if (key === 'a' || key === 'arrowleft') input.left = true;
-    if (key === 'd' || key === 'arrowright') input.right = true;
-    if (e.key === ' ') input.brake = true;
-    if (key === 'r') window.restartJob();
-    if (key === 'm') toggleMute();
-    if (key === 'j') openPicker();
-    if (key === 'u') openShop();
-    if (key === 'p') {
-      const wasPaused = paused;
-      togglePause();
-      if (paused !== wasPaused) {
-        try {
-          if (paused) { window.__muteBeforePause = hub.isMuted(); hub.setMuted(true); }
-          else { hub.setMuted(!!window.__muteBeforePause); }
-        } catch (e) { /* audio not ready */ }
-      }
-    }
-    if (key === 'e' && vehicle && isGameRunning) vehicle.toggleArm();
-    if (key === 'f' && vehicle && isGameRunning) vehicle.autoAction();
-    if (key === 'c') {
-        const modes = ['chase', 'orbit', 'cab', 'bucket'];
-        let nextIndex = (modes.indexOf(cameraManager.currentMode) + 1) % modes.length;
-        cameraManager.setMode(modes[nextIndex]);
-    }
-    if (keyMap[key]) { const btn = document.querySelector(`.key[data-mobile="${keyMap[key]}"]`); if (btn) btn.classList.add('active-key'); }
+    if (key === 'w' || key === 'arrowup') actionHold('KeyW', true);
+    if (key === 's' || key === 'arrowdown') actionHold('KeyS', true);
+    if (key === 'a' || key === 'arrowleft') actionHold('KeyA', true);
+    if (key === 'd' || key === 'arrowright') actionHold('KeyD', true);
+    if (e.key === ' ') actionHold('Space', true);
+    if (key === 'r') actionTap('KeyR');
+    if (key === 'm') actionTap('KeyM');
+    if (key === 'j') actionTap('KeyJ');
+    if (key === 'u') actionTap('KeyU');
+    if (key === 'p') actionTap('KeyP');
+    if (key === 'e') actionTap('KeyE');
+    if (key === 'f') actionTap('KeyF');
+    if (key === 'c') actionTap('KeyC');
 });
 
 window.addEventListener('keyup', (ev) => {
     const e = normKey(ev);
     const key = e.key.toLowerCase();
-    if (key === 'w' || key === 'arrowup') input.forward = false;
-    if (key === 's' || key === 'arrowdown') input.backward = false;
-    if (key === 'a' || key === 'arrowleft') input.left = false;
-    if (key === 'd' || key === 'arrowright') input.right = false;
-    if (e.key === ' ') input.brake = false;
-    if (keyMap[key]) { const btn = document.querySelector(`.key[data-mobile="${keyMap[key]}"]`); if (btn) btn.classList.remove('active-key'); }
+    if (key === 'w' || key === 'arrowup') actionHold('KeyW', false);
+    if (key === 's' || key === 'arrowdown') actionHold('KeyS', false);
+    if (key === 'a' || key === 'arrowleft') actionHold('KeyA', false);
+    if (key === 'd' || key === 'arrowright') actionHold('KeyD', false);
+    if (e.key === ' ') actionHold('Space', false);
 });
 
-// Touch driving and the camera button are owned by GameUI.js (they send normal keyboard events).
+// Pointer buttons call the same API directly (see GameUI.js). No fake key events.
 
 window.restartJob = () => {
     hasScoopedDirt = false; jobCompleted = false; closeJobModal();
-    const overlay = document.getElementById('victory-overlay'); if(overlay) overlay.classList.remove('active');
-    const statusVal = document.getElementById('job-status-val'); if(statusVal) statusVal.textContent = 'SCOOP DIRT (0/3)';
-    const missionDesc = document.getElementById('mission-desc'); if(missionDesc) missionDesc.textContent = 'Clear the rubble from the highway and load it into the blue truck.';
-    
+    const overlay = document.getElementById('victory-overlay'); if (overlay) overlay.classList.remove('active');
+
     ensureJobs(); worldBuilder.resetDirtPile(); placeSite(currentJob);
-    safe(() => { if (fx) fx.reset(); lastTarget = 'none'; });
+    safe(() => { if (fx) fx.reset(); lastTarget = 'none'; if (guide) guide.reset(); });
     lastLoads = 0; startJobNow();
-    
+
+    // Every level has its own safe staging pose facing its first task.
     if (vehicle && physReady) {
-        vehicle.chassisBody.setTranslation({ x: -35, y: 1.2, z: 10 }, true);
-        vehicle.chassisBody.setRotation({ x: 0, y: 1, z: 0, w: 0 }, true); 
-        vehicle.chassisBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
-        vehicle.chassisBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
-        vehicle.resetInterpolation();
-        vehicle.hasDirt = false; 
-        vehicle.bucketDirtGroup.children.forEach(c => c.visible = false);
-        
-        worldBuilder.truckDirtMeshes.forEach(mesh => worldBuilder.truckGroup.remove(mesh));
-        worldBuilder.truckDirtMeshes = [];
-        worldBuilder.truckDirtLevel = 0;
+        const job = jm.current || jm.get(currentJob);
+        const site = rawSite || siteNow;
+        const first = (level && level.active && level.active()) ? level.active() : null;
+        const pose = levelStartPose(job, site, first);
+        currentStartPose = pose;
+        setVehiclePose(pose.x, pose.y, pose.z, pose.quat);
+        cameraManager.setMode('chase');
+        cameraManager.setZoom(Math.max(0.75, Math.min(1.5, pose.cam / 12)));
+        safe(() => {
+            if (guide && job.tutorial) guide.setChevrons({ x: pose.x, z: pose.z }, { x: site.pile.x, z: site.pile.z });
+        });
     }
+    safe(() => { if (ui) ui.refresh(); });
 };
 
 const restartBtn = document.getElementById('restart-btn'); if(restartBtn) restartBtn.addEventListener('click', window.restartJob);
@@ -469,7 +651,9 @@ async function initPhysics() {
         world = new RAPIER.World({ x: 0, y: -9.81, z: 0 }); world.timestep = 1/60;
         worldBuilder.createPhysicsColliders(world, RAPIER);
         vehicle = new Vehicle(scene, world, RAPIER); vehicle.setUpgrades(saveData);
-        physReady = true; window.restartJob();
+        physReady = true;
+        initUi();
+        prepareMenu();
         
         qaManager = new QAManager(scene, camera, renderer, vehicle, worldBuilder);
         
@@ -643,20 +827,27 @@ function syncCoins() {
 function refreshCard() {
     safe(() => {
         if (!ui || !jm) return;
-        if (level && level.job) ui.setJob(jm.current.name, level.objective(vehicle && vehicle.hasDirt), level.stepText());
-        else ui.setJob(jm.current.name, jm.objective(), jm.stepText());
+        const job = jm.current || jm.get(currentJob);
+        if (!job) return;
+        if (level && level.job) ui.setJob(job.name, level.objective(vehicle && vehicle.hasDirt), level.stepText());
+        else ui.setJob(job.name, job.objective || '', (jm.stepText ? jm.stepText() : ''));
     });
 }
 function openModalState() {
     modalOpen = true;
+    uiPaused = true;
     isGameRunning = false;
-    input.forward = false; input.backward = false; input.left = false; input.right = false; input.brake = false;
-    safe(() => hub.setEngine(0, 0));
+    clearInput();
+    safe(() => portal.gameplayStop());
 }
 function closeJobModal() {
     if (panels) panels.hide();
     modalOpen = false;
-    if (!paused) isGameRunning = true;
+    uiPaused = false;
+    paused = false;
+    isGameRunning = true;
+    if (gameState === 'playing') safe(() => portal.gameplayStart());
+    safe(() => { if (ui) ui.refresh(); });
 }
 
 // ---- where the pile and the truck stand for each job ----
@@ -701,6 +892,7 @@ function placeSite(id) {
         tg.position.set(siteBase.tPos.x + (tx - siteBase.tc.x), siteBase.tPos.y, siteBase.tPos.z + (tz - siteBase.tc.z));
         pg.updateMatrixWorld(true); tg.updateMatrixWorld(true);
         siteNow.pile.x = px; siteNow.pile.z = pz; siteNow.truck.x = tx; siteNow.truck.z = tz;
+        rawSite = { pile: { x: px, z: pz }, truck: { x: tx, z: tz } };
         syncTruckCollider(moved, tx, tz);
         if (worldBuilder.jobSiteBase) worldBuilder.jobSiteBase.position.set(px, 0, pz);
         siteGroups.forEach((g, k) => { g.visible = (k === id); });
@@ -802,6 +994,7 @@ function updateRain(dt) {
 // ---- job flow ----
 function startJobNow() {
     ensureJobs();
+    writeLastJob(currentJob);
     jm.start(currentJob);
     const j = jm.current;
     refreshCard();
@@ -811,9 +1004,16 @@ function startJobNow() {
 }
 function goJob(id) {
     ensureJobs();
-    if (jm.lockReason(id, jobCtx())) return;
+    const why = jm.lockReason(id, jobCtx());
+    if (why) { safe(() => { if (ui) ui.showLocked(why); }); return; }
     currentJob = id;
+    writeLastJob(id);
+    gameState = 'playing';
+    cameraManager.setShowcase(false);
+    cameraManager.setMode('chase');
+    safe(() => { if (ui) { ui.hideModal(); ui.setScreen('play'); ui.reset(); } });
     window.restartJob();
+    resumeGame();
 }
 // A gate / trench / debris goal counts as one load, without a dump.
 function engineProgress(tip) {
@@ -825,7 +1025,7 @@ function engineProgress(tip) {
         safe(() => { if (ui) { ui.setTimer(null); ui.toast('Job complete!', 'success'); } });
         writeSave();
         audio.playSuccess();
-        try { window.CrazyGames.SDK.game.happytime(); } catch (e) {}
+        safe(() => portal.happytime());
     }
 }
 function onScooped() {
@@ -857,6 +1057,7 @@ function deliverLoad(tipOverride) {
         refreshCard();
         if (!r.complete && ui) ui.setHint(jm.hint());
     });
+    if (r.loads === 1) safe(() => { if (guide) guide.onFirstLoad(); });
     if (!r.complete && r.loads % 3 === 0) {
         setTimeout(() => safe(() => {
             if (!jm || !jm.state.running) return;
@@ -1012,7 +1213,8 @@ if (new URLSearchParams(location.search).has('qadebug')) {
                 const r = level.onScoop(new THREE.Vector3(g.x, 2, g.z), vehicle);
                 if (r.count) engineProgress(0);
             } else {
-                const r = level.onDump(new THREE.Vector3(level.site.truck.x, 2, level.site.truck.z), vehicle);
+                const tgt = level.rushTarget || level.site.truck;
+                const r = level.onDump(new THREE.Vector3(tgt.x, 2, tgt.z), vehicle);
                 if (r.count) engineProgress();
             }
             return level.info();
@@ -1064,6 +1266,9 @@ function initFx() {
         sfx = { scoop() {}, complete() {}, coin() { hub.coin(); } };
         // Tutorial belongs to Level 1 only; other levels have their own hints.
         if (jm && jm.current && jm.current.tutorial) { guide.startTutorial(); tutStep = 1; }
+        if (guide && jm && jm.current && jm.current.tutorial && currentStartPose && rawSite) {
+            guide.setChevrons({ x: currentStartPose.x, z: currentStartPose.z }, { x: rawSite.pile.x, z: rawSite.pile.z });
+        }
         const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 60, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide, fog: false }));
         beam.visible = false; scene.add(beam); scene.userData.beam = beam;
         const maxA = renderer.capabilities.getMaxAnisotropy();
@@ -1071,6 +1276,8 @@ function initFx() {
     });
 }
 function updateFx(dt) {
+    // No tutorial toasts, target rings or FX on the start screen / behind menus.
+    if (gameState !== 'playing' || uiPaused || modalOpen) return;
     if (!fx && !guide) initFx();
     safe(() => {
         if (fx) fx.update(dt);
@@ -1095,8 +1302,9 @@ function animate() {
         const dt = Math.min(frameDt, 0.05);
         const adv = advanceAccumulator(physAcc, frameDt);
         physAcc = adv.acc;
+        const driveInput = (gameState === 'playing' && !uiPaused && !modalOpen && !paused) ? input : ZERO_INPUT;
         for (let s = 0; s < adv.steps; s++) {
-            vehicle.updateController(input, FIXED_DT);
+            vehicle.updateController(driveInput, FIXED_DT);
             world.step();
             vehicle.capturePhysicsState();
         }
@@ -1126,10 +1334,13 @@ function animate() {
             cameraShake -= dt * 2; 
         }
 
-        if (input.forward || input.backward) hub.setEngine(vehicle.currentSpeed, 1);
-        else hub.setEngine(vehicle.currentSpeed, 0);
+        // Signed speed keeps the reverse beeper working; Audio.js uses Math.abs for rpm.
+        if (gameState === 'playing' && !uiPaused && !modalOpen) {
+            const signed = (vehicle.signedSpeedKmh !== undefined) ? vehicle.signedSpeedKmh : vehicle.getForwardSpeedMps() * 3.6;
+            hub.setEngine(signed, (input.forward || input.backward) ? 1 : 0);
+        } else hub.setEngine(0, 0);
 
-        if (!jobCompleted) {
+        if (!jobCompleted && gameState === 'playing' && !uiPaused && !modalOpen) {
             const bucketPos = new THREE.Vector3(); vehicle.bucketPivot.getWorldPosition(bucketPos);
             
             if (!hasScoopedDirt && vehicle.hasDirt) {
@@ -1170,7 +1381,7 @@ function animate() {
                         writeSave();
                         audio.playSuccess();
                         safe(() => { if (sfx) sfx.complete(); });
-                        try { window.CrazyGames.SDK.game.happytime(); } catch (e) {}
+                        safe(() => portal.happytime());
                     }
                 }
             }
@@ -1178,7 +1389,7 @@ function animate() {
         updateSunShadow();
         trackFPS(dt);
         updateFx(dt);
-        safe(() => { if (level && level.job) level.update(dt, vehicle); });
+        safe(() => { if (level && level.job && gameState === 'playing' && !uiPaused && !modalOpen) level.update(dt, vehicle); });
         vehicle.pilePos = worldBuilder.dirtPileGroup.position;
         if (!vehicle.truckPos) vehicle.truckPos = new THREE.Vector3();
         vehicle.truckPos.copy(worldBuilder.truckGroup.position).add(_truckOff);
@@ -1188,10 +1399,33 @@ function animate() {
         renderFrame();
     }
 }
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
-    if (composer) composer.setSize(window.innerWidth, window.innerHeight);
-});
+function onViewportChange() {
+    const w = window.innerWidth, h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    if (composer) composer.setSize(w, h);
+    safe(() => { if (ui) ui.refresh(); });
+}
+window.addEventListener('resize', onViewportChange);
+window.addEventListener('orientationchange', () => setTimeout(onViewportChange, 120));
+if (window.visualViewport) window.visualViewport.addEventListener('resize', onViewportChange);
+
+// QA helpers (F12 console). __speedInfo() shows the real cap for the current save.
+window.__speedInfo = function () {
+    const mult = vehicle ? vehicle.engineMultiplier : 1;
+    return { engineLevel: saveData.engineLevel || 1, multiplier: mult,
+        forwardCapKmh: Math.min(32 + (mult - 1) * 10, 60),
+        reverseCapKmh: Math.min(14 + (mult - 1) * 2, 28),
+        shownKmh: vehicle ? vehicle.currentSpeed : 0,
+        signedKmh: vehicle ? vehicle.signedSpeedKmh : 0 };
+};
+window.__tfState = function () {
+    return { gameState: gameState, uiPaused: uiPaused, modalOpen: modalOpen,
+        job: currentJob, timerRunning: !!(jm && jm.state && jm.state.running),
+        camera: cameraManager.currentMode, zoom: cameraManager.zoom,
+        startPose: currentStartPose, site: rawSite };
+};
 animate();
 
 
