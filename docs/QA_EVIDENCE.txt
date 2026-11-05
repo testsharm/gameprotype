@@ -1,0 +1,323 @@
+=== TerraForm 3D - FINAL QA EVIDENCE (2026-11-05) ===
+All checks are Node / static / CSS-model. NO browser, NO real click/touch, NO screenshot.
+
+--- npx vite build ---
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vite.config.js:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 36 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     2.63 kB │ gzip:     1.39 kB
+dist/assets/index-DhS-XgVX.js     965.09 kB │ gzip:   262.53 kB
+dist/assets/rapier-BGwT7w05.js  4,335.49 kB │ gzip: 1,670.42 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 582ms
+
+--- dist size / file count ---
+5.1M	dist
+3
+index-DhS-XgVX.js 965094 bytes
+index.html 2632 bytes
+rapier-BGwT7w05.js 4335495 bytes
+
+--- node scripts/ui-audit.mjs ---
+OK   every GameUI id reference resolves  26 refs
+OK   no duplicate ids  []
+OK   every UI action has a handler  23 actions
+OK   all SVG icon names exist  []
+OK   pointer release path: pointerup
+OK   pointer release path: pointercancel
+OK   pointer release path: lostpointercapture
+OK   pointer release path: blur
+OK   pointer release path: visibilitychange
+OK   no fake keyboard events
+OK   portrait mission card 52px
+OK   portrait minimap 88px
+OK   portrait icon stack at y=224
+OK   portrait Drive 150px on right
+OK   portrait Action 92px on left
+OK   landscape 844x390 query
+OK   portrait phone query
+OK   safe-area insets
+OK   left-handed swap
+OK   no rotate overlay
+OK   icon stack buttons >= 48px in all layouts  [52,48,48]
+OK   window kind built: pause
+OK   window kind built: settings
+OK   window kind built: help
+OK   window kind built: levels
+OK   window kind built: garage
+OK   window kind built: result
+OK   window kind built: fail
+OK   window kind built: confirm
+OK   window kind built: map
+OK   every window has a round red X
+OK   backdrop tap closes the window
+OK   HELP pages <= 8 words  ["Drive with W A S D.","Press F at the dirt pile.","Press F over the truck.","Finish fast for 3 stars."]
+OK   GameUI method: setScreen
+OK   GameUI method: setStartInfo
+OK   GameUI method: setJob
+OK   GameUI method: setTimer
+OK   GameUI method: setCoins
+OK   GameUI method: setSpeed
+OK   GameUI method: setHint
+OK   GameUI method: setMenuDot
+OK   GameUI method: toast
+OK   GameUI method: announce
+OK   GameUI method: showLocked
+OK   GameUI method: refresh
+OK   GameUI method: reset
+OK   GameUI method: toggleMenu
+OK   GameUI method: openMenu
+OK   GameUI method: closeMenu
+OK   GameUI method: isMenuOpen
+OK   GameUI method: isMenuScreen
+OK   GameUI method: showModal
+OK   GameUI method: hideModal
+OK   GameUI method: confirm
+OK   GameUI method: setMuted
+OK   GameUI method: setKey
+OK   GameUI method: setBig
+OK   GameUI method: setLefty
+OK   GameUI method: showResult
+OK   GameUI method: showFail
+OK   GameUI method: showPicker
+OK   GameUI method: showGarage
+OK   GameUI method: showMap
+OK   GameUI method: releaseAll
+OK   GameUI method: setTouch
+OK   Ads uses the documented requestAd API
+OK   Ads handles all 3 callbacks
+OK   Ads is a no-op when SDK is missing
+
+UI AUDIT: PASS
+
+--- node scripts/ui-runtime-check.mjs ---
+
+--- BUTTON / CONTROL REPORT (headless DOM, not a real browser) ---
+SCREEN       ACTION                       RESULT   DETAIL
+start        sound                        PASS     unlock|sound
+start        play                         PASS     unlock|play
+start        levels                       PASS     unlock|levels
+start        garage                       PASS     unlock|garage
+start        settings                     PASS     unlock|settings
+start        help                         PASS     unlock|help
+start        freeplay                     PASS     unlock|freeplay
+hud          camera                       PASS     unlock|camera
+hud          sound                        PASS     unlock|sound
+hud          zoomIn                       PASS     unlock|zoomIn
+hud          zoomOut                      PASS     unlock|zoomOut
+hud          tf-pause                     PASS     unlock|pause
+hud          tf-mini                      PASS     unlock|map
+pause        close                        PASS     unlock|window-close:pause
+pause        close                        PASS     unlock
+pause        resume                       PASS     unlock|resume
+pause        restart                      PASS     unlock|restart
+pause        levels                       PASS     unlock|levels
+pause        garage                       PASS     unlock|garage
+pause        settings                     PASS     unlock|settings
+pause        home                         PASS     unlock|home
+settings     setting                      PASS     unlock|setting:{"key":"mute","value":1}
+settings     setting                      PASS     unlock|setting:{"key":"quality","value":"low"}
+settings     setting                      PASS     unlock|setting:{"key":"quality","value":"medium"}
+settings     setting                      PASS     unlock|setting:{"key":"quality","value":"high"}
+settings     setting                      PASS     unlock|setting:{"key":"big","value":1}
+settings     setting                      PASS     unlock|setting:{"key":"lefty","value":1}
+settings     setting                      PASS     unlock|setting:{"key":"guide","value":0}
+help         help-back                    PASS     unlock
+help         help-next                    PASS     unlock
+levels       chapter                      PASS     unlock
+levels       chapter                      PASS     unlock
+levels       chapter                      PASS     unlock
+levels       select                       PASS     unlock
+levels       select                       PASS     unlock
+levels       select                       PASS     unlock
+levels       select                       PASS     unlock
+levels       select                       PASS     unlock
+levels       start                        PASS     unlock|start:1
+garage       buy                          PASS     unlock|buy:engine
+garage       buy                          PASS     unlock|buy:hydraulic
+garage       buy                          PASS     unlock|buy:bucket
+garage       buy                          PASS     unlock|buy:tyres
+garage       buy                          PASS     unlock|buy:beacon
+garage       paint                        PASS     unlock|paint:0
+garage       paint                        PASS     unlock|paint:1
+garage       paint                        PASS     unlock|paint:2
+garage       paint                        PASS     unlock|paint:3
+garage       paint                        PASS     unlock|paint:4
+garage       paint                        PASS     unlock|paint:5
+result       retry                        PASS     unlock|retry
+result       next                         PASS     unlock|next
+fail         levels                       PASS     unlock|levels
+fail         retry                        PASS     unlock|retry
+confirm      confirm-yes                  PASS     unlock|window-close:confirm
+settings     slider:master                PASS     setting:{"key":"master","value":0.55}
+settings     slider:music                 PASS     setting:{"key":"music","value":0.55}
+settings     slider:effects               PASS     setting:{"key":"effects","value":0.55}
+hold         KeyW                         PASS     KeyW:true:|KeyW:false:
+hold         KeyA                         PASS     KeyA:true:|KeyA:false:
+hold         KeyS                         PASS     KeyS:true:|KeyS:false:
+hold         KeyD                         PASS     KeyD:true:|KeyD:false:
+hold         Space                        PASS     Space:true:|Space:false:
+tap          KeyC                         PASS     KeyC
+hold         KeyF                         PASS     KeyF:true:|KeyF:false:
+method       setActionProgress            PASS     50% ring
+key          KeyW keydown                 PASS     main.js -> ui.setKey
+key          KeyW keyup                   PASS     held cleared
+method       setJob                       PASS     
+method       setTimer                     PASS     
+method       setCoins                     PASS     
+method       setSpeed                     PASS     
+method       setHint                      PASS     
+method       setMenuDot                   PASS     
+method       toast                        PASS     
+method       announce                     PASS     
+method       showLocked                   PASS     
+method       refresh                      PASS     
+method       reset                        PASS     
+method       setMuted                     PASS     
+method       setBig                       PASS     
+method       setLefty                     PASS     
+method       setActionProgress            PASS     
+method       releaseAll                   PASS     
+
+84 controls exercised, 0 failures, 0 runtime errors
+
+UI RUNTIME CHECK: PASS
+
+--- node scripts/layout-check.mjs ---
+TIER 2 LAYOUT MODEL (CSS geometry, NOT a browser screenshot)
+
+VIEWPORT     BOXES  OVERLAPS  OFFSCREEN  TARGETS<48  CLIPPED TEXT
+1920x1080    8      0         0          0           0
+   mission text width 474px | min font 16px
+1280x720     8      0         0          0           0
+   mission text width 354px | min font 16px
+844x390      10     0         0          0           0
+   mission text width 214px | min font 14px
+440x956      10     0         0          0           0
+   mission text width 330px | min font 14px
+390x844      10     0         0          0           0
+   mission text width 280px | min font 14px
+
+exact CSS tokens: 6/6
+
+TIER 2 LAYOUT MODEL: PASS
+
+--- node scripts/tier1-check.mjs ---
+--- B2: objects visible from frame 0 ---
+goals = 3 | pile.visible = true | truck.visible = true | yard.visible = true
+--- B1 / B3: exactly 3 scoops + 3 dumps ---
+load 1: scoop count=false (must be false) | clods=37
+load 1: dump  count=true (must be true)  | resets=2 | clods=45
+load 2: scoop count=false (must be false) | clods=37
+load 2: dump  count=true (must be true)  | resets=3 | clods=45
+load 3: scoop count=false (must be false) | clods=37
+load 3: dump  count=true (must be true)  | resets=3 | clods=37
+counts = 3 | scoops = 3 | dumps = 3 | finished = true | min clods = 37
+--- B1: RUSH trucks expiring is a MISS ---
+rush trucks = 3 | misses = 3 | delivered = 0 | finished = false
+TIER 1 CHECK: PASS
+
+--- node scripts/level-walk.mjs ---
+TIER 5 - 15 LEVEL WALK (Node harness, no browser)
+
+ID  NAME                 TYPE   CH  SKY      CITY(x,z)      GOALS  FIRST   RULE
+--- -------------------- ------ -- -------- -------------- ------ ------- ----------------------------------------
+1   First Scoop           HAUL   1  morning  120,0          3      haul    OK   Learn the machine: scoop, drive, dump.
+2   Cone School           CONE   1  day      0,150          5      gate    OK   Drive through 5 gates in order. Do not hit
+3   Fill the Pothole      FILL   1  morning  0,-185         3      fill    OK   Dump into the hole. The mound grows with e
+4   Park Clean-up         HAUL   1  day      145,145        4      haul    OK   Four loads, narrow park paths.
+5   Rush Hour Lite        RUSH   1  dusk     -165,0         3      rush    OK   Three trucks wait in three lanes. A truck 
+6   Dig the Trench        TRENCH 2  dusk     215,0          4      trench  OK   Dig 4 marked trench sections in order.
+7   Pipe Layer            MOVE   2  day      -134,134       3      move    OK   Carry 3 pipes. No real physics: they snap 
+8   Night Shift           HAUL   2  night    -113,-113      5      haul    OK   Five loads at night, with work lights.
+9   Bridge Repair         FILL   2  dawn     141,-141       5      fill    OK   Five deck holes, one mound per hole.
+10  Night Rush            RUSH   2  night    0,230          5      rush    OK   Five night trucks, crossing traffic and a 
+11  Storm Clean-up        CLEAR  3  storm    0,-240         6      debris  OK   Clear 6 debris piles in heavy rain.
+12  Foundation Dig        TRENCH 3  dawn     250,0          6      trench  OK   Six deep foundation boxes in order.
+13  Crane Support         MOVE   3  day      173,173        4      move    OK   Carry 4 crates to the crane pad.
+14  Skill Course          CONE   3  day      -200,0         8      gate    OK   8 gates. Gate 3 has a low beam: keep the b
+15  Mega Project          MIX    3  golden   260,0          8      haul    OK   Three phases in one job: haul, checkpoints
+
+ID  START(x,z)   YAW   THEME                  WALKED  STATUS
+1   92,7          111   Rookie Yard             3/3     PASS
+2   -24,138       18    Training course         5/5     PASS
+3   -32,-176      112   Road repair             3/3     PASS
+4   109,137       73    Landslide               4/4     PASS
+5   -191,11       107   Chapter boss            3/3     PASS
+6   185,-13       23    Utility work            4/4     PASS
+7   -162,146      124   Pipe yard               3/3     PASS
+8   -147,-123     67    Dark city               5/5     PASS
+9   110,-133      111   Bridge deck             5/5     PASS
+10  -27,219       73    Chapter boss            5/5     PASS
+11  -35,-227      101   Storm damage            6/6     PASS
+12  221,-9        25    Deep foundation         6/6     PASS
+13  140,183       113   Heavy lift              4/4     PASS
+14  -225,-12      39    Precision test          8/8     PASS
+15  223,8         107   Final boss              8/8     PASS
+
+levels=15 types=8 skies=7 distinct starts=15 failures=0
+TIER 5 LEVEL WALK: PASS
+
+--- node scripts/garage-check.mjs ---
+OK   6 upgrade cards  ["engine","hydraulic","bucket","tyres","light","beacon"]
+OK   6 distinct upgrade keys
+OK   prices 100 / 250 / 500 / 900  [100,250,500,900]
+OK   6 paint swatches
+OK   paint really changes the machine material
+OK   Vehicle.setPaint exists
+OK   old saves migrate to 6 upgrades
+OK   uses the existing save key
+OK   garage renders the real number of pips
+OK   MAX is a small badge with CSS, not a big empty box
+OK   buy button green if affordable, grey if not
+
+upgrade steps    : 4 | level 5 | spent 1750 | coins left 3250
+OK   four paid steps reach level 5
+
+TIER 6 GARAGE CHECK: PASS
+
+--- node scripts/park-check.mjs ---
+TIER 7 - STUNT PARK (Node harness, no browser)
+
+center            : 0 620
+size              : 160 x 160 m
+meshes / draw est : 32 / 32
+fixed colliders   : 8 | bodies 8
+ramps             : 6  | hill 1 | turntable 1 | dig clods 22
+cones             : 12
+coin rings        : 8 | taken 8
+jump pads         : 3
+coin reward       : 120 from 8 rings | cap 300 | last ring gave 5
+best air time     : 0.00 s
+
+TIER 7 PARK CHECK: PASS
+
+--- node scripts/ads-check.mjs ---
+OK   SDK missing: rewarded button stays hidden
+OK   SDK missing: no ad, no pause, no mute, no reward  []
+OK   SDK missing: midgame never fires
+OK   SDK: requestAd("midgame", callbacks) resolves true
+OK   adStarted pause+mute, adFinished reward+restore  mtrue,ptrue,reward,mfalse,pfalse
+[ads] rewarded unfilled
+OK   adError restores and gives no reward
+OK   SDK present: rewarded button can show
+OK   midgame blocked in the first 120 s
+OK   midgame allowed after 120 s
+OK   midgame blocked inside the 180 s cooldown
+OK   ?fakeads makes ads available without the portal
+OK   fake rewarded ad grants the chosen reward
+OK   fake ad pauses/mutes, restores, then grants  mtrue,ptrue,mfalse,pfalse,reward
+OK   fake ad overlay is removed
+
+TIER 9 ADS CHECK: PASS
+

@@ -1,5 +1,32 @@
 # FILE MAP - TerraForm 3D (depth summary of every file)
 
+## LATEST (2026-11-05, FINAL PRODUCT PUSH) - new / changed files
+
+| File | Role |
+| --- | --- |
+| `src/main.js` | glue: GameUI opts (`hold/tap/action/state/data/unlock`), `uiData()`, `handleUiAction`, 3 s hold action, 6 upgrades + paint, Ads, StuntPark, `mapData()`, traffic player pos. |
+| `src/ui/GameUI.js` | HUD v7: exact portrait / landscape / desktop CSS, pointer controls, Menus integration, `setKey/setBig/setLefty/setActionProgress`. |
+| `src/ui/Menus.js` | NEW: one window layer - start, pause, settings, help, levels, garage, result, fail, confirm, big map. Code-made SVG/CSS only. |
+| `src/gameplay/Jobs.js` | economy + site finder only. Old `JobPanels` window system deleted (296 lines). |
+| `src/gameplay/Levels.js` | 15 levels + LevelEngine + verbs + boss truck + RUSH miss fix. |
+| `src/gameplay/Guidance.js` | ring + bobbing chevron + near fade + guide-arrows toggle. |
+| `src/gameplay/StuntPark.js` | NEW: TIER 7 free-play park (32 meshes, 8 colliders). |
+| `src/core/Ads.js` | NEW: safe CrazyGames v3 video-ad wrapper + `?fakeads`. |
+| `src/core/Audio.js` | `setVolumes/getVolumes/setAdMuted`, one AudioContext. |
+| `src/core/World.js` | traffic slows/stops for machine; water/park block flags. |
+| `src/vehicle/Vehicle.js` | `setPaint`, 6 upgrade effects, body roll, light smoke, `backhoe` naming. |
+| `index.html` | SDK v3 script, loading screen, `#tf-hold` minimap canvas, focus script. Old pause overlay removed. |
+| `scripts/*.mjs` | Node-only checks: tier1, ui-audit, ui-runtime, layout, level-walk, garage, park, ads. |
+| `src/docs/RESEARCH_UI.md` | <=10 min official SDK/MDN research notes. |
+| `src/docs/UI_SPEC.md` | exact HUD boxes as built. |
+| `docs/DEPTH_REPORT.md` | every button, score, evidence, NOT VERIFIED list, top 10 improvements. |
+| `docs/screenshots/` | empty on purpose (no browser); see README.md. |
+
+Internal `jcb` names are GONE from code (`this.mode = 'backhoe'`, `backhoeGroup`).
+Never show the brand "JCB" to players. Old docs below mention the old names historically.
+
+---
+
 Written 2026-11-05 at the end of a very long chat. A new AI must read this after CONTINUE.md and STATE.md.
 Rule: this map comes from memory of the previous chat. Where it says "not read in detail", ASK the user for that ONE file before you edit it. Never guess file text.
 
