@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>TerraForm 3D</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2318212f'/%3E%3Cpath d='M6 22h14l4-8h-8l-2-5H8z' fill='%23fbbf24'/%3E%3C/svg%3E">
-<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+<script data-crazygames-sdk="1" src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 <style>
-html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0f141c;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0f141c;-webkit-tap-highlight-color:transparent;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+/* Scroll / zoom / text selection are locked only while playing or holding a
+   control (see GameUI.js .tf-playing / .tf-holding). Menus stay usable. */
 #game-container{position:fixed;left:0;top:0;width:100vw;height:100vh;display:block}
 
 /* loading screen */

@@ -231,6 +231,16 @@ export class JobSystem {
   }
   lastPlayed() { return this.get(this.save.last) ? this.save.last : 1; }
 
+  // Show a level on the start screen WITHOUT starting its clock.
+  // freshState() leaves running=false, so addLoad()/update() cannot advance it.
+  prepare(id) {
+    const j = this.get(id) || JOBS[0];
+    this.current = j;
+    this.state = freshState(j);
+    this._sec = -1;
+    return j;
+  }
+
   start(id) {
     const j = this.get(id) || JOBS[0];
     this.current = j;

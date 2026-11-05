@@ -25,15 +25,36 @@ const H = (scoop, dump) => ({ scoop, dump });
 const S = (bearing, dist, spread, gap) => ({ bearing, dist, spread, gap });
 
 // steps = the ordered goals. Each goal is ONE load in JobSystem.
-// kinds: haul | fill | move | gate | trench | debris
+// kinds: haul | fill | move | gate | trench | debris | rush
 // 'move' means: pick up a pipe / crate, then place it on the marked pad.
 // 'trench' and 'debris' count on the SCOOP (the following dump is just clearing the bucket).
 // 'gate' counts when the machine drives through the amber gate in order.
+// One explicit, safe start pose per level. Positions are relative to the
+// actual free site found by JobSystem, so no machine can spawn inside a prop.
+// 'face' points the machine at its first task; 'cam' is the chase distance.
+export function levelStartPose(job, site, firstGoal) {
+  const s = job && job.start ? job.start : { back: 20, side: 8, face: 'pile', cam: 12 };
+  const dx = site.truck.x - site.pile.x, dz = site.truck.z - site.pile.z;
+  const L = Math.hypot(dx, dz) || 1;
+  const ux = dx / L, uz = dz / L, vx = -uz, vz = ux;
+  const x = site.pile.x - ux * s.back + vx * s.side;
+  const z = site.pile.z - uz * s.back + vz * s.side;
+  let tx = site.pile.x, tz = site.pile.z;
+  if (s.face === 'truck') { tx = site.truck.x; tz = site.truck.z; }
+  else if (s.face === 'first' && firstGoal) { tx = firstGoal.x; tz = firstGoal.z; }
+  const yaw = Math.atan2(tx - x, tz - z);
+  return {
+    x: x, y: 1.2, z: z, yaw: yaw, cam: s.cam,
+    quat: { x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) }
+  };
+}
+
 export const LEVELS = [
   {
     id: 1, name: 'First Scoop', chapter: 1, type: 'HAUL', theme: 'Rookie Yard',
     story: 'A storm dumped dirt across the highway. Clear it before rush hour.',
     steps: [{ kind: 'haul', n: 3 }], loads: 3, time: 180, reward: 150, tutorial: true,
+    start: { back: 18, side: 7, face: 'pile', cam: 12 },
     needs: {}, bonus: { text: 'No missed dumps', coins: 40 }, env: MORNING,
     site: { keep: true }, dressing: 'yard',
     scoopText: 'Scoop dirt from the pile', dumpText: 'Dump it in the blue truck',
@@ -44,6 +65,7 @@ export const LEVELS = [
     id: 2, name: 'Cone School', chapter: 1, type: 'CONE', theme: 'Training course',
     story: 'No digging today. Thread the backhoe through five cone gates without knocking them over.',
     steps: [{ kind: 'gate', n: 5 }], loads: 5, time: 190, reward: 220,
+    start: { back: 14, side: -12, face: 'first', cam: 13 },
     needs: { job: 1 }, bonus: { text: 'No cones knocked over', coins: 50 }, env: DAY,
     site: S(90, 150, 60, 24), dressing: 'course', gates: { width: 4.6, slalom: 7 },
     scoopText: 'Drive through the amber gates', dumpText: 'Drive through the amber gates',
@@ -54,6 +76,7 @@ export const LEVELS = [
     id: 3, name: 'Fill the Pothole', chapter: 1, type: 'FILL', theme: 'Road repair',
     story: 'Rain broke the road. Fill the pothole with three loads of soil - no truck this time.',
     steps: [{ kind: 'fill', n: 3 }], loads: 3, time: 200, reward: 260,
+    start: { back: 22, side: 9, face: 'pile', cam: 12 },
     needs: { job: 2 }, bonus: { text: 'Every load landed in the hole', coins: 50 }, env: MORNING,
     site: S(270, 185, 55, 20), dressing: 'road',
     scoopText: 'Scoop soil from the pile', dumpText: 'Tip it into the marked pothole',
@@ -64,6 +87,7 @@ export const LEVELS = [
     id: 4, name: 'Park Clean-up', chapter: 1, type: 'HAUL', theme: 'Landslide',
     story: 'A landslide buried the park paths. Move the dirt out, load by load.',
     steps: [{ kind: 'haul', n: 4 }], loads: 4, time: 230, reward: 300,
+    start: { back: 26, side: -8, face: 'pile', cam: 14 },
     needs: { job: 3 }, bonus: { text: 'No missed dumps', coins: 60 }, env: DAY,
     site: S(45, 205, 50, 26), dressing: 'park',
     scoopText: 'Scoop the landslide dirt', dumpText: 'Dump it in the park truck',
@@ -72,23 +96,20 @@ export const LEVELS = [
   },
   {
     id: 5, name: 'Rush Hour Lite', chapter: 1, type: 'RUSH', theme: 'Chapter boss',
-    story: 'Traffic is building. Hit each checkpoint, then deliver a load. Keep the combo alive.',
-    steps: [
-      { kind: 'gate', n: 1 }, { kind: 'haul', n: 1 },
-      { kind: 'gate', n: 1 }, { kind: 'haul', n: 1 },
-      { kind: 'gate', n: 1 }, { kind: 'haul', n: 1 },
-      { kind: 'gate', n: 1 }, { kind: 'haul', n: 1 }
-    ], loads: 8, time: 260, reward: 380,
-    needs: { job: 4 }, bonus: { text: 'Combo x3 or better', coins: 90 }, env: DUSK,
-    site: S(180, 165, 55, 26), dressing: 'city', gates: { width: 5.2, slalom: 9 }, rush: true,
-    scoopText: 'Scoop after the checkpoint', dumpText: 'Dump in the truck',
-    hints: H('Checkpoint first, then scoop. Fast chain = combo.', 'Deliver, then find the next amber checkpoint.'),
-    rule: 'Checkpoint, load, checkpoint, load. Fast chains build a combo.'
+    story: 'Three trucks are queued in the loading lanes. Load each one before its waiting timer runs out.',
+    steps: [{ kind: 'rush', n: 3 }], loads: 3, time: 240, reward: 380,
+    start: { back: 16, side: 11, face: 'truck', cam: 13 },
+    needs: { job: 4 }, bonus: { text: 'No missed truck', coins: 90 }, env: DUSK,
+    site: S(180, 165, 55, 26), dressing: 'city', rush: true, trucks: 3, truckWait: 48,
+    scoopText: 'Scoop dirt from the pile', dumpText: 'Dump in the waiting truck',
+    hints: H('Drive to the highlighted dirt pile and scoop.', 'Load the glowing truck before its timer ring runs out.'),
+    rule: 'Three trucks wait in three lanes. A truck drives away if its timer expires.'
   },
   {
     id: 6, name: 'Dig the Trench', chapter: 2, type: 'TRENCH', theme: 'Utility work',
     story: 'Four trench sections must be opened before the pipes arrive. Dig each marked section in order.',
     steps: [{ kind: 'trench', n: 4 }], loads: 4, time: 260, reward: 450,
+    start: { back: 20, side: -13, face: 'first', cam: 12 },
     needs: { job: 5 }, bonus: { text: 'Every trench dug on the first pass', coins: 70 }, env: DUSK,
     site: S(0, 215, 50, 26), dressing: 'trench',
     scoopText: 'Dig the marked trench', dumpText: 'Empty the bucket in the truck',
@@ -99,6 +120,7 @@ export const LEVELS = [
     id: 7, name: 'Pipe Layer', chapter: 2, type: 'MOVE', theme: 'Pipe yard',
     story: 'Carry three steel pipes from the rack to the marked pad. They ride in the bucket.',
     steps: [{ kind: 'move', n: 3 }], loads: 3, time: 270, reward: 500,
+    start: { back: 18, side: 12, face: 'pile', cam: 12 },
     needs: { job: 6 }, bonus: { text: 'No pipe dropped', coins: 80 }, env: DAY,
     site: S(135, 190, 55, 24), dressing: 'pipes',
     scoopText: 'Pick up a pipe from the rack', dumpText: 'Place the pipe on the pad',
@@ -109,6 +131,7 @@ export const LEVELS = [
     id: 8, name: 'Night Shift', chapter: 2, type: 'HAUL', theme: 'Dark city',
     story: 'The city sleeps. Work lights on, five loads to move before dawn.',
     steps: [{ kind: 'haul', n: 5 }], loads: 5, time: 250, reward: 560,
+    start: { back: 24, side: -10, face: 'pile', cam: 14 },
     needs: { job: 7 }, bonus: { text: 'No missed dumps', coins: 90 }, env: NIGHT,
     site: S(225, 160, 55, 24), dressing: 'night',
     scoopText: 'Scoop dirt in the dark', dumpText: 'Dump it in the truck',
@@ -119,6 +142,7 @@ export const LEVELS = [
     id: 9, name: 'Bridge Repair', chapter: 2, type: 'FILL', theme: 'Bridge deck',
     story: 'The bridge approach is cracked. Fill five deck holes with fresh soil.',
     steps: [{ kind: 'fill', n: 5 }], loads: 5, time: 300, reward: 620,
+    start: { back: 21, side: 8, face: 'pile', cam: 12 },
     needs: { job: 8 }, bonus: { text: 'Every load landed in a hole', coins: 100 }, env: DAWN,
     site: S(315, 200, 55, 26), dressing: 'bridge',
     scoopText: 'Scoop soil for the deck', dumpText: 'Tip it into the deck hole',
@@ -127,22 +151,21 @@ export const LEVELS = [
   },
   {
     id: 10, name: 'Night Rush', chapter: 2, type: 'RUSH', theme: 'Chapter boss',
-    story: 'Midnight, five checkpoints, five loads. Keep the combo and beat the clock.',
-    steps: [
-      { kind: 'gate', n: 1 }, { kind: 'haul', n: 1 }, { kind: 'gate', n: 1 }, { kind: 'haul', n: 1 },
-      { kind: 'gate', n: 1 }, { kind: 'haul', n: 1 }, { kind: 'gate', n: 1 }, { kind: 'haul', n: 1 },
-      { kind: 'gate', n: 1 }, { kind: 'haul', n: 1 }
-    ], loads: 10, time: 300, reward: 700,
-    needs: { job: 9 }, bonus: { text: 'Combo x3 or better', coins: 120 }, env: NIGHT,
-    site: S(90, 230, 50, 28), dressing: 'night', gates: { width: 5.0, slalom: 9 }, rush: true,
-    scoopText: 'Scoop after the checkpoint', dumpText: 'Dump in the truck',
-    hints: H('Checkpoint first, then scoop. The combo timer is short.', 'Deliver and look for the next amber gate.'),
-    rule: 'Checkpoint / load chain at night.'
+    story: 'Midnight shift. Five trucks, five loads, and crossing traffic on the night lane.',
+    steps: [{ kind: 'rush', n: 5 }], loads: 5, time: 300, reward: 700,
+    start: { back: 17, side: -11, face: 'truck', cam: 13 },
+    needs: { job: 9 }, bonus: { text: 'No missed truck', coins: 120 }, env: NIGHT,
+    site: S(90, 230, 50, 28), dressing: 'night', rush: true, trucks: 5, truckWait: 42,
+    crossTraffic: true,
+    scoopText: 'Scoop dirt from the pile', dumpText: 'Dump in the waiting truck',
+    hints: H('Scoop at the pile, then watch the crossing car.', 'Load the glowing night truck before its ring runs out.'),
+    rule: 'Five night trucks, crossing traffic and a red danger strip. A missed truck drives away.'
   },
   {
     id: 11, name: 'Storm Clean-up', chapter: 3, type: 'CLEAR', theme: 'Storm damage',
     story: 'Six debris piles block the rescue route. Clear them all in the rain.',
     steps: [{ kind: 'debris', n: 6 }], loads: 6, time: 320, reward: 780,
+    start: { back: 25, side: 13, face: 'first', cam: 14 },
     needs: { job: 10 }, bonus: { text: 'Every pile cleared on the first pass', coins: 130 }, env: STORM,
     site: S(270, 240, 50, 28), dressing: 'storm',
     scoopText: 'Clear the marked debris pile', dumpText: 'Empty the bucket in the truck',
@@ -153,6 +176,7 @@ export const LEVELS = [
     id: 12, name: 'Foundation Dig', chapter: 3, type: 'TRENCH', theme: 'Deep foundation',
     story: 'A tower starts here. Open six foundation boxes in the soft morning light.',
     steps: [{ kind: 'trench', n: 6 }], loads: 6, time: 340, reward: 860,
+    start: { back: 19, side: -9, face: 'first', cam: 12 },
     needs: { job: 11 }, bonus: { text: 'Every box dug on the first pass', coins: 140 }, env: DAWN,
     site: S(0, 250, 50, 28), dressing: 'trench',
     scoopText: 'Dig the marked foundation box', dumpText: 'Empty the bucket in the truck',
@@ -163,6 +187,7 @@ export const LEVELS = [
     id: 13, name: 'Crane Support', chapter: 3, type: 'MOVE', theme: 'Heavy lift',
     story: 'Four crates must reach the crane pad. Carry them one at a time in the bucket.',
     steps: [{ kind: 'move', n: 4 }], loads: 4, time: 350, reward: 940,
+    start: { back: 23, side: 10, face: 'pile', cam: 13 },
     needs: { job: 12 }, bonus: { text: 'No crate dropped', coins: 150 }, env: DAY,
     site: S(45, 245, 50, 28), dressing: 'crane',
     scoopText: 'Pick up a crate', dumpText: 'Stack the crate on the crane pad',
@@ -173,6 +198,7 @@ export const LEVELS = [
     id: 14, name: 'Skill Course', chapter: 3, type: 'CONE', theme: 'Precision test',
     story: 'Eight gates, one low beam. Lower the bucket to pass under it. Precision, not speed.',
     steps: [{ kind: 'gate', n: 8 }], loads: 8, time: 300, reward: 1000,
+    start: { back: 15, side: -12, face: 'first', cam: 12 },
     needs: { job: 13 }, bonus: { text: 'No cones knocked over', coins: 160 }, env: DAY,
     site: S(180, 200, 50, 30), dressing: 'course', gates: { width: 4.2, slalom: 10 }, beam: 3,
     scoopText: 'Drive through the gates', dumpText: 'Drive through the gates',
@@ -185,6 +211,7 @@ export const LEVELS = [
     steps: [
       { kind: 'haul', n: 3 }, { kind: 'gate', n: 3 }, { kind: 'fill', n: 2 }
     ], loads: 8, time: 420, reward: 1400,
+    start: { back: 27, side: 8, face: 'pile', cam: 15 },
     needs: { job: 14 }, bonus: { text: 'Full combo, no misses', coins: 250 }, env: GOLDEN,
     site: S(0, 260, 45, 30), dressing: 'mega', gates: { width: 5.0, slalom: 8 }, rush: true,
     scoopText: 'Scoop for the final project', dumpText: 'Dump where the arrow points',
@@ -227,6 +254,8 @@ export class LevelEngine {
     this.hole = null;
     this.pipesOnPad = [];
     this.rack = [];
+    this.rushTarget = null;      // active waiting truck (RUSH levels)
+    this.crossCar = null;        // night crossing traffic (L10, visual)
     this._mats = new Map();
     this._t = 0;
     this._prevSide = new Map();
@@ -295,6 +324,9 @@ export class LevelEngine {
     this.finished = false;
     this._t = 0;
     this._prevSide.clear();
+    this._rushLeave = [];
+    this.rushTarget = null;
+    this.crossCar = null;
     this._buildGoals();
     this._buildMarker();
     this._setup(0);
@@ -312,12 +344,20 @@ export class LevelEngine {
       });
       this.group = null;
     }
+    // Free the small code-made countdown / lane textures before the goals are cleared.
+    for (const q of this.goals) {
+      const ud = q.mesh && q.mesh.userData;
+      if (ud && ud.count && ud.count.tex) { try { ud.count.tex.dispose(); } catch (e) {} }
+    }
     if (this.world && this.world.truckGroup) this.world.truckGroup.visible = true;
     if (this.world && this.world.dirtPileGroup) this.world.dirtPileGroup.visible = true;
     if (this.hooks.truckSolid) this.hooks.truckSolid(false);
     this.hole = null;
     this.pipesOnPad = [];
     this.rack = [];
+    this.rushTarget = null;
+    this.crossCar = null;
+    this._rushLeave = [];
     this.goals = [];
     this.marker = null;
   }
@@ -337,8 +377,9 @@ export class LevelEngine {
   }
   _buildGoals() {
     const job = this.job, d = this._dir();
-    let gateN = 0, spotN = 0, fillN = 0, moveN = 0, haulN = 0;
+    let gateN = 0, spotN = 0, fillN = 0, moveN = 0, haulN = 0, rushN = 0;
     const gateCount = job.steps.filter(s => s.kind === 'gate').reduce((a, s) => a + s.n, 0);
+    const rushCount = job.steps.filter(s => s.kind === 'rush').reduce((a, s) => a + s.n, 0);
     const spotCount = job.steps.filter(s => s.kind === 'trench' || s.kind === 'debris').reduce((a, s) => a + s.n, 0);
     const gw = (job.gates && job.gates.width) || 4.8;
     const slalom = (job.gates && job.gates.slalom) || 8;
@@ -372,6 +413,14 @@ export class LevelEngine {
           moveN++;
           g.x = this.site.truck.x; g.z = this.site.truck.z;
           if (this.pipesOnPad.length === 0 && this.rack.length === 0) this._buildMoveProps(job);
+        } else if (step.kind === 'rush') {
+          const i = rushN++;
+          const p = this._at(d.len + 7, (i - (rushCount - 1) / 2) * 9.5);
+          g.x = p.x; g.z = p.z;
+          g.lane = i + 1;
+          g.waitMax = job.truckWait || 45;
+          g.wait = g.waitMax;
+          g.mesh = this._buildRushTruck(g, i + 1, rushCount);
         } else {
           haulN++;
           g.x = this.site.truck.x; g.z = this.site.truck.z;
@@ -379,6 +428,155 @@ export class LevelEngine {
         this.goals.push(g);
       }
     }
+  }
+
+
+  // ---- RUSH: three (or five) waiting trucks, each with a countdown ring ----
+  _textCanvas(text, w, h, bg, fg) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.fillStyle = bg;
+    g.beginPath();
+    g.roundRect ? g.roundRect(2, 2, w - 4, h - 4, 14) : g.fillRect(2, 2, w - 4, h - 4);
+    g.fill();
+    g.fillStyle = fg;
+    g.font = 'bold ' + Math.round(h * 0.56) + 'px system-ui, sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(text, w / 2, h / 2 + 2);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.magFilter = THREE.LinearFilter;
+    t.generateMipmaps = true;
+    t.anisotropy = 8;
+    return { canvas: c, ctx: g, tex: t };
+  }
+
+  _buildRushTruck(g, num, total) {
+    const d = this._dir();
+    const grp = new THREE.Group();
+    grp.position.set(g.x, 0, g.z);
+    grp.rotation.y = Math.atan2(d.ux, d.uz);
+    this.group.add(grp);
+    const add = (geo, mat, x, y, z) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z);
+      m.castShadow = true; m.receiveShadow = true;
+      grp.add(m);
+      return m;
+    };
+    const cabMat = this._mat(COL.blue, { roughness: 0.55 });
+    const bedMat = this._mat(0x3b4554, { roughness: 0.8 });
+    const tyreMat = this._mat(0x15181e, { roughness: 0.95 });
+    add(new THREE.BoxGeometry(2.4, 2.0, 2.2), cabMat, 0, 1.55, 2.5);
+    add(new THREE.BoxGeometry(2.5, 0.9, 0.25), this._mat(0x9ad0ff, { emissive: 0x2b6ea8, emissiveIntensity: 0.55 }), 0, 1.9, 3.62);
+    add(new THREE.BoxGeometry(2.7, 1.2, 5.0), bedMat, 0, 1.35, -0.6);
+    add(new THREE.BoxGeometry(2.72, 0.16, 5.0), this._mat(COL.amberDark), 0, 1.98, -0.6);
+    const wheelGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.34, 14);
+    for (const sx of [-1, 1]) for (const sz of [-2.3, 0.6, 2.4]) {
+      const w = add(wheelGeo, tyreMat, sx * 1.28, 0.55, sz);
+      w.rotation.z = Math.PI / 2;
+    }
+    // Painted lane number on the ground (one code-made texture, no thin geometry).
+    const lane = this._textCanvas('LANE ' + num, 256, 96, '#101a2b', '#fbbf24');
+    const pad = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.6),
+      new THREE.MeshBasicMaterial({ map: lane.tex, transparent: true, depthWrite: false,
+        polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 }));
+    pad.rotation.x = -Math.PI / 2;
+    pad.position.set(0, 0.1, 4.6);
+    grp.add(pad);
+
+    // 12-segment ring: one InstancedMesh, per-instance colours, one draw call.
+    const N = 12;
+    const ring = new THREE.InstancedMesh(new THREE.BoxGeometry(0.44, 0.18, 0.95),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }), N);
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * Math.PI * 2;
+      dummy.position.set(Math.sin(a) * 2.5, 3.35, Math.cos(a) * 2.5);
+      dummy.rotation.set(0, a, 0);
+      dummy.updateMatrix();
+      ring.setMatrixAt(i, dummy.matrix);
+      ring.setColorAt(i, new THREE.Color(0x34d399));
+    }
+    ring.instanceMatrix.needsUpdate = true;
+    grp.add(ring);
+
+    // Floating countdown number above the truck.
+    const count = this._textCanvas(String(Math.ceil(g.waitMax)), 128, 128, '#101a2b', '#fbbf24');
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: count.tex, transparent: true, depthWrite: false }));
+    sprite.scale.set(2.0, 2.0, 1);
+    sprite.position.set(0, 4.9, 0);
+    grp.add(sprite);
+
+    grp.userData = { ring: ring, count: count, sprite: sprite, segs: N, active: false, leave: 0 };
+    return grp;
+  }
+
+  _buildCrossTraffic() {
+    const d = this._dir();
+    const grp = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.1, 2.0), this._mat(0xb45309, { emissive: 0x351500, emissiveIntensity: 0.4 }));
+    body.position.y = 0.85; body.castShadow = true;
+    grp.add(body);
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 0.4), this._mat(0xffe9b0, { emissive: 0xffcc66, emissiveIntensity: 1.4 }));
+    lamp.position.set(2.2, 1.1, 0); grp.add(lamp);
+    grp.rotation.y = Math.atan2(d.vx, d.vz);
+    this.group.add(grp);
+    this.crossCar = grp;
+    // Red danger strip: painted into a canvas texture, no flickering thin strips.
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 64;
+    const g = c.getContext('2d');
+    g.fillStyle = '#ef4444'; g.fillRect(0, 0, 256, 64);
+    g.fillStyle = '#fee2e2';
+    for (let i = -64; i < 256; i += 40) { g.beginPath(); g.moveTo(i, 64); g.lineTo(i + 20, 0); g.lineTo(i + 38, 0); g.lineTo(i + 18, 64); g.fill(); }
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(6, 1);
+    t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.anisotropy = 8;
+    const strip = new THREE.Mesh(new THREE.PlaneGeometry(44, 2.4),
+      new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.85, depthWrite: false,
+        polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 }));
+    strip.rotation.x = -Math.PI / 2;
+    const p = this._at(d.len + 1, 0);
+    strip.position.set(p.x, 0.11, p.z);
+    strip.rotation.z = Math.atan2(d.vx, d.vz);
+    this.group.add(strip);
+  }
+
+  _updateRushRing(g) {
+    const ud = g.mesh && g.mesh.userData;
+    if (!ud || !ud.ring) return;
+    const f = Math.max(0, Math.min(1, g.wait / g.waitMax));
+    const on = Math.ceil(ud.segs * f);
+    const col = f > 0.55 ? 0x34d399 : (f > 0.25 ? 0xfbbf24 : 0xef4444);
+    const a = new THREE.Color(col), b = new THREE.Color(0x1b2535);
+    for (let i = 0; i < ud.segs; i++) ud.ring.setColorAt(i, i < on ? a : b);
+    if (ud.ring.instanceColor) ud.ring.instanceColor.needsUpdate = true;
+    const txt = String(Math.ceil(Math.max(0, g.wait)));
+    if (txt !== ud.lastTxt) {
+      ud.lastTxt = txt;
+      const c = ud.count;
+      c.ctx.clearRect(0, 0, c.canvas.width, c.canvas.height);
+      c.ctx.fillStyle = f > 0.25 ? '#101a2b' : '#3b0d0d';
+      c.ctx.fillRect(2, 2, c.canvas.width - 4, c.canvas.height - 4);
+      c.ctx.fillStyle = f > 0.25 ? '#fbbf24' : '#fca5a5';
+      c.ctx.font = 'bold 78px system-ui, sans-serif';
+      c.ctx.textAlign = 'center'; c.ctx.textBaseline = 'middle';
+      c.ctx.fillText(txt, c.canvas.width / 2, c.canvas.height / 2 + 3);
+      c.tex.needsUpdate = true;
+    }
+  }
+
+  _rushExpire(g) {
+    this.misses++;
+    this.combo = 0; this.comboTime = 0;
+    if (this.hooks.onToast) this.hooks.onToast('Truck ' + g.lane + ' left the queue!', 'warn');
+    this._advance();
+    if (this.hooks.onCount) this.hooks.onCount(0);
   }
 
   _buildGate(g, num, total) {
@@ -536,15 +734,25 @@ export class LevelEngine {
     const g = this.goals[i];
     if (!g) { this.finished = true; return; }
     const showTruck = (g.kind === 'haul');
-    // Pipe / crate levels use a rack instead of a dirt pile; gate levels need neither.
+    // RUSH levels use their own waiting trucks; the blue truck is hidden but moved
+    // to the active lane so main.js's dump proximity check still works.
     const showPile = (g.kind !== 'gate' && g.kind !== 'move');
+    this.rushTarget = (g.kind === 'rush') ? { x: g.x, z: g.z } : null;
     const pile = (g.kind === 'trench' || g.kind === 'debris') ? { x: g.x, z: g.z } : this.site.pile;
     // A fresh pile for each new goal: 45 clods would be empty after 3 scoops otherwise.
     if (this.done > 0 && this.world && this.world.resetDirtPile) this.world.resetDirtPile();
     this._place('dirtPileGroup', pile.x, pile.z, showPile);
     if (this.world && this.world.jobSiteBase) this.world.jobSiteBase.visible = (g.kind === 'haul' || g.kind === 'fill');
-    this._place('truckGroup', this.site.truck.x, this.site.truck.z, showTruck);
-    if (this.hooks.truckSolid) this.hooks.truckSolid(showTruck, this.site.truck.x, this.site.truck.z);
+    const tz = this.rushTarget || this.site.truck;
+    this._place('truckGroup', tz.x, tz.z, showTruck);
+    if (this.hooks.truckSolid) this.hooks.truckSolid(showTruck, tz.x, tz.z);
+    if (g.kind === 'rush') {
+      for (const q of this.goals) {
+        if (q.kind !== 'rush' || !q.mesh) continue;
+        q.mesh.userData.active = (q === g && !q.done);
+        if (q.mesh.userData.active) { q.wait = q.waitMax; this._updateRushRing(q); }
+      }
+    }
     if (this.hole) this.hole.visible = (g.kind === 'fill');
     if (this.group) {
       for (const q of this.goals) {
@@ -578,6 +786,9 @@ export class LevelEngine {
       // branch of the guidance code runs. No truck or pile to distract the player.
       this.siteNow.pile.x = g.x; this.siteNow.pile.z = g.z;
       this.siteNow.truck.x = g.x; this.siteNow.truck.z = g.z;
+    } else if (g.kind === 'rush') {
+      this.siteNow.pile.x = pile.x; this.siteNow.pile.z = pile.z;
+      this.siteNow.truck.x = g.x; this.siteNow.truck.z = g.z;
     } else {
       this.siteNow.pile.x = pile.x; this.siteNow.pile.z = pile.z;
       this.siteNow.truck.x = this.site.truck.x; this.siteNow.truck.z = this.site.truck.z;
@@ -603,6 +814,11 @@ export class LevelEngine {
       }
     }
     this.done++;
+    if (g && g.kind === 'rush' && g.mesh && !g.mesh.userData.leave) {
+      g.mesh.userData.leave = 2.0;
+      g.mesh.userData.active = false;
+      this._rushLeave.push(g.mesh);
+    }
     if (this.job.rush) {
       this.combo = Math.min(3, this.combo + 1);
       this.maxCombo = Math.max(this.maxCombo, this.combo);
@@ -622,6 +838,7 @@ export class LevelEngine {
     const j = this.job;
     switch (g.kind) {
       case 'gate': return g.beam ? 'Lower bucket - drive under beam' : 'Drive through the amber gate';
+      case 'rush': return hasDirt ? ('Dump in waiting truck ' + g.lane) : ('Scoop dirt for truck ' + g.lane);
       case 'trench': return 'Dig the marked trench';
       case 'debris': return 'Clear the marked debris pile';
       case 'fill': return hasDirt ? j.dumpText : j.scoopText;
@@ -632,16 +849,17 @@ export class LevelEngine {
   stepText() {
     const g = this.active();
     if (!g) return 'Complete ' + this.done + '/' + this.goals.length;
-    const labels = { haul: 'Haul loads', fill: 'Hole fills', move: 'Pipes placed', gate: 'Gates', trench: 'Trenches', debris: 'Piles cleared' };
+    const labels = { haul: 'Haul loads', fill: 'Hole fills', move: 'Pipes placed', gate: 'Gates', trench: 'Trenches', debris: 'Piles cleared', rush: 'Trucks loaded' };
     return labels[g.kind] + ' ' + this.done + '/' + this.goals.length;
   }
   hint() {
     const g = this.active();
     if (!g) return '';
     if (g.kind === 'gate') return g.beam ? this.job.hints.dump : this.job.hints.scoop;
+    if (g.kind === 'rush') return 'Load the glowing truck before its timer ring runs out';
     return this.job.hints.scoop;
   }
-  wantsDump() { const k = this.activeKind(); return k === 'haul' || k === 'fill' || k === 'move'; }
+  wantsDump() { const k = this.activeKind(); return k === 'haul' || k === 'fill' || k === 'move' || k === 'rush'; }
   isFinished() { return this.finished; }
 
   // ---- called by main.js --------------------------------------------------
@@ -672,7 +890,8 @@ export class LevelEngine {
     if (!g) return { ok: true, count: false, msg: '' };
     if (g.kind === 'move') this._detachCarry();
     if (!this.wantsDump()) return { ok: true, count: false, msg: '' };
-    const near = Math.hypot(bucketPos.x - this.site.truck.x, bucketPos.z - this.site.truck.z) < 12;
+    const target = this.rushTarget || this.site.truck;
+    const near = Math.hypot(bucketPos.x - target.x, bucketPos.z - target.z) < 12;
     if (!near) { this.onMiss(); return { ok: false, count: false, msg: 'Missed the target - scoop again' }; }
     if (g.kind === 'fill' && this.hole) {
       const mound = this.hole.userData.mound;
@@ -690,8 +909,9 @@ export class LevelEngine {
       this.group.add(m);
       this.pipesOnPad.push(m);
     }
+    const msg = (g.kind === 'rush') ? ('Truck ' + g.lane + ' loaded!') : '';
     this._advance();
-    return { ok: true, count: true, msg: '' };
+    return { ok: true, count: true, msg: msg };
   }
 
   _attachCarry(vehicle) {
@@ -724,7 +944,33 @@ export class LevelEngine {
       this.comboTime -= dt;
       if (this.comboTime <= 0) this.combo = 0;
     }
+    // Served / expired trucks drive away instead of vanishing.
+    if (this._rushLeave && this._rushLeave.length) {
+      for (let i = this._rushLeave.length - 1; i >= 0; i--) {
+        const m = this._rushLeave[i], ud = m.userData;
+        if (ud.leave > 0) {
+          ud.leave -= dt;
+          m.position.z -= dt * 8;
+          if (ud.leave <= 0) m.visible = false;
+        } else this._rushLeave.splice(i, 1);
+      }
+    }
+    // Night crossing traffic (visual; the red strip marks the danger lane).
+    if (this.job && this.job.crossTraffic) {
+      if (!this.crossCar) this._buildCrossTraffic();
+      if (this.crossCar) {
+        const d = this._dir();
+        const t = Math.sin(this._t * 0.55) * 26;
+        const p = this._at(d.len + 1, t);
+        this.crossCar.position.set(p.x, 0, p.z);
+      }
+    }
     const g = this.active();
+    if (g && g.kind === 'rush' && !g.done && g.mesh) {
+      g.wait -= dt;
+      this._updateRushRing(g);
+      if (g.wait <= 0) { this._rushExpire(g); return; }
+    }
     if (!g || g.kind !== 'gate' || !vehicle || !vehicle.mesh) return;
     const p = vehicle.mesh.position;
     const side = (p.x - g.x) * g.nx + (p.z - g.z) * g.nz;
@@ -761,7 +1007,8 @@ export class LevelEngine {
       case 'CONE': got = this.coneHits === 0; break;
       case 'HAUL': case 'FILL': case 'MOVE': got = this.misses === 0; break;
       case 'TRENCH': case 'CLEAR': got = this.misses === 0; break;
-      case 'RUSH': case 'MIX': got = this.maxCombo >= 3 && this.misses === 0; break;
+      case 'RUSH': got = this.misses === 0; break;   // no missed truck
+      case 'MIX': got = this.maxCombo >= 3 && this.misses === 0; break;
       default: got = false;
     }
     return { text: b.text, coins: got ? b.coins : 0, max: b.coins, got };
@@ -771,7 +1018,8 @@ export class LevelEngine {
     return {
       id: this.job ? this.job.id : 0, type: this.job ? this.job.type : '',
       goal: this.activeKind(), done: this.done, total: this.goals.length,
-      combo: this.combo, maxCombo: this.maxCombo, coneHits: this.coneHits, misses: this.misses
+      combo: this.combo, maxCombo: this.maxCombo, coneHits: this.coneHits, misses: this.misses,
+      rushWait: this.active() && this.active().kind === 'rush' ? Math.ceil(Math.max(0, this.active().wait)) : null
     };
   }
 }
