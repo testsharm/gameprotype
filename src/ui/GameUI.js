@@ -38,6 +38,8 @@ const CSS = `
 #tf-hud button:focus-visible{outline:3px solid var(--goal);outline-offset:2px}
 #tf-hud button:active{transform:translateY(2px)}
 #tf-hud.off,#tf-hud.hide{display:none}
+/* Free Play / job-complete call setTimer(null); hide the stale countdown. */
+#tf-hud .tf-timer.off{display:none}
 body.tf-menu #tf-hud{display:none !important}
 #tf-hud .tf-ic{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
 #tf-hud .tf-p{position:absolute;background:var(--panel);border:2px solid var(--border);

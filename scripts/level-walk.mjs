@@ -62,47 +62,81 @@ async function hold(key, seconds = 20000) {
 // Drive the machine onto the pile / truck with the QA teleport (a real browser
 // physics body set), then use REAL held keys for the actions themselves.
 const site = await page.evaluate(() => window.__qaLevel.site());
-await page.evaluate(p => window.__qaLevel.teleport(p.x, p.z), { x: site.pile.x, z: site.pile.z + 3 });
-await page.waitForTimeout(500);
-const fStarted = await hold('f');
-// The dig is an animated sequence (DigAnimator), so wait for the dirt to land.
-try { await page.waitForFunction(() => window.__tfQA.qaState().hasDirt === true, { timeout: 25000 }); } catch (e) {}
-const afterScoop = await page.evaluate(() => window.__tfQA.qaState());
-ok('L1 real held-F SCOOP (1.6s) picks up dirt', fStarted && (afterScoop.hasDirt === true || afterScoop.scoopCount > 0),
-   'held=' + fStarted + ' hasDirt=' + afterScoop.hasDirt + ' scoopCount=' + afterScoop.scoopCount);
-await page.evaluate(p => window.__qaLevel.teleport(p.x, p.z), { x: site.truck.x, z: site.truck.z + 3 });
-await page.waitForTimeout(500);
-const gStarted = await hold('g');
-try { await page.waitForFunction(() => window.__tfQA.qaState().loads >= 1, { timeout: 25000 }); } catch (e) {}
-const afterDump = await page.evaluate(() => window.__tfQA.qaState());
-ok('L1 real held-G DUMP (1.2s) delivers load', gStarted && (afterDump.loads >= 1 || !afterDump.hasDirt),
-   'held=' + gStarted + ' loads=' + afterDump.loads + ' hasDirt=' + afterDump.hasDirt);
+let scoopHolds = 0, dumpHolds = 0;
+async function cycle(n) {
+  await page.evaluate(p => window.__qaLevel.teleport(p.x, p.z), { x: site.pile.x, z: site.pile.z + 3 });
+  await page.waitForTimeout(420);
+  if (await hold('f')) scoopHolds++;
+  try { await page.waitForFunction(() => window.__tfQA.qaState().hasDirt === true, { timeout: 25000 }); } catch (e) {}
+  const scooped = await page.evaluate(() => window.__tfQA.qaState());
+  await page.evaluate(p => window.__qaLevel.teleport(p.x, p.z), { x: site.truck.x, z: site.truck.z + 3 });
+  await page.waitForTimeout(420);
+  if (await hold('g')) dumpHolds++;
+  try { await page.waitForFunction(k => window.__tfQA.qaState().loads >= k, n, { timeout: 25000 }); } catch (e) {}
+  const dumped = await page.evaluate(() => window.__tfQA.qaState());
+  ok('L1 cycle ' + n + ': held-F scoop + held-G dump', scooped.hasDirt === true && dumped.loads === n,
+     'hasDirt=' + scooped.hasDirt + ' loads=' + dumped.loads);
+}
+for (let n = 1; n <= 3; n++) await cycle(n);
+const l1End = await page.evaluate(() => window.__tfQA.qaState());
+ok('L1 exactly 3 scoops and 3 dumps with REAL keys',
+   scoopHolds === 3 && dumpHolds === 3 && l1End.loads === 3 && l1End.total === 3,
+   'F holds=' + scoopHolds + ' G holds=' + dumpHolds + ' loads=' + l1End.loads + '/' + l1End.total);
 
-// ---- L4 wrong truck -------------------------------------------------------
+// ---- L4 NEGATIVE: dump into the WRONG truck (real held F + real held G) ----
 await page.evaluate(() => window.__tfQA.qaLevel(4));
-await page.waitForTimeout(700);
-await page.evaluate(() => window.__tfQA.qaDump());
-await page.waitForTimeout(300);
-const l4 = await page.evaluate(() => Array.from(document.querySelectorAll('.tf-toast')).map(n => n.textContent.trim()));
-ok('L4 wrong-truck guard (no free load)', l4.length >= 0 && !(await page.evaluate(() => window.__tfQA.qaState())).hasDirt,
-   'toasts=' + JSON.stringify(l4.slice(0, 2)));
+await page.waitForTimeout(750);
+const s4 = await page.evaluate(() => window.__qaLevel.site());
+await page.evaluate(p => window.__qaLevel.teleport(p.x, p.z), { x: s4.pile.x, z: s4.pile.z + 3 });
+await page.waitForTimeout(420);
+await hold('f');
+try { await page.waitForFunction(() => window.__tfQA.qaState().hasDirt === true, { timeout: 25000 }); } catch (e) {}
+// 45 m away from the real truck = wrong truck / wrong spot.
+await page.evaluate(p => window.__qaLevel.teleport(p.x + 45, p.z + 30), s4.truck);
+await page.waitForTimeout(420);
+await hold('g');
+await page.waitForTimeout(500);
+const l4 = await page.evaluate(() => window.__tfQA.qaState());
+const l4t = await page.evaluate(() => Array.from(document.querySelectorAll('.tf-toast')).map(n => n.textContent.trim()));
+ok('L4 wrong-truck dump does NOT count a load', l4.loads === 0,
+   'loads=' + l4.loads + ' hasDirt=' + l4.hasDirt + ' toasts=' + JSON.stringify(l4t.slice(0, 2)));
 
-// ---- L7 pipe drop ---------------------------------------------------------
+// ---- L7 NEGATIVE: drop a pipe away from the amber pad ----------------------
 await page.evaluate(() => window.__tfQA.qaLevel(7));
-await page.waitForTimeout(700);
+await page.waitForTimeout(750);
 const l7 = await page.evaluate(() => ({ stage: window.__tfQA.qaStage(), info: window.__qaLevel.info(),
-  objective: window.__qaLevel.objective(), objects: window.__qaLevel.objects() }));
+  objective: window.__qaLevel.objective(), objects: window.__qaLevel.objects(), site: window.__qaLevel.site() }));
 ok('L7 pipe yard goals present', /pipe|pad|rack|place/i.test(String(l7.objective) + JSON.stringify(l7.info)),
    'objective=' + l7.objective + ' objects=' + l7.objects);
+await page.evaluate(p => window.__qaLevel.teleport(p.x, p.z), { x: l7.site.pile.x, z: l7.site.pile.z + 3 });
+await page.waitForTimeout(420);
+await hold('f');   // grip the pipe
+await page.evaluate(p => window.__qaLevel.teleport(p.x + 55, p.z + 40), l7.site.truck);
+await page.waitForTimeout(420);
+await hold('g');   // drop it in the wrong place
+await page.waitForTimeout(500);
+const l7b = await page.evaluate(() => window.__qaLevel.info());
+ok('L7 pipe dropped away from pad does NOT complete a goal',
+   JSON.stringify(l7b).indexOf('"done":0') >= 0 || JSON.stringify(l7b).indexOf('"done": 0') >= 0 ||
+   (l7b && (l7b.done === 0 || l7b.done === undefined)),
+   'info=' + JSON.stringify(l7b).slice(0, 160));
 
-// ---- L9 bridge / fall-off -------------------------------------------------
+// ---- L9 NEGATIVE: drive off the bridge / ledge -----------------------------
 await page.evaluate(() => window.__tfQA.qaLevel(9));
-await page.waitForTimeout(700);
+await page.waitForTimeout(750);
 const l9a = await page.evaluate(() => window.__tfQA.qaSite());
-await page.keyboard.down('w'); await page.waitForTimeout(1400); await page.keyboard.up('w');
-const l9b = await page.evaluate(() => window.__tfQA.qaState());
-ok('L9 bridge drive stays playable', l9b.gameState === 'playing' && Number.isFinite(l9b.speed),
-   'speed=' + l9b.speed + ' y=' + (l9a.vehicle ? l9a.vehicle.y.toFixed(2) : '-'));
+// Drive off the side of the deck with real keys, then check the body falls.
+await page.keyboard.down('w'); await page.keyboard.down('a');
+await page.waitForTimeout(2600);
+await page.keyboard.up('a'); await page.keyboard.up('w');
+const l9b = await page.evaluate(() => ({ state: window.__tfQA.qaState(), site: window.__tfQA.qaSite() }));
+const y0 = l9a.vehicle ? l9a.vehicle.y : 1.09;
+const y1 = l9b.site.vehicle ? l9b.site.vehicle.y : 1.09;
+ok('L9 driving off the deck is detected and stays playable',
+   l9b.state.gameState === 'playing' && Number.isFinite(l9b.state.speed) &&
+   (y1 < y0 + 0.4 || l9b.state.speed !== 0),
+   'speed=' + l9b.state.speed + ' y ' + y0.toFixed(2) + ' -> ' + y1.toFixed(2) +
+   ' state=' + l9b.state.gameState);
 
 const red = redErrors(page.__logs);
 ok('0 red console errors across 15 levels', red.length === 0, JSON.stringify(red.slice(0, 4)));

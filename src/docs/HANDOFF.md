@@ -1,5 +1,16 @@
 # HANDOFF - TerraForm 3D (backhoe simulator for CrazyGames)
 
+> **2026-11-05 QUALITY PASS v3:** this remains the original design spec, but the
+> live status is `README.md` (repo root), `docs/DEPTH_REPORT.md` and
+> `src/docs/STATE.md`. In particular the old "no browser available" caveat is
+> obsolete — real Chromium QA harnesses now live in `scripts/` and real
+> screenshots in `docs/screenshots/`. The HUD is v8, not v7, and
+> `src/gameplay/Stages.js` adds 15 distinct stage environments.
+
+---
+
+
+
 THE master document. One file, written to be handed to any AI. Version 2, written 2026-11-02. It replaces the first version.
 The second file, `STATE.md` (same folder), is the live status. Read this file first, then STATE.md.
 Tags used: VERIFIED = read from the source on 2026-11-01/02. UNVERIFIED = not checked. DECISION = chosen on purpose, the user may change it.
