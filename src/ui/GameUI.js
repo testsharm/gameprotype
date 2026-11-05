@@ -136,7 +136,8 @@ html.tf-playing #game-container,html.tf-holding #game-container{touch-action:non
   .tf-pause{right:calc(10px + ${SAFE_R});top:calc(8px + ${SAFE_T});width:48px;height:48px;border-radius:10px}
   .tf-mission{left:50%;top:calc(8px + ${SAFE_T});width:300px;height:44px;gap:6px;padding:0 9px}
   .tf-mission .nm{font-size:14px}.tf-mission .st{font-size:12px;margin-top:1px}
-  .tf-mini{left:calc(10px + ${SAFE_L});top:calc(96px + ${SAFE_T});width:76px;height:76px}
+  /* 104 instead of 96: keeps a clear 6px gap under the 48px icon row. */
+  .tf-mini{left:calc(10px + ${SAFE_L});top:calc(104px + ${SAFE_T});width:76px;height:76px}
   .tf-tools{left:calc(10px + ${SAFE_L});top:calc(50px + ${SAFE_T});flex-direction:row;gap:6px}
   .tf-tools button{width:48px;height:48px;border-radius:10px}
   .tf-pad{display:none}
@@ -172,6 +173,16 @@ html.tf-playing #game-container,html.tf-holding #game-container{touch-action:non
   .tf-brake{width:56px;height:56px;right:calc(34px + ${SAFE_R});bottom:calc(190px + ${SAFE_B})}
   .tf-toasts{top:calc(120px + ${SAFE_T});left:112px;right:12px}
   .tf-hint{bottom:calc(196px + ${SAFE_B});font-size:14px;max-width:76vw}
+}
+
+/* Narrow portrait: nudge the speed dial left so it never touches Drive. */
+@media (max-width:400px) and (min-height:481px){
+  .tf-speed{left:calc(50% - 14px)}
+}
+
+/* 1280x720 desktop: the mission card is 440x64, not the 1920px 560x72. */
+@media (min-width:601px) and (max-width:1366px) and (min-height:481px){
+  .tf-mission{width:440px;height:64px}
 }
 
 /* Left-handed: swap Drive (right) and Action (left). */

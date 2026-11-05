@@ -55,6 +55,8 @@ class El {
     this.uid = ++ID;
     this.width = +(attrs && attrs.width) || 180; this.height = +(attrs && attrs.height) || 180;
   }
+  get parentElement() { return this.parent; }
+  get type() { return this.attrs.type || ''; }
   get firstChild() { return this.children[0]; }
   get lastChild() { return this.children[this.children.length - 1]; }
   get isConnected() { let n = this; while (n.parent) n = n.parent; return n === this.doc.documentElement || n === this.doc.body; }
@@ -88,7 +90,11 @@ class El {
   removeEventListener(t, fn) { if (this.listeners[t]) this.listeners[t] = this.listeners[t].filter(f => f !== fn); }
   setPointerCapture() {} releasePointerCapture() {} hasPointerCapture() { return false; }
   focus() {} blur() {} getBoundingClientRect() { return { left: 0, top: 0, width: 100, height: 50, right: 100, bottom: 50 }; }
-  getContext() { return new Proxy({ canvas: this }, { get: (t, k) => (k in t ? t[k] : () => ({}) ), set: (t, k, v) => { t[k] = v; return true; } }); }
+  getContext() { return new Proxy({ canvas: this }, { get: (t, k) => {
+      if (k in t) return t[k];
+      if (k === 'createLinearGradient' || k === 'createRadialGradient') return () => ({ addColorStop() {} });
+      return () => ({});
+    }, set: (t, k, v) => { t[k] = v; return true; } }); }
   querySelectorAll(sel) { return this.doc._query(sel, this); }
   querySelector(sel) { return this.querySelectorAll(sel)[0] || null; }
   closest(sel) { let n = this; while (n) { if (this.doc._matches(n, sel)) return n; n = n.parent; } return null; }
@@ -257,10 +263,31 @@ if (ui) {
   clickAll('start', doc.getElementById('tf-start'));
   ui.setScreen('play'); ui.setStartInfo(state()); ui.refresh();
   clickAll('hud', doc.getElementById('tf-hud'));
+  // Pause + minimap have their own click listeners (no data-a).
+  for (const [id, expect] of [['tf-pause', 'pause'], ['tf-mini', 'map']]) {
+    const b = doc.getElementById(id);
+    const n = actions.length;
+    if (b) b.dispatch('click', { pointerId: 5 });
+    results.push(['hud', id, actions.slice(n).includes(expect) ? 'PASS' : 'FAIL', actions.slice(n).join('|')]);
+    if (!actions.slice(n).includes(expect)) errors.push(id + ' did not emit ' + expect);
+  }
   for (const k of ['pause','settings','help','levels','garage','result','fail','confirm','map']) {
     ui.showModal(k);
     const win = doc.getElementById('tf-winbox') || doc.getElementById('tf-win');
     clickAll(k, win, b => b.attrs['data-a'] !== 'close' || k === 'pause');
+  }
+  // Settings sliders really call hub.setVolumes through the 'setting' action.
+  ui.showModal('settings');
+  {
+    const win = doc.getElementById('tf-winbox') || doc.getElementById('tf-win');
+    for (const key of ['master', 'music', 'effects']) {
+      const r = win && win.querySelector(`[data-set="${key}"]`);
+      const n = actions.length;
+      if (r) { r.value = '55'; r.dispatch('change', { pointerId: 3 }); }
+      const hit = actions.slice(n).some(a => a.startsWith('setting:') && a.includes('"key":"' + key + '"'));
+      results.push(['settings', 'slider:' + key, hit ? 'PASS' : 'FAIL', actions.slice(n).join('|')]);
+      if (!hit) errors.push('slider ' + key + ' did not fire');
+    }
   }
   // hold controls (real pointerdown / pointerup)
   for (const code of ['KeyW','KeyA','KeyS','KeyD','Space']) {

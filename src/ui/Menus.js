@@ -533,8 +533,25 @@ export default class Menus {
     const X = x => pad + (x - minX) * sc + (W - pad * 2 - (maxX - minX) * sc) / 2;
     const Z = z => pad + (z - minZ) * sc + (H - pad * 2 - (maxZ - minZ) * sc) / 2;
     g.fillStyle = '#0b111a'; g.fillRect(0, 0, W, H);
-    // water + park blocks, then rounded roads
+    // TIER 10: soft ground wash, then water / park / building blocks with round corners.
+    const wash = g.createLinearGradient ? g.createLinearGradient(0, 0, W, H) : null;
+    if (wash && typeof wash.addColorStop === 'function') {
+      wash.addColorStop(0, '#111b26'); wash.addColorStop(1, '#0b111a');
+      g.fillStyle = wash; g.fillRect(0, 0, W, H);
+    }
     g.lineCap = 'round'; g.lineJoin = 'round';
+    const rr = (x, y, w, h, r) => { if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
+    for (const b of pts) {
+      const w = Math.max(3, b.w * sc), h = Math.max(3, b.d * sc);
+      if (b.water) {
+        g.fillStyle = '#164a70'; g.beginPath(); rr(X(b.x) - w / 2, Z(b.z) - h / 2, w, h, 14); g.fill();
+        g.strokeStyle = '#22d3ee'; g.lineWidth = 2; g.stroke();
+      } else if (b.park) {
+        g.fillStyle = '#245b34'; g.beginPath(); rr(X(b.x) - w / 2, Z(b.z) - h / 2, w, h, 12); g.fill();
+        g.strokeStyle = '#34d399'; g.lineWidth = 1.5; g.stroke();
+      }
+    }
+    // Rounded roads: dark asphalt under a thin amber centre line.
     g.strokeStyle = '#3a3f47'; g.lineWidth = Math.max(6, 14 * sc);
     for (let i = Math.ceil(minX / 40) * 40; i <= maxX; i += 40) { g.beginPath(); g.moveTo(X(i), Z(minZ)); g.lineTo(X(i), Z(maxZ)); g.stroke(); }
     for (let i = Math.ceil(minZ / 40) * 40; i <= maxZ; i += 40) { g.beginPath(); g.moveTo(X(minX), Z(i)); g.lineTo(X(maxX), Z(i)); g.stroke(); }
@@ -543,8 +560,9 @@ export default class Menus {
     g.setLineDash([]);
     for (const b of pts) {
       const w = Math.max(3, b.w * sc), h = Math.max(3, b.d * sc);
-      g.fillStyle = b.park ? '#2f6f3a' : (b.water ? '#1e4a6b' : '#334155');
-      g.beginPath(); g.roundRect ? g.roundRect(X(b.x) - w / 2, Z(b.z) - h / 2, w, h, 4) : g.rect(X(b.x) - w / 2, Z(b.z) - h / 2, w, h);
+      if (b.water || b.park) continue;
+      g.fillStyle = '#334155';
+      g.beginPath(); rr(X(b.x) - w / 2, Z(b.z) - h / 2, w, h, 5);
       g.fill(); g.strokeStyle = '#0a0f18'; g.lineWidth = 1; g.stroke();
     }
     if (m.landmark) {
@@ -556,6 +574,15 @@ export default class Menus {
       g.beginPath(); g.arc(X(q.x), Z(q.z), 11, 0, 6.284); g.stroke();
       g.fillStyle = q.color || '#34d399'; g.beginPath(); g.arc(X(q.x), Z(q.z), 4, 0, 6.284); g.fill();
     }
+    // Compass + scale bar (code-drawn, no outside image).
+    g.fillStyle = '#94a3b8'; g.font = 'bold 13px sans-serif'; g.textAlign = 'left';
+    g.fillText('N', 16, 26);
+    g.strokeStyle = '#fbbf24'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(20, 32); g.lineTo(20, 50); g.moveTo(15, 40); g.lineTo(20, 32); g.lineTo(25, 40); g.stroke();
+    g.strokeStyle = '#f1f5f9'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(W - 116, H - 22); g.lineTo(W - 16, H - 22); g.stroke();
+    g.fillStyle = '#94a3b8'; g.font = '11px sans-serif'; g.textAlign = 'center';
+    g.fillText('100 m', W - 66, H - 28);
     // player arrow
     const px = X(p.x), py = Z(p.z), a = (p.yaw || 0);
     g.save(); g.translate(px, py); g.rotate(-a);

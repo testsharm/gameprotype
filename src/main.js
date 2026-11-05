@@ -125,6 +125,7 @@ function initUi() {
 function updateUi(dt) {
     if (!ui) initUi();
     safe(() => {
+        if (worldBuilder && vehicle) worldBuilder.setPlayerPos(vehicle.mesh.position);
         if (!trafficPhys && world && RAPIER) { trafficPhys = new TrafficPhysics(world, RAPIER, worldBuilder.trafficCars); trafficPhys.init(); }
         if (trafficPhys) trafficPhys.update();
         if (ui) {
@@ -382,9 +383,8 @@ function uiData() {
   };
 }
 function mapData() {
-  const blocks = (worldBuilder && worldBuilder.blocks ? worldBuilder.blocks : [])
-    .filter((_, i) => i % 3 === 0).slice(0, 420)
-    .map(b => ({ x: b.x, z: b.z, w: b.w, d: b.d, park: !!b.park }));
+  const blocks = (worldBuilder && worldBuilder.blocks ? worldBuilder.blocks : []).slice(0, 420)
+    .map(b => ({ x: b.x, z: b.z, w: b.w, d: b.d, park: !!b.park, water: !!b.water }));
   const goals = [];
   if (siteNow) {
     goals.push({ x: siteNow.pile.x, z: siteNow.pile.z, color: '#fbbf24' });
@@ -392,7 +392,8 @@ function mapData() {
   }
   return {
     blocks, goals,
-    player: vehicle && vehicle.mesh ? { x: vehicle.mesh.position.x, z: vehicle.mesh.position.z, yaw: 0 } : { x: 0, z: 0, yaw: 0 },
+    player: vehicle && vehicle.mesh ? { x: vehicle.mesh.position.x, z: vehicle.mesh.position.z,
+      yaw: new THREE.Euler().setFromQuaternion(vehicle.mesh.quaternion, 'YXZ').y } : { x: 0, z: 0, yaw: 0 },
     landmark: siteNow ? { x: siteNow.truck.x, z: siteNow.truck.z } : null
   };
 }
@@ -537,9 +538,12 @@ function setUiSetting(p) {
   safe(() => { if (ui) ui.refresh(); });
 }
 function windowClosed(kind) {
-  // One path for every window: resumeGame() clears modalOpen/uiPaused/paused
-  // and restores gameplayStart. void kind keeps this safe for all windows.
-  void kind;
+  // Closing RESULT or TIME-UP with the X must never leave the player stuck in
+  // a finished/failed job: send them to the level picker instead.
+  if (kind === 'result' || kind === 'fail') {
+    setTimeout(() => safe(() => openPicker()), 0);
+    return;
+  }
   resumeGame();
 }
 function nextFromResult() {
