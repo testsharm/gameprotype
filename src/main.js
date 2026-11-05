@@ -383,17 +383,26 @@ function uiData() {
   };
 }
 function mapData() {
-  const blocks = (worldBuilder && worldBuilder.blocks ? worldBuilder.blocks : []).slice(0, 420)
-    .map(b => ({ x: b.x, z: b.z, w: b.w, d: b.d, park: !!b.park, water: !!b.water }));
+  // TIER B: a big SQUARE map framed around THIS stage, not the whole 1000 m
+  // city. Only nearby blocks are drawn, so the square is never half empty.
+  const player = vehicle && vehicle.mesh ? { x: vehicle.mesh.position.x, z: vehicle.mesh.position.z,
+    yaw: new THREE.Euler().setFromQuaternion(vehicle.mesh.quaternion, 'YXZ').y } : { x: 0, z: 0, yaw: 0 };
   const goals = [];
   if (siteNow) {
-    goals.push({ x: siteNow.pile.x, z: siteNow.pile.z, color: '#fbbf24' });
-    goals.push({ x: siteNow.truck.x, z: siteNow.truck.z, color: '#34d399' });
+    goals.push({ x: siteNow.pile.x, z: siteNow.pile.z, color: '#fbbf24', label: 'SCOOP' });
+    goals.push({ x: siteNow.truck.x, z: siteNow.truck.z, color: '#34d399', label: 'DUMP' });
   }
+  const cx = (player.x + (goals[0] ? goals[0].x : player.x)) / 2;
+  const cz = (player.z + (goals[0] ? goals[0].z : player.z)) / 2;
+  const R = 95;
+  const blocks = (worldBuilder && worldBuilder.blocks ? worldBuilder.blocks : [])
+    .filter(b => b && Math.abs(b.x - cx) < R && Math.abs(b.z - cz) < R)
+    .map(b => ({ x: b.x, z: b.z, w: b.w, d: b.d, park: !!b.park, water: !!b.water }));
   return {
-    blocks, goals,
-    player: vehicle && vehicle.mesh ? { x: vehicle.mesh.position.x, z: vehicle.mesh.position.z,
-      yaw: new THREE.Euler().setFromQuaternion(vehicle.mesh.quaternion, 'YXZ').y } : { x: 0, z: 0, yaw: 0 },
+    blocks, goals, name: (jm && jm.current && jm.current.name) || 'SITE',
+    // explicit bounds keep the square map full and centred on the job
+    bounds: { minX: cx - R, maxX: cx + R, minZ: cz - R, maxZ: cz + R },
+    player,
     landmark: siteNow ? { x: siteNow.truck.x, z: siteNow.truck.z } : null
   };
 }
@@ -1458,9 +1467,11 @@ if (new URLSearchParams(location.search).has('qadebug')) {
 window.__qaAct = function () { actionTap('KeyF'); return true; };
 // QA hooks used by scripts/*.mjs. Real click/key tests use page.click / keyboard.
 window.__tfQA = {
-  qaState: () => ({ gameState, currentJob, freePlay, uiPaused, modalOpen, paused,
+  qaState: () => ({ gameState, currentJob, freePlay, uiPaused, modalOpen, paused, physReady,
     loads: jm && jm.state ? jm.state.loads : 0, total: jm && jm.current ? jm.current.loads : 0,
     hasDirt: !!(vehicle && vehicle.hasDirt), scoopCount, coins: saveData.coins,
+    speed: vehicle ? +vehicle.currentSpeed.toFixed(2) : 0, fwd: !!input.forward,
+    actHolding, actCode, actT: +actT.toFixed(2), duration: +actionDuration(actCode).toFixed(2),
     canvas: !!document.getElementById('game-container') }),
   qaRender: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
   qaOpen: (kind) => { pauseWindow(); if (ui) ui.showModal(kind); return true; },

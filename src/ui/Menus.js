@@ -216,8 +216,8 @@ const CSS = `
   background:var(--steel);border:2px solid var(--border);color:var(--ink)}
 
 /* big map - SQUARE canvas fills the width, never half empty */
-.tf-winbox.mapwin{width:min(760px,96vw);height:auto;max-height:calc(100vh - 24px)}
-.tf-mapwrap{position:relative;width:100%;aspect-ratio:1/1;max-height:calc(100vh - 120px);
+.tf-winbox.mapwin{width:min(760px,96vw,calc(100vh - 130px));height:auto;max-height:calc(100vh - 24px)}
+.tf-mapwrap{position:relative;width:100%;aspect-ratio:1/1;
   border-radius:10px;overflow:hidden;background:var(--well)}
 #tf-map-c{width:100%;height:100%;display:block}
 .tf-mapkey{position:absolute;left:10px;bottom:10px;display:flex;gap:10px;font-size:14px;font-weight:800;
@@ -238,7 +238,6 @@ const CSS = `
 @media (max-height:470px){
   .tf-winbox{padding:10px 12px}.tf-tile{min-height:64px;font-size:14px;flex-direction:row;gap:5px}
   .tf-tile .tf-ic{width:24px;height:24px}.tf-help-pic{height:100px}.tf-h2{font-size:18px;margin-bottom:6px}
-  .tf-mapwrap{max-height:calc(100vh - 90px)}
 }
 `;
 
@@ -550,8 +549,9 @@ export default class Menus {
       </div></div>`;
   }
   _map() {
-    return `<h2 class="tf-h2 tf-title">SITE MAP</h2>
-      <div class="tf-mapwrap"><canvas id="tf-map-c" width="720" height="560"></canvas>
+    const d = this._data() || {}, m = d.map || {};
+    return `<h2 class="tf-h2 tf-title">SITE MAP · ${String(m.name || 'SITE').toUpperCase()}</h2>
+      <div class="tf-mapwrap"><canvas id="tf-map-c" width="720" height="720"></canvas>
         <div class="tf-mapkey"><span><b>●</b> YOU</span><span style="color:#34d399"><b>●</b> GOAL</span><span><b style="color:#22d3ee">●</b> LANDMARK</span></div>
       </div>`;
   }
@@ -566,6 +566,7 @@ export default class Menus {
     const goals = m.goals || [];
     const p = m.player || { x: 0, z: 0, yaw: 0 };
     let minX = -60, maxX = 60, minZ = -60, maxZ = 60;
+    if (m.bounds) { minX = m.bounds.minX; maxX = m.bounds.maxX; minZ = m.bounds.minZ; maxZ = m.bounds.maxZ; }
     const all = [{ x: p.x, z: p.z }, ...goals, ...(m.landmark ? [m.landmark] : [])];
     for (const b of pts) { all.push({ x: b.x - b.w / 2, z: b.z - b.d / 2 }, { x: b.x + b.w / 2, z: b.z + b.d / 2 }); }
     for (const a of all) { if (!Number.isFinite(a.x) || !Number.isFinite(a.z)) continue; minX = Math.min(minX, a.x); maxX = Math.max(maxX, a.x); minZ = Math.min(minZ, a.z); maxZ = Math.max(maxZ, a.z); }
@@ -614,6 +615,7 @@ export default class Menus {
       g.strokeStyle = q.color || '#34d399'; g.lineWidth = 3;
       g.beginPath(); g.arc(X(q.x), Z(q.z), 11, 0, 6.284); g.stroke();
       g.fillStyle = q.color || '#34d399'; g.beginPath(); g.arc(X(q.x), Z(q.z), 4, 0, 6.284); g.fill();
+      if (q.label) { g.font = 'bold 16px sans-serif'; g.textAlign = 'center'; g.fillText(q.label, X(q.x), Z(q.z) - 16); }
     }
     // Compass + scale bar (code-drawn, no outside image).
     g.fillStyle = '#94a3b8'; g.font = 'bold 13px sans-serif'; g.textAlign = 'left';
