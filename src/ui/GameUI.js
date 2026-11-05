@@ -504,7 +504,8 @@ export default class GameUI {
   setMuted(m) { this.refresh(); }
   setJob(title, objective, stepText) {
     this.el.job.textContent = String(title || '').toUpperCase();
-    this.el.step.textContent = String(stepText || objective || '').slice(0, 64);
+    // TIER 5: name + ONE short goal line + three step dots. No paragraphs.
+    this.el.step.textContent = String(objective || stepText || '').slice(0, 48);
     const n = Math.max(0, Math.min(3, parseInt(String(stepText || '').match(/(\d+)\s*\/\s*(\d+)/)?.[1] || '0', 10)));
     Array.from(this.el.pips.children).forEach((p, i) => p.classList.toggle('on', i < n));
   }

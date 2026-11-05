@@ -469,7 +469,8 @@ export class LevelEngine {
       grp.add(m);
       return m;
     };
-    const cabMat = this._mat(COL.blue, { roughness: 0.55 });
+    const boss = num === total;   // TIER 5: the last RUSH truck is the boss truck.
+    const cabMat = this._mat(boss ? COL.amberDark : COL.blue, { roughness: 0.55 });
     const bedMat = this._mat(0x3b4554, { roughness: 0.8 });
     const tyreMat = this._mat(0x15181e, { roughness: 0.95 });
     add(new THREE.BoxGeometry(2.4, 2.0, 2.2), cabMat, 0, 1.55, 2.5);
@@ -480,6 +481,12 @@ export class LevelEngine {
     for (const sx of [-1, 1]) for (const sz of [-2.3, 0.6, 2.4]) {
       const w = add(wheelGeo, tyreMat, sx * 1.28, 0.55, sz);
       w.rotation.z = Math.PI / 2;
+    }
+    if (boss) {
+      // Gold light bar + slightly larger body: the boss truck reads at a glance.
+      add(new THREE.BoxGeometry(2.5, 0.34, 0.5), this._mat(COL.amber, { emissive: COL.amberDark, emissiveIntensity: 0.6 }), 0, 2.75, 2.5);
+      grp.scale.setScalar(1.22);
+      g.boss = true;
     }
     // Painted lane number on the ground (one code-made texture, no thin geometry).
     const lane = this._textCanvas('LANE ' + num, 256, 96, '#101a2b', '#fbbf24');
@@ -896,6 +903,9 @@ export class LevelEngine {
       if (!g.dugAt) return { ok: false, count: false, msg: 'Dig the marked spot first' };
       if (!near) { this.onMiss(); return { ok: false, count: false, msg: 'Dump inside the marked ring' }; }
       g.dugAt = null;
+      // TIER 5: every verb has its OWN visible result.
+      if (g.kind === 'trench') this._digTrench(g);
+      else this._clearDebris(g);
       this._advance();
       return { ok: true, count: true, msg: g.kind === 'trench' ? 'Trench dug!' : 'Pile cleared!' };
     }
@@ -906,6 +916,7 @@ export class LevelEngine {
       const k = Math.min(1, g.fillIndex / 3);
       mound.scale.setScalar(0.35 + 0.65 * k);
       mound.position.y = 0.3 + 0.5 * k;
+      this._spoilAt(target.x + 4, target.z + 2, 0.8);   // TIER 5: FILL mound grows
     }
     if (g.kind === 'move') {
       const crate = this.job.id === 13;
@@ -920,6 +931,39 @@ export class LevelEngine {
     const msg = (g.kind === 'rush') ? ('Truck ' + g.lane + ' loaded!') : '';
     this._advance();
     return { ok: true, count: true, msg: msg };
+  }
+
+  // TIER 5 verbs: TRENCH gets deeper + a spoil heap; CLEAR pushes debris into a bin.
+  _spoilAt(x, z, r) {
+    if (!this.group) return;
+    const m = new THREE.Mesh(new THREE.ConeGeometry(r * 1.6, r * 1.1, 9),
+      this._mat(COL.soil, { roughness: 1 }));
+    m.position.set(x, r * 0.55, z);
+    m.castShadow = true;
+    this.group.add(m);
+  }
+  _digTrench(g) {
+    const ud = g.mesh && g.mesh.userData;
+    if (ud && ud.lid) { ud.lid.position.y = -0.55; ud.lid.scale.setScalar(0.94); }
+    if (ud && ud.floor) ud.floor.position.y = -0.28;
+    this._spoilAt(g.x + 3.4, g.z + 1.2, 0.9);
+  }
+  _clearDebris(g) {
+    if (g.mesh) {
+      g.mesh.children.forEach(c => {
+        if (c.isMesh && c.geometry && c.geometry.type === 'DodecahedronGeometry') {
+          c.position.y -= 0.55; c.scale.setScalar(0.35);
+        }
+      });
+    }
+    const t = this.rushTarget || this.site.truck;
+    // A small steel bin beside the truck: debris is pushed INTO it.
+    const bin = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.6, 2.4),
+      this._mat(COL.steel, { metalness: 0.35 }));
+    bin.position.set(t.x + 6, 0.8, t.z + 3);
+    bin.castShadow = true;
+    if (this.group) this.group.add(bin);
+    this._spoilAt(t.x + 6, t.z + 3, 0.7);
   }
 
   _attachCarry(vehicle) {
