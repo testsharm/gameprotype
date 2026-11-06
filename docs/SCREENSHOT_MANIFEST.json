@@ -1,0 +1,90 @@
+[
+  {
+    "name": "desktop-start",
+    "caption": "Start screen. No shortcut."
+  },
+  {
+    "name": "phone-start",
+    "caption": "Phone start screen. No shortcut."
+  },
+  {
+    "name": "desktop-l1-start",
+    "caption": "Level 1 first playing view. No shortcut."
+  },
+  {
+    "name": "l1-5s",
+    "caption": "Level 1 at five seconds. No shortcut."
+  },
+  {
+    "name": "l1-15s",
+    "caption": "Level 1 at fifteen seconds. No shortcut."
+  },
+  {
+    "name": "phone-l1-play",
+    "caption": "Phone two-finger driving and action hold. No shortcut."
+  },
+  {
+    "name": "desktop-l1-scoop",
+    "caption": "Real SCOOP hold with arm and pile. No shortcut."
+  },
+  {
+    "name": "desktop-l1-dump",
+    "caption": "Real DUMP hold beside the truck. No shortcut."
+  },
+  {
+    "name": "l1-second-load",
+    "caption": "Second scoop leaves a small pile. No shortcut."
+  },
+  {
+    "name": "desktop-l1-result",
+    "caption": "Level 1 result earned with real holds. No shortcut."
+  },
+  {
+    "name": "phone-result",
+    "caption": "Phone result from the same real Level 1 finish; viewport changed, no save shortcut."
+  },
+  {
+    "name": "desktop-get-ready",
+    "caption": "GET READY after real NEXT into Level 2. No shortcut."
+  },
+  {
+    "name": "desktop-l2-play",
+    "caption": "Level 2 after real driving. No shortcut."
+  },
+  {
+    "name": "desktop-pause",
+    "caption": "Pause opened with the P key. No shortcut."
+  },
+  {
+    "name": "desktop-picker",
+    "caption": "Picker after Level 1 unlocks Level 2. No shortcut."
+  },
+  {
+    "name": "phone-picker",
+    "caption": "Phone picker after the real Level 1 finish. No shortcut."
+  },
+  {
+    "name": "desktop-garage",
+    "caption": "Garage after real Level 1 earnings. No shortcut."
+  },
+  {
+    "name": "phone-garage",
+    "caption": "Phone Garage after real earnings. No shortcut."
+  },
+  {
+    "name": "desktop-settings",
+    "caption": "Settings opened from Pause. No shortcut."
+  },
+  {
+    "name": "desktop-l3-start",
+    "caption": "Level 3 start; unlockall used ONLY to select its starting level."
+  },
+  {
+    "name": "desktop-freeplay",
+    "caption": "Current Free Play spawn. No shortcut."
+  },
+  {
+    "name": "phone-freeplay",
+    "caption": "Current Free Play on phone. No shortcut."
+  }
+]
