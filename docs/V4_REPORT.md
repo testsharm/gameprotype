@@ -93,3 +93,10 @@
 [RAN] All fifteen levels now have actual real-input results across C1/C2/C3. C3: L11 twelve debris deliveries into four bins; L12 eight digs and exactly 3 m depth; L13 four timed placements and rejected high-hook attempt; L14 eight gates, moving ghost and bonus; L15 twelve mixed goals and CHAMPION (+1604). Zero own-code browser errors in the passing runs.
 [SEEN] All C3 captures and the full fifteen-level contact sheet opened. L13 mid camera remains visibly too close in the published evidence; latest gantry-leg cosmetic adjustment is not yet re-captured. L12 first attempt timed out and L15 first attempt hit the normal truck; adjacent spoil destinations fixed both without increasing their timers.
 [READ] Criteria 8 and 9 now pass. Strict remaining failures: 12 park, 13 vehicle shapes, 14 truck/beacon detail, 15 physical obstacles, 17 rewards, 21 cleanup. Score 15/21; do not merge yet.
+
+## D current evidence — score 16/21
+
+[RAN] No-shortcut Chromium park walk passed rings, measured airtime (0.1405 seconds in final full run), actual heightmap digging, normal RESPAWN and exit; zero own-code errors. Separate visual followup dug three times to -2.40996 m and moved the machine back with real reverse input.
+[SEEN] All park screenshots opened. Independent green park, rings, ramps, hill and readable RESPAWN/X are visible; terrain shading is still subtle.
+[READ] Park is 200×200 m with real boundary colliders, 1/2/3.5 m ramps, radius-eight turntable at 20 degrees/second, 40×30 deformable collider/mesh field, ten physics cones, pond, twelve-metre spiral, thirty rings and 150-coin cap. Criterion 12 passes. Remaining failures: 13,14,15,17,21.
+[UNKNOWN] Full spiral ascent, all thirty rings and physical-iPhone performance have not been tested. No merge below 17/21.

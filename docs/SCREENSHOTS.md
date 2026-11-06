@@ -616,3 +616,56 @@
 ![All fifteen level starts](screenshots/levels-contact-sheet.png)
 
 [SEEN] OK — fifteen real level starts; unlockall used only for selection. Art remains simple and some industrial backgrounds repeat, but the visible job layouts and mechanics differ.
+
+## D — separate Stunt Park
+
+[RAN] `D_WALK.txt`: real rings, brief measured airtime, dig, normal RESPAWN and exit. `D_VISUAL.txt`: independent three-dig followup, minimum terrain height changed from 0.09 m to -2.41 m. No QA setup shortcuts. Normal respawn used to avoid reversing into the ramp wall. Portrait is Chromium viewport resizing, not an actual iPhone.
+
+![Park start desktop](screenshots/d-park-start-desktop.png)
+
+[SEEN] OK — Park start, desktop; real driving/actions; no shortcuts.
+
+![Park start phone](screenshots/d-park-start-phone.png)
+
+[SEEN] OK — Park start, phone; real driving/actions; no shortcuts.
+
+![Park rings desktop](screenshots/d-park-rings-desktop.png)
+
+[SEEN] OK — Park rings, desktop; real driving/actions; no shortcuts.
+
+![Park rings phone](screenshots/d-park-rings-phone.png)
+
+[SEEN] OK — Park rings, phone; real driving/actions; no shortcuts.
+
+![Park jump desktop](screenshots/d-park-jump-desktop.png)
+
+[SEEN] OK — Park jump, desktop; real driving/actions; no shortcuts; screenshot is after the brief airborne interval, not a frozen airborne pose.
+
+![Park jump phone](screenshots/d-park-jump-phone.png)
+
+[SEEN] OK — Park jump, phone; real driving/actions; no shortcuts; screenshot is after the brief airborne interval, not a frozen airborne pose.
+
+![Park dig-before desktop](screenshots/d-park-dig-before-desktop.png)
+
+[SEEN] OK — Park dig-before, desktop; real driving/actions; no shortcuts; separate three-dig followup, orbit camera; crater shading is subtle and machine partly covers it.
+
+![Park dig-before phone](screenshots/d-park-dig-before-phone.png)
+
+[SEEN] OK — Park dig-before, phone; real driving/actions; no shortcuts; separate three-dig followup, orbit camera; crater shading is subtle and machine partly covers it.
+
+![Park dig-after desktop](screenshots/d-park-dig-after-desktop.png)
+
+[SEEN] OK — Park dig-after, desktop; real driving/actions; no shortcuts; separate three-dig followup, orbit camera; crater shading is subtle and machine partly covers it.
+
+![Park dig-after phone](screenshots/d-park-dig-after-phone.png)
+
+[SEEN] OK — Park dig-after, phone; real driving/actions; no shortcuts; separate three-dig followup, orbit camera; crater shading is subtle and machine partly covers it.
+
+![Park respawn desktop](screenshots/d-park-respawn-desktop.png)
+
+[SEEN] OK — Park respawn, desktop; real driving/actions; no shortcuts.
+
+![Park respawn phone](screenshots/d-park-respawn-phone.png)
+
+[SEEN] OK — Park respawn, phone; real driving/actions; no shortcuts.
+

@@ -46,6 +46,7 @@ body.tf-menu #tf-hud{display:none !important}
 #tf-hud .tf-p{position:absolute;background:var(--panel);border:2px solid var(--border);
   border-radius:var(--radius);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),var(--shadow);
   pointer-events:auto;display:flex;align-items:center}
+.tf-park-tools{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);gap:8px;pointer-events:auto}.tf-park-tools button{min-width:44px;height:48px;padding:0 12px;font-size:14px}.tf-park .tf-park-tools{display:flex}.tf-park .tf-pips{display:none}@media(max-width:600px){.tf-park-tools{left:128px;transform:none}.tf-park-tools button{padding:0 10px}}
 /* Every base is SOLID dark steel - no transparent blends with the world. */
 .tf-b{position:relative;display:flex;align-items:center;justify-content:center;
   background:var(--steel-flat);border:2px solid var(--border);border-radius:12px;
@@ -312,6 +313,7 @@ export default class GameUI {
     const root = document.createElement('div');
     root.id = 'tf-hud';
     root.innerHTML = `
+      <div class="tf-park-tools"><button class="tf-b" data-a="park-respawn" id="tf-park-respawn">RESPAWN</button><button class="tf-b" data-a="park-exit" aria-label="Exit Free Play">X</button></div>
       <div class="tf-timer tf-p" id="tf-timer">${svg('clock')}<span id="tf-time">0:00</span></div>
       <div class="tf-coins tf-p" id="tf-coins">${svg('coin')}<span id="tf-coins-v">0</span><i class="tf-dot" id="tf-dot-coins"></i></div>
       <button class="tf-pause tf-b" id="tf-pause" aria-label="Pause menu" title="Pause (P)">${svg('pause')}<i class="tf-dot" id="tf-dot-menu"></i></button>
@@ -566,7 +568,9 @@ export default class GameUI {
   showGarage(d) { this.menus.open('garage', d); }
   showMap() { this.menus.open('map'); }
 
+  setFreePlay(on){this.root.classList.toggle('tf-park',!!on);}
   reset() {
+    this.setFreePlay(false);
     this.releaseAll();
     this.closeMenu();
     this.menus.close();
