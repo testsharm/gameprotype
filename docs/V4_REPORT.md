@@ -15,9 +15,9 @@
 | 5 | [RAN] PASS — 20.21 km/h to zero in 0.906 s, about 1.74 m; 31.55 km/h brake to zero in 0.877 s | V4_HANDLING.txt; V4_HANDLING_SAMPLES.json; screenshots/v4b-coast-stop.png |
 | 6 | [SEEN] PASS — pile becomes a small patch | screenshots/v4-pile-1.png, v4-pile-2.png, v4-pile-3.png |
 | 7 | [SEEN] PASS in the requested pile/orbit/wall scenarios — camera lifts rather than enters the cab; near surfaces fade | V4_CAMERA_ACTIONS.txt; V4_FOLLOWUP.txt; screenshots/v4b-camera-pile-approach.png, v4b-camera-past-pile.png, v4b-camera-wall.png |
-| 8 | [UNKNOWN] NOT PASSED — no rebuilt fifteen-level contact sheet | V4_WORST.md |
-| 9 | [UNKNOWN] NOT PASSED — fifteen real-input completions not run | existing scripts/level-walk.mjs uses teleport and direct steps; do not use its PASS |
-| 10 | [UNKNOWN] NOT PASSED — four special-rule negatives not proven | V4_NEWPLAYER.txt covers only L1/L2 start |
+| 8 | [UNKNOWN] NOT PASSED — partial contact sheet: L1–5 rebuilt, L6–15 blank | V4_WORST.md |
+| 9 | [UNKNOWN] NOT PASSED — five real-input completions now run; ten remain | existing scripts/level-walk.mjs uses teleport and direct steps; do not use its PASS |
+| 10 | [UNKNOWN] NOT PASSED — L2 cone contact and L4 WRONG TRUCK proven; L7 drop and L9 reset remain | V4_NEWPLAYER.txt covers only L1/L2 start |
 | 11 | [SEEN] PASS — waited for actual L1 expiry | V4_UI.txt; screenshots/v4-time-up.png |
 | 12 | [UNKNOWN] NOT PASSED — Free Play rebuild not reached | V4_WORST.md |
 | 13 | [UNKNOWN] NOT PASSED — traffic shapes not rebuilt | V4_WORST.md |
@@ -74,3 +74,10 @@
 [RAN] A focused TIME IS UP close button received a native click from the brake Space key. It closed the fail window and opened PAUSED. Blur/visibility did not cause this reproduction. The reproduction uses a synthetic fail window as component-test setup only, not as evidence of earning a result or waiting for a timeout.
 [READ] Space now always prevents native button activation while playing, including game windows. Enter remains available for keyboard UI activation.
 [RAN] The corrected real-input session brought the page to the front and measured game-clock progress: 600.938 wall seconds, 594.013 game seconds, 383 loops, 1354 key holds, three actual timeout retries, no unplanned pauses, no lost focus, zero own-code errors. Its start/end screenshots were opened.
+
+## Step C group 1 evidence
+
+[RAN] L1 reached +220 in the first real-input walk, slowed by capture time; L2 reached +356 after a cone contact (no clean-cone bonus); L3 +368, L4 +395 (wrong-truck attempt forfeited bonus), L5 +644. These are actual earned amounts, not fixed +265 screenshots.
+[RAN] C1_WALK.txt retains the original L4 approach-angle and L5 queue-expiry failures. C1_RETRY.txt passes L3/L4/L5 and retains the first cone-test failure. C1_CONE.txt passes spatial cone contact and L2 completion. The old plane-only cone test missed contacts after a gate had already advanced; detection now checks every cone spatially.
+[SEEN] The contact sheet has five new starts and ten explicit NOT REBUILT placeholders. It does not pass the fifteen-level visual criterion. Material labels now face the camera; NaN material-truck countdowns are hidden; portrait hints and NEXT wrap. The displayed L4 mid frame still shows the legacy park hint; its funnel has been corrected afterward, not yet re-captured.
+[READ] C1 timings: L4 now allows 360 seconds for four matched loads; L5 trucks wait 60 seconds. Only the active rush truck countdown runs. Each job has a separate remote position and a real ground collider. Vehicle and environment art are still basic.

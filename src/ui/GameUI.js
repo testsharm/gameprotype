@@ -147,7 +147,7 @@ body.tf-menu #tf-hud{display:none !important}
 .tf-toast.warn{border-left-color:var(--danger)}
 @keyframes tfpop{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
 .tf-hint{position:absolute;left:50%;transform:translateX(-50%);top:calc(90px + ${SAFE_T});
-  padding:8px 14px;font-size:14px;font-weight:800;color:var(--ink);white-space:nowrap;display:none}
+  padding:8px 14px;font-size:14px;font-weight:800;color:var(--ink);white-space:normal;max-width:calc(100vw - 110px);width:max-content;box-sizing:border-box;text-align:center;justify-content:center;display:none}
 .tf-hint.on{display:flex}
 .tf-announce{position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);text-align:center;
   pointer-events:none;z-index:14;opacity:0;transition:opacity .3s;max-width:90vw}
@@ -251,7 +251,7 @@ body.tf-menu #tf-hud{display:none !important}
   .tf-speed .v{font-size:36px}
   .tf-toasts{bottom:calc(276px + ${SAFE_B});width:min(320px,84vw)}
   .tf-toast{font-size:14px;padding:9px 12px}
-  .tf-hint{top:calc(276px + ${SAFE_T})}
+  .tf-hint{top:calc(276px + ${SAFE_T});left:calc(50% - 24px)}
   #tf-loads{top:calc(230px + ${SAFE_T})}
   .tf-pad{display:none}
   #tf-hud.tf-lefty .tf-drive{left:auto;right:calc(12px + ${SAFE_R})}
@@ -657,9 +657,9 @@ export default class GameUI {
     if (this.el.fBtn) this.el.fBtn.setAttribute('aria-label', p);
     if (this.el.gBtn) this.el.gBtn.setAttribute('aria-label', q);
   }
-  setLoads(n) {
+  setLoads(n, label = 'LOADS LEFT') {
     if (!this.el.loads) return;
-    this.el.loads.textContent = 'LOADS LEFT ' + Math.max(0, n | 0);
+    this.el.loads.textContent = label + ' ' + Math.max(0, n | 0);
     this.el.loads.classList.toggle('on', n > 0);
   }
   announce2(t1, t2, duration = 1600) {

@@ -207,6 +207,8 @@ const CSS = `
 #tf-win .tf-card.newlevel{outline:2px solid #fbbf24;outline-offset:-2px;border-color:#fbbf24;animation:nextPulse 1.5s infinite}
 #tf-win .tf-card.newlevel .tag{background:#fbbf24;color:#1a1204}
 /* result / fail */
+#tf-win [data-a="next"]{white-space:normal;overflow-wrap:anywhere;min-width:0;line-height:1.25;height:auto;min-height:54px;padding:10px 8px}
+#tf-win [data-a="next"] .tf-ic{flex-shrink:0}
 .tf-stars{display:flex;justify-content:center;gap:8px;margin:4px 0 10px}
 .tf-stars .tf-ic{width:44px;height:44px;color:#3a4c68}
 .tf-stars .tf-ic.on{color:var(--goal);fill:var(--goal)}

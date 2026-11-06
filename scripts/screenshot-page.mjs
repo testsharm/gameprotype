@@ -10,8 +10,8 @@ try {
  async function phone(on){await p.setViewportSize(on?{width:390,height:844}:{width:1280,height:720});await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:on,maxTouchPoints:5});await p.waitForTimeout(350);}
  await shot('desktop-start','Start screen. No shortcut.');await phone(true);await shot('phone-start','Phone start screen. No shortcut.');await phone(false);
  await p.click('.tf-play');start=Date.now();await shot('desktop-l1-start','Level 1 first playing view. No shortcut.',true);
- await p.waitForTimeout(Math.max(0,5000-(Date.now()-start)));await shot('l1-5s','Level 1 at five seconds. No shortcut.',true);
- await p.waitForTimeout(Math.max(0,15000-(Date.now()-start)));await shot('l1-15s','Level 1 at fifteen seconds. No shortcut.',true);
+ await p.waitForTimeout(Math.max(0,5000-(Date.now()-start)));await shot('l1-5s','Level 1 capture requested at five seconds. No shortcut.',true);
+ await p.waitForTimeout(Math.max(0,15000-(Date.now()-start)));await shot('l1-15s','Level 1 capture requested at fifteen seconds. No shortcut.',true);
  await phone(true);
  const joy=await p.locator('#tf-joy').boundingBox(),act=await p.locator('.tf-action').boundingBox();
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:joy.x+joy.width/2,y:joy.y+10,id:1},{x:act.x+act.width/2,y:act.y+act.height/2,id:2}]});await p.waitForTimeout(350);

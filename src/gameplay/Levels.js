@@ -60,7 +60,7 @@ export function levelStartPose(job, site, firstGoal) {
   const ux = dx / L, uz = dz / L, vx = -uz, vz = ux;
   const x = site.pile.x - ux * s.back + vx * s.side;
   const z = site.pile.z - uz * s.back + vz * s.side;
-  let tx = site.pile.x, tz = site.pile.z;
+  let tx = firstGoal?.scoop?.x ?? site.pile.x, tz = firstGoal?.scoop?.z ?? site.pile.z;
   if (s.face === 'truck') { tx = site.truck.x; tz = site.truck.z; }
   else if (s.face === 'first' && firstGoal) { tx = firstGoal.x; tz = firstGoal.z; }
   const yaw = Math.atan2(tx - x, tz - z);
@@ -84,18 +84,18 @@ export const LEVELS = [
   },
   {
     id: 2, name: 'Cone School', chapter: 1, type: 'CONE', theme: 'Training course',
-    story: 'No digging today. Thread the backhoe through five cone gates without knocking them over.',
-    steps: [{ kind: 'gate', n: 5 }], loads: 5, time: 190, reward: 220,
+    story: 'No digging today. Thread the backhoe through six S-shaped cone gates, then park without knocking them over.',
+    steps: [{ kind: 'gate', n: 6 }, {kind:'park',n:1}], loads: 7, time: 190, reward: 220,
     start: { back: 14, side: -12, face: 'first', cam: 13 },
     needs: { job: 1 }, bonus: { text: 'No cones knocked over', coins: 50 }, env: DAY,
     site: S(90, 150, 60, 24), dressing: 'course', gates: { width: 4.6, slalom: 7 },
     scoopText: 'Drive through the amber gates', dumpText: 'Drive through the amber gates',
     hints: H('Follow the glowing arrow. Drive between each pair of cones.', 'Gates must be passed in order. The active gate glows amber.'),
-    rule: 'Drive through 5 gates in order. Do not hit the cones.'
+    rule: 'Six S gates, then stop in PARK for one second.'
   },
   {
     id: 3, name: 'Fill the Pothole', chapter: 1, type: 'FILL', theme: 'Road repair',
-    story: 'Rain broke the road. Fill the pothole with three loads of soil - no truck this time.',
+    story: 'Repair three separate potholes while traffic crosses the work zone.',
     steps: [{ kind: 'fill', n: 3 }], loads: 3, time: 200, reward: 260,
     start: { back: 22, side: 9, face: 'pile', cam: 12 },
     needs: { job: 2 }, bonus: { text: 'Every load landed in the hole', coins: 50 }, env: MORNING,
@@ -105,23 +105,23 @@ export const LEVELS = [
     rule: 'Dump into the hole. The mound grows with every load.'
   },
   {
-    id: 4, name: 'Park Clean-up', chapter: 1, type: 'HAUL', theme: 'Landslide',
-    story: 'A landslide buried the park paths. Move the dirt out, load by load.',
-    steps: [{ kind: 'haul', n: 4 }], loads: 4, time: 230, reward: 300,
+    id: 4, name: 'Material Match', chapter: 1, type: 'HAUL', theme: 'Landslide',
+    story: 'Two materials, two matching trucks. Sand goes in amber; gravel goes in blue.',
+    steps: [{ kind: 'haul', n: 4 }], loads: 4, time: 360, reward: 300,
     start: { back: 26, side: -8, face: 'pile', cam: 14 },
     needs: { job: 3 }, bonus: { text: 'No missed dumps', coins: 60 }, env: DAY,
-    site: S(45, 205, 50, 26), dressing: 'park',
+    site: S(45, 205, 50, 26), dressing: 'materials', materials:true,
     scoopText: 'Scoop the landslide dirt', dumpText: 'Dump it in the park truck',
     hints: H('A longer drive through the park. Watch the trees.', 'Line up with the truck bed and press F.'),
-    rule: 'Four loads, narrow park paths.'
+    rule: 'Four matching loads. WRONG TRUCK keeps your material.'
   },
   {
     id: 5, name: 'Rush Hour Lite', chapter: 1, type: 'RUSH', theme: 'Chapter boss',
     story: 'Three trucks are queued in the loading lanes. Load each one before its waiting timer runs out.',
     steps: [{ kind: 'rush', n: 3 }], loads: 3, time: 240, reward: 380,
-    start: { back: 16, side: 11, face: 'truck', cam: 13 },
+    start: { back: 16, side: 11, face: 'pile', cam: 13 },
     needs: { job: 4 }, bonus: { text: 'No missed truck', coins: 90 }, env: DUSK,
-    site: S(180, 165, 55, 26), dressing: 'city', rush: true, trucks: 3, truckWait: 48,
+    site: S(180, 165, 55, 26), dressing: 'city', rush: true, trucks: 3, truckWait: 60,
     scoopText: 'Scoop dirt from the pile', dumpText: 'Dump in the waiting truck',
     hints: H('Drive to the highlighted dirt pile and scoop.', 'Load the glowing truck before its timer ring runs out.'),
     rule: 'Three trucks wait in three lanes. A truck drives away if its timer expires.'
@@ -347,8 +347,10 @@ export class LevelEngine {
     this._prevSide.clear();
     this._rushLeave = [];
     this.rushTarget = null;
-    this.crossCar = null;
+    this.crossCar = null;this.roadCars=null;this.parkHold=0;
+    this.materialHeaps={};
     this._buildGoals();
+    if(job.id===3) this._buildRoadTraffic();
     // B2: every goal object exists from the FIRST frame. No lazy creation.
     // B6: the old floating orange cone marker is gone; guidance uses the
     // painted ground ring + chevrons in Guidance.js.
@@ -365,6 +367,7 @@ export class LevelEngine {
       this.scene.remove(this.group);
       this.group.traverse(o => {
         if (o.geometry) o.geometry.dispose();
+        if(o.userData.labelTexture)o.userData.labelTexture.dispose();
       });
       this.group = null;
     }
@@ -413,14 +416,18 @@ export class LevelEngine {
         const g = { kind: step.kind, done: false, mesh: null };
         if (step.kind === 'gate') {
           const i = gateN++;
-          const a = -14 + (d.len + 30) * (i + 0.6) / (gateCount + 0.4);
-          const b = Math.sin(i * 1.35 + job.id * 0.4) * slalom;
+          const a = job.id===2 ? i*15 : -14 + (d.len + 30) * (i + 0.6) / (gateCount + 0.4);
+          const b = job.id===2 ? Math.sin(i*Math.PI/2)*7 : Math.sin(i * 1.35 + job.id * 0.4) * slalom;
           const p = this._at(a, b);
           g.x = p.x; g.z = p.z;
           g.nx = d.ux; g.nz = d.uz;
           g.width = gw;
           g.beam = !!(job.beam && i === job.beam - 1);
           g.mesh = this._buildGate(g, i + 1, gateCount);
+        } else if (step.kind === 'park') {
+          const p=this._at(d.len+24,0);g.x=p.x;g.z=p.z;
+          this._pad(g.x,g.z,5,COL.green,.12);this._ring(g.x,g.z,5,COL.green,.35);
+          this._label('PARK',g.x,3,g.z,COL.green);
         } else if (step.kind === 'trench' || step.kind === 'debris') {
           const i = spotN++;
           const side = (i % 2 === 0 ? 1 : -1);
@@ -429,10 +436,10 @@ export class LevelEngine {
           g.mesh = step.kind === 'trench' ? this._buildTrench(g, i + 1, spotCount) : this._buildDebris(g, i + 1, spotCount);
         } else if (step.kind === 'fill') {
           fillN++;
-          g.x = this.site.truck.x; g.z = this.site.truck.z;
-          g.fillIndex = fillN;
-          if (!this.hole) this.hole = this._buildHole(g.x, g.z);
-          g.mesh = this.hole;
+          const p=this.job.id===3?this._at(d.len,(fillN-2)*17):this.site.truck;
+          g.x = p.x; g.z = p.z;g.fillIndex=1;
+          g.mesh=this._buildHole(g.x,g.z);if(!this.hole)this.hole=g.mesh;
+          this._label('HOLE '+fillN,g.x,2.7,g.z,COL.amber);
         } else if (step.kind === 'move') {
           moveN++;
           g.x = this.site.truck.x; g.z = this.site.truck.z;
@@ -448,6 +455,11 @@ export class LevelEngine {
         } else {
           haulN++;
           g.x = this.site.truck.x; g.z = this.site.truck.z;
+          if(job.materials) {
+            g.material=k%2===0?'SAND':'GRAVEL';const side=k%2===0?-13:13;
+            g.scoop=this._at(0,side);const p=this._at(d.len,side);g.x=p.x;g.z=p.z;
+            if(k<2){this._materialHeap(g);g.mesh=this._buildRushTruck(g,k+1,99);this._label(g.material,g.x,4,g.z,k===0?COL.amber:COL.blue);}
+          }
         }
         this.goals.push(g);
       }
@@ -491,7 +503,7 @@ export class LevelEngine {
       return m;
     };
     const boss = num === total;   // TIER 5: the last RUSH truck is the boss truck.
-    const cabMat = this._mat(boss ? COL.amberDark : COL.blue, { roughness: 0.55 });
+    const cabMat = this._mat(boss || g.material==='SAND' ? COL.amberDark : COL.blue, { roughness: 0.55 });
     const bedMat = this._mat(0x3b4554, { roughness: 0.8 });
     const tyreMat = this._mat(0x15181e, { roughness: 0.95 });
     add(new THREE.BoxGeometry(2.4, 2.0, 2.2), cabMat, 0, 1.55, 2.5);
@@ -541,6 +553,7 @@ export class LevelEngine {
     sprite.position.set(0, 4.9, 0);
     grp.add(sprite);
 
+    if(g.kind!=='rush'){ring.visible=false;sprite.visible=false;}
     grp.userData = { ring: ring, count: count, sprite: sprite, segs: N, active: false, leave: 0 };
     return grp;
   }
@@ -730,6 +743,32 @@ export class LevelEngine {
     return grp;
   }
 
+  _label(text,x,y,z,color=COL.amber) {
+    const t=this._textCanvas(text,384,96,'#101a2b','#'+color.toString(16).padStart(6,'0'));
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(5,1.25),new THREE.MeshBasicMaterial({map:t.tex,side:THREE.DoubleSide}));
+    m.rotation.y=-Math.PI/2;m.position.set(x,y,z);m.userData.labelTexture=t.tex;this.group.add(m);return m;
+  }
+  _materialHeap(g){
+    const m=new THREE.Mesh(new THREE.ConeGeometry(4.5,2.5,16),this._mat(g.material==='SAND'?0xd6af6a:0x718096));
+    m.position.set(g.scoop.x,1.25,g.scoop.z);this.group.add(m);this.materialHeaps[g.material]=m;this._label(g.material,g.scoop.x,4,g.scoop.z);
+  }
+  dumpWarning(bp){
+    if(!this.job?.materials)return '';
+    const g=this.active();if(!g)return '';
+    const other=this.goals.find(q=>q.material!==g.material);
+    if(other&&Math.hypot(bp.x-other.x,bp.z-other.z)<10)return 'WRONG TRUCK — '+g.material+' needs its matching truck';
+    return '';
+  }
+  faceLabels(camera){if(this.group)this.group.traverse(o=>{if(o.userData.labelTexture)o.quaternion.copy(camera.quaternion);});}
+  _buildRoadTraffic(){
+    this.roadCars=[];
+    for(let i=0;i<2;i++){
+      const g=new THREE.Group();const b=new THREE.Mesh(new THREE.BoxGeometry(2.5,1.3,5),this._mat(i?COL.blue:0xef4444));b.position.y=.8;g.add(b);
+      const cab=new THREE.Mesh(new THREE.BoxGeometry(2,1,2.5),this._mat(0x9acde3));cab.position.y=1.8;g.add(cab);
+      this.group.add(g);this.roadCars.push(g);
+    }
+  }
+
   _buildMoveProps(job) {
     const crate = job.id === 13;
     const px = this.site.pile.x, pz = this.site.pile.z;
@@ -764,16 +803,16 @@ export class LevelEngine {
     if (!g) { this.finished = true; return; }
     // B2: the pile and the truck are visible for EVERY kind of goal from frame
     // one. Hiding them was the reason objects "appeared after pressing F".
-    const showTruck = true;
+    const showTruck = g.kind==='haul'&&!this.job.materials;
     // RUSH levels use their own waiting trucks; the blue truck is hidden but moved
     // to the active lane so main.js's dump proximity check still works.
-    const showPile = true;
+    const showPile = !['gate','park','move','trench','debris'].includes(g.kind)&&!this.job.materials;
     this.rushTarget = (g.kind === 'rush') ? { x: g.x, z: g.z } : null;
-    const pile = (g.kind === 'trench' || g.kind === 'debris') ? { x: g.x, z: g.z } : this.site.pile;
+    const pile = (g.kind === 'trench' || g.kind === 'debris') ? { x: g.x, z: g.z } : (g.scoop || this.site.pile);
     // B3: restore the FULL pile after every goal, so load 3 always has dirt.
     if (i === 0 && this.world && this.world.resetDirtPile) this.world.resetDirtPile();
     this._place('dirtPileGroup', pile.x, pile.z, showPile);
-    if (this.world && this.world.jobSiteBase) this.world.jobSiteBase.visible = true;
+    if (this.world && this.world.jobSiteBase) this.world.jobSiteBase.visible = false;
     const tz = this.rushTarget || this.site.truck;
     this._place('truckGroup', tz.x, tz.z, showTruck);
     if (this.hooks.truckSolid) this.hooks.truckSolid(showTruck, tz.x, tz.z);
@@ -784,7 +823,7 @@ export class LevelEngine {
         if (q.mesh.userData.active) { q.wait = q.waitMax; this._updateRushRing(q); }
       }
     }
-    if (this.hole) this.hole.visible = (g.kind === 'fill');
+
     if (this.group) {
       for (const q of this.goals) {
         if (q.mesh && q.mesh.userData) {
@@ -812,7 +851,7 @@ export class LevelEngine {
   }
 
   _setTarget(g, pile) {
-    if (g.kind === 'gate') {
+    if (g.kind === 'gate' || g.kind === 'park') {
       // On gate levels BOTH minimap dots point at the active gate, whichever
       // branch of the guidance code runs. No truck or pile to distract the player.
       this.siteNow.pile.x = g.x; this.siteNow.pile.z = g.z;
@@ -822,7 +861,8 @@ export class LevelEngine {
       this.siteNow.truck.x = g.x; this.siteNow.truck.z = g.z;
     } else {
       this.siteNow.pile.x = pile.x; this.siteNow.pile.z = pile.z;
-      this.siteNow.truck.x = this.site.truck.x; this.siteNow.truck.z = this.site.truck.z;
+      const destination=(g.kind==='fill'||this.job.materials)?g:this.site.truck;
+      this.siteNow.truck.x = destination.x; this.siteNow.truck.z = destination.z;
     }
   }
 
@@ -834,9 +874,7 @@ export class LevelEngine {
         if (g.mesh.userData && g.mesh.userData.stripe) {
           g.mesh.userData.stripe.material = this._mat(COL.green, { emissive: 0x065f46, emissiveIntensity: 0.6 });
           g.mesh.userData.halo.visible = false;
-          g.mesh.userData.cones.forEach((c, i) => {
-            if (!c.userData.tumble) c.userData.tumble = { t: 0, dir: i ? 1 : -1, done: false };
-          });
+
         } else if (g.mesh.userData && g.mesh.userData.lid) {
           g.mesh.userData.lid.visible = false;
           g.mesh.userData.floor.material = this._mat(COL.green);
@@ -868,7 +906,9 @@ export class LevelEngine {
     const g = this.active();
     if (!g) return 'Job complete';
     const j = this.job;
+    if(j?.materials){const g=this.active();return g?(hasDirt?'DUMP '+g.material+' IN MATCHING TRUCK':'SCOOP '+g.material):'Four matching loads complete';}
     switch (g.kind) {
+      case 'park': return 'Stop inside PARK for one second';
       case 'gate': return g.beam ? 'Lower bucket - drive under beam' : 'Drive through the amber gate';
       case 'rush': return hasDirt ? ('Dump in truck ' + g.lane) : ('Scoop for truck ' + g.lane);
       case 'trench': return hasDirt ? 'Dump the spoil in the ring' : 'Dig the marked trench';
@@ -881,7 +921,7 @@ export class LevelEngine {
   stepText() {
     const g = this.active();
     if (!g) return 'Complete ' + this.done + '/' + this.goals.length;
-    const labels = { haul: 'Haul loads', fill: 'Hole fills', move: 'Pipes placed', gate: 'Gates', trench: 'Trenches', debris: 'Piles cleared', rush: 'Trucks loaded' };
+    const labels = { park:'Park', haul: 'Haul loads', fill: 'Hole fills', move: 'Pipes placed', gate: 'Gates', trench: 'Trenches', debris: 'Piles cleared', rush: 'Trucks loaded' };
     return labels[g.kind] + ' ' + this.done + '/' + this.goals.length;
   }
   hint(dirty) {
@@ -899,6 +939,7 @@ export class LevelEngine {
   onScoop(bucketPos, vehicle) {
     const g = this.active();
     if (!g) return { ok: true, count: false, msg: '' };
+    if(this.job.materials){const m=this.materialHeaps[g.material];if(m)m.scale.multiplyScalar(.6);return {ok:true,count:false,msg:g.material+' loaded — use its matching truck'};}
     if (g.kind === 'trench' || g.kind === 'debris') {
       // B1: a scoop NEVER completes a goal by itself. The player must still
       // drive to the marked spot and dump (the dump grants the progress).
@@ -924,7 +965,7 @@ export class LevelEngine {
     if (g.kind === 'move') this._detachCarry();
     // B1: trench / debris / gate goals are only granted when the player DUMPS.
     // Gate goals are still granted by driving through them (see update()).
-    const target = this.rushTarget || this.site.truck;
+    const target = (g.kind==='fill'||this.job.materials||g.kind==='rush')?{x:g.x,z:g.z}:this.site.truck;
     const near = Math.hypot(bucketPos.x - target.x, bucketPos.z - target.z) < 12;
     if (g.kind === 'trench' || g.kind === 'debris') {
       if (!g.dugAt) return { ok: false, count: false, msg: 'Dig the marked spot first' };
@@ -938,9 +979,9 @@ export class LevelEngine {
     }
     if (!this.wantsDump()) return { ok: true, count: false, msg: '' };
     if (!near) { this.onMiss(); return { ok: false, count: false, msg: 'Missed the target - scoop again' }; }
-    if (g.kind === 'fill' && this.hole) {
-      const mound = this.hole.userData.mound;
-      const k = Math.min(1, g.fillIndex / 3);
+    if (g.kind === 'fill' && g.mesh) {
+      const mound = g.mesh.userData.mound;
+      const k = 1;
       mound.scale.setScalar(0.35 + 0.65 * k);
       mound.position.y = 0.3 + 0.5 * k;
       this._spoilAt(target.x + 4, target.z + 2, 0.8);   // TIER 5: FILL mound grows
@@ -1057,6 +1098,33 @@ export class LevelEngine {
       this._updateRushRing(g);
       if (g.wait <= 0) { this._rushExpire(g); return; }
     }
+    // Cone contact is spatial, not tied to crossing the active gate plane.
+    // A cone can be hit after its gate was passed or from the side.
+    if(vehicle)for(const gate of this.goals){
+      if(gate.kind!=='gate'||!gate.mesh)continue;
+      for(const cone of gate.mesh.userData.cones){
+        if(cone.userData.tumble)continue;
+        const pos=cone.getWorldPosition(new THREE.Vector3());
+        if(Math.hypot(pos.x-vehicle.mesh.position.x,pos.z-vehicle.mesh.position.z)<2){
+          cone.userData.tumble={t:0,dir:cone.position.x<0?-1:1,done:false};this.coneHits++;
+          if(this.hooks.addTime)this.hooks.addTime(2);
+          if(this.hooks.onToast)this.hooks.onToast('Cone down +2s','info');
+        }
+      }
+    }
+    if(this.roadCars)for(let i=0;i<this.roadCars.length;i++){
+      const c=this.roadCars[i];c.position.x=this.site.pile.x+18;
+      c.position.z=this.site.pile.z+Math.sin(this._t*.35+i*Math.PI)*48;
+      if(vehicle && Math.hypot(c.position.x-vehicle.mesh.position.x,c.position.z-vehicle.mesh.position.z)<3.3){
+        const t=vehicle.chassisBody.linvel();vehicle.chassisBody.setLinvel({x:-t.x*.3,y:t.y,z:-t.z*.3},true);
+        if(this._t>(this.hitAt||0)+2){this.hitAt=this._t;this.onMiss();if(this.hooks.onToast)this.hooks.onToast('TRAFFIC — slow down','warn');}
+      }
+    }
+    if(g?.kind==='park' && vehicle){
+      const near=Math.hypot(vehicle.mesh.position.x-g.x,vehicle.mesh.position.z-g.z)<5;
+      this.parkHold=near&&Math.abs(vehicle.currentSpeed)<1?(this.parkHold||0)+dt:0;
+      if(this.parkHold>=1){this._advance();if(this.hooks.onCount)this.hooks.onCount(0);}return;
+    }
     if (!g || g.kind !== 'gate' || !vehicle || !vehicle.mesh) return;
     const p = vehicle.mesh.position;
     const side = (p.x - g.x) * g.nx + (p.z - g.z) * g.nz;
@@ -1069,17 +1137,6 @@ export class LevelEngine {
     const crossed = (prev < 0 && side >= 0) || (prev > 0 && side <= 0);
     const nearCentre = Math.hypot(p.x - g.x, p.z - g.z) < 2.6;
     if (!crossed && !nearCentre) return;
-    if (crossed && lateral > g.width + 1.6 && lateral < g.width + 4.5) {
-      this.coneHits++;
-      if (this.hooks.onDing) this.hooks.onDing();
-      if (this.hooks.addTime) this.hooks.addTime(2);
-      if (this.hooks.onToast) this.hooks.onToast('Cone down  +2s', 'success');
-      if (g.mesh && g.mesh.userData && g.mesh.userData.cones) {
-        g.mesh.userData.cones.forEach((c, i) => {
-          if (!c.userData.tumble) c.userData.tumble = { t: 0, dir: i ? 1 : -1, done: false };
-        });
-      }
-    }
     if (lateral > g.width && !nearCentre) return;
     if (g.beam && vehicle.bucketPivot) {
       const bp = new THREE.Vector3();
@@ -1112,6 +1169,7 @@ export class LevelEngine {
       id: this.job ? this.job.id : 0, type: this.job ? this.job.type : '',
       goal: this.activeKind(), done: this.done, total: this.goals.length,
       combo: this.combo, maxCombo: this.maxCombo, coneHits: this.coneHits, misses: this.misses,
+      coneAngles:this.goals.filter(g=>g.kind==='gate').map(g=>g.mesh?.userData.cones.map(c=>c.rotation.z)),
       rushWait: this.active() && this.active().kind === 'rush' ? Math.ceil(Math.max(0, this.active().wait)) : null
     };
   }

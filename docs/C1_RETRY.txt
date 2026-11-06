@@ -1,0 +1,43 @@
+[RAN] L2 cone tumble {"id":2,"type":"CONE","goal":"gate","done":1,"total":7,"combo":0,"maxCombo":0,"coneHits":0,"misses":0,"coneAngles":[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],"rushWait":null,"goals":[{"kind":"gate","x":2200,"z":1800,"done":true},{"kind":"gate","x":2215,"z":1807,"done":false},{"kind":"gate","x":2230,"z":1800,"done":false},{"kind":"gate","x":2245,"z":1793,"done":false},{"kind":"gate","x":2260,"z":1800,"done":false},{"kind":"gate","x":2275,"z":1807,"done":false},{"kind":"park","x":2304,"z":1800,"done":false}]}
+[UNKNOWN] FAIL L2 Error: Cone tumble not proven
+    at file:///home/user/gameprotype/scripts/level-walk.mjs:33:91
+[RAN] PASS L3 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +368
+      COINS EARNED
+      
+      
+         RETRY
+         NEXT: MATERIAL MATCH
+      
+      
+[RAN] L4 wrong-truck {"loads":0,"hasDirt":true,"toast":true}
+[RAN] PASS L4 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +395
+      COINS EARNED
+      
+      
+         RETRY
+         NEXT: RUSH HOUR LITE
+      
+      
+[RAN] PASS L5 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +644
+      BONUS +90 INCLUDED
+      
+      
+         RETRY
+         NEXT: DIG THE TRENCH
+      
+      

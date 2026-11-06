@@ -361,7 +361,13 @@ export class JobSystem {
     }
     return this._layout;
   }
-  siteFor(id) { return (this._layout && this._layout.get(id)) || { ok: false }; }
+  siteFor(id) {
+    // Independent job sites: no shared street/building/pile coordinates.
+    if (id <= 5) { const x = id * 1100, z = 1800;
+      return {ok:true, keep:false, pile:{x,z}, truck:{x:x+(id===2?80:30),z}};
+    }
+    return (this._layout && this._layout.get(id)) || { ok: false };
+  }
 }
 
 // TIER 3: the old JobPanels window system (briefing / result / fail / picker /

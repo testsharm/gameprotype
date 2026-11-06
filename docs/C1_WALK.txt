@@ -1,0 +1,44 @@
+[RAN] PASS L1 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +220
+      BONUS +40 INCLUDED
+      
+      
+         RETRY
+         NEXT: CONE SCHOOL
+      
+      
+[RAN] PASS L2 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +373
+      BONUS +50 INCLUDED
+      
+      
+         RETRY
+         NEXT: FILL THE POTHOLE
+      
+      
+[RAN] PASS L3 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +338
+      COINS EARNED
+      
+      
+         RETRY
+         NEXT: MATERIAL MATCH
+      
+      
+[RAN] L4 wrong-truck {"loads":0,"hasDirt":true,"toast":true}
+[UNKNOWN] FAIL L4 Error: Dump rejected {"position":{"x":4422.60009765625,"y":1.0863481760025024,"z":1787.8096923828125},"upDot":0.9990713336614937,"yaw":-0.35212710851634693,"speedKmh":0,"velocity":{"x":0,"y":-0.06132356822490692,"z":0},"elapsed":117.17950000000465,"timeLeft":112.82049999999535,"arm":[-0.20069444444444445,0.19654236111110956],"action":{"holding":false,"progress":0,"last":{"code":"KeyG","holdEnd":133760.59999999963,"effect":null}},"hasDirt":true,"loads":0,"camera":{"position":[4427.019177398033,6.219681225301249,1775.7668379772158],"up":[0,1,0],"blockers":0,"pulledIn":false,"faded":0,"inside":0},"pileScale":[0.7875,0.7875,0.7875],"level":{"id":4,"type":"HAUL","goal":"haul","done":0,"total":4,"combo":0,"maxCombo":0,"coneHits":0,"misses":1,"coneAngles":[],"rushWait":null,"goals":[{"kind":"haul","x":4430,"z":1787,"done":false,"scoop":{"x":4400,"z":1787},"material":"SAND"},{"kind":"haul","x":4430,"z":1813,"done":false,"scoop":{"x":4400,"z":1813},"material":"GRAVEL"},{"kind":"haul","x":4430,"z":1787,"done":false,"scoop":{"x":4400,"z":1787},"material":"SAND"},{"kind":"haul","x":4430,"z":1813,"done":false,"scoop":{"x":4400,"z":1813},"material":"GRAVEL"}]},"frame":{"dt":0.25,"steps":5},"playing":true}
+    at file:///home/user/gameprotype/scripts/level-walk.mjs:36:46
+[UNKNOWN] FAIL L5 Error: Dump rejected {"position":{"x":5529.08544921875,"y":1.08634614944458,"z":1799.9156494140625},"upDot":0.9990713833750836,"yaw":1.5201001317626575,"speedKmh":0,"velocity":{"x":0,"y":-0.06119020655751228,"z":0},"elapsed":95.4470999999978,"timeLeft":144.55290000000218,"arm":[-0.20737429610544308,0.14907065299715638],"action":{"holding":false,"progress":0,"last":{"code":"KeyG","holdEnd":109014.70000000019,"effect":null}},"hasDirt":true,"loads":1,"camera":{"position":[5517.182816389793,5.853013728586169,1799.3117084111304],"up":[0,1,0],"blockers":0,"pulledIn":false,"faded":0,"inside":0},"pileScale":[0.43333333333333335,0.43333333333333335,0.43333333333333335],"level":{"id":5,"type":"RUSH","goal":"rush","done":1,"total":3,"combo":0,"maxCombo":1,"coneHits":0,"misses":1,"coneAngles":[],"rushWait":43,"goals":[{"kind":"rush","x":5537,"z":1790.5,"done":true},{"kind":"rush","x":5537,"z":1800,"done":true},{"kind":"rush","x":5537,"z":1809.5,"done":false}]},"frame":{"dt":0.1901000000005588,"steps":5},"playing":true}
+    at file:///home/user/gameprotype/scripts/level-walk.mjs:36:46

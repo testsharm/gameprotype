@@ -1,3 +1,15 @@
+# Current Fix v4 continuation — 2026-11-06
+
+[RAN] SAME branch arena/0ac523ae-gameprotype, SAME open PR #5. Strict score 12/21; DO NOT MERGE below 17/21.
+[RAN] A published docs/SCREENSHOTS.md with actual desktop/phone captures and filmstrip. Initial 0/5/15 capture requests have delayed completion timestamps, disclosed in the page.
+[RAN] B fixed the real Space/native-button timeout -> PAUSED bug. Focused 600.938-second test: 594.013 game seconds, 1354 holds, three real retries, zero unexpected pauses/focus losses/own errors. docs/V4_SESSION.txt and PAUSE_REPRO_BEFORE/AFTER.
+[RAN] C group 1 has real-input finishes for L1–5. L2 six S gates + park, L3 three holes + traffic, L4 four matched material loads/two trucks with WRONG TRUCK, L5 three timed lanes + bigger final truck. Each has an independent remote floor/site. Read docs/C1_WALK.txt (failed attempts retained), C1_RETRY.txt, C1_CONE.txt, C1_CONE_VISUAL.txt. scripts/level-walk.mjs now drives real keys; unlockall only selects a starting level. No teleport/direct progress. Corrected routing runs 800x450, captures 1280x720/390x844.
+[SEEN] Opened all new screenshot files. L4 mid still shows an old park hint; source corrected afterward, that frame is BAD and not recaptured. Cone contact settles correctly but the fallen cone is partly hidden under a wheel even after a real side orbit. The contact sheet deliberately blanks L6–15.
+[UNKNOWN] Next required work: C group 2 L6–10, then group 3 L11–15, THEN D Free Play, THEN E art, F optional. Do not jump ahead. Do not ask the user. Push and report after every group. Old L6–15, Free Play and art are NOT rebuilt or proven. Remain honest, no score credit for partial fifteen-level criteria.
+[RAN] npm run build passes; Vite config/chunk warnings remain. Preview 4173 reads current dist.
+
+--- Historical notes below (new current block above wins) ---
+
 ## LATEST — V4 TIER 1 CONTINUATION (2026-11-06)
 
 [RAN] Strict checklist now 11/21; see docs/V4_REPORT.md. PR #5 stays open, not merged.

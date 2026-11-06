@@ -150,3 +150,161 @@
 ![Session start](screenshots/v4b-session-start.png)
 
 ![Session end](screenshots/v4b-session-end.png)
+
+# Step C — Group 1: Levels 1–5
+
+[RAN] Each result below was earned with real Chromium keyboard driving and F/G holds (or gate/park driving). unlockall was used ONLY to select each starting level. No teleport, injected velocity, direct progress, timer edits or staged result. Phone shots are the same run with the viewport changed, not a second phone completion.
+
+[READ] The corrected walks route at 800×450 between captures (the initial L1 walk routed at 1280×720) so software WebGL can keep up; desktop captures are 1280×720 and portrait captures 390×844. L1 completed in the first walk; L3–5 completed in the corrected walk; L2 completed in the cone-contact walk. Failed attempts are retained in the logs.
+
+[SEEN] OK — New contact sheet; ten unfinished levels are deliberately blank, not passed. Shortcut disclosure: unlockall only for starting-level selection.
+
+![Current level contact sheet](screenshots/levels-contact-sheet.png)
+
+## Level 1 — Three-load rookie yard
+
+[SEEN] OK — Desktop start: Three-load rookie yard. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L1 start desktop](screenshots/c1-l1-start-desktop.png)
+
+[SEEN] OK — Phone start: Three-load rookie yard. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L1 start phone](screenshots/c1-l1-start-phone.png)
+
+[SEEN] OK — Desktop mid: Three-load rookie yard. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L1 mid desktop](screenshots/c1-l1-mid-desktop.png)
+
+[SEEN] OK — Phone mid: Three-load rookie yard. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L1 mid phone](screenshots/c1-l1-mid-phone.png)
+
+[SEEN] GOOD — Desktop result: Three-load rookie yard. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L1 result desktop](screenshots/c1-l1-result-desktop.png)
+
+[SEEN] GOOD — Phone result: Three-load rookie yard. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L1 result phone](screenshots/c1-l1-result-phone.png)
+
+## Level 2 — Six S gates and a one-second park
+
+[SEEN] OK — Desktop start: Six S gates and a one-second park. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L2 start desktop](screenshots/c1-l2-start-desktop.png)
+
+[SEEN] OK — Phone start: Six S gates and a one-second park. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L2 start phone](screenshots/c1-l2-start-phone.png)
+
+[SEEN] OK — Desktop mid: Six S gates and a one-second park. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L2 mid desktop](screenshots/c1-l2-mid-desktop.png)
+
+[SEEN] OK — Phone mid: Six S gates and a one-second park. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L2 mid phone](screenshots/c1-l2-mid-phone.png)
+
+[SEEN] GOOD — Desktop result: Six S gates and a one-second park. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L2 result desktop](screenshots/c1-l2-result-desktop.png)
+
+[SEEN] GOOD — Phone result: Six S gates and a one-second park. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L2 result phone](screenshots/c1-l2-result-phone.png)
+
+## Level 3 — Three separate potholes with moving traffic
+
+[SEEN] OK — Desktop start: Three separate potholes with moving traffic. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L3 start desktop](screenshots/c1-l3-start-desktop.png)
+
+[SEEN] OK — Phone start: Three separate potholes with moving traffic. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L3 start phone](screenshots/c1-l3-start-phone.png)
+
+[SEEN] OK — Desktop mid: Three separate potholes with moving traffic. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L3 mid desktop](screenshots/c1-l3-mid-desktop.png)
+
+[SEEN] OK — Phone mid: Three separate potholes with moving traffic. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L3 mid phone](screenshots/c1-l3-mid-phone.png)
+
+[SEEN] GOOD — Desktop result: Three separate potholes with moving traffic. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L3 result desktop](screenshots/c1-l3-result-desktop.png)
+
+[SEEN] GOOD — Phone result: Three separate potholes with moving traffic. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L3 result phone](screenshots/c1-l3-result-phone.png)
+
+## Level 4 — Sand and gravel matched to two trucks
+
+[SEEN] OK — Desktop start: Sand and gravel matched to two trucks. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L4 start desktop](screenshots/c1-l4-start-desktop.png)
+
+[SEEN] OK — Phone start: Sand and gravel matched to two trucks. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L4 start phone](screenshots/c1-l4-start-phone.png)
+
+[SEEN] BAD — Desktop mid: Sand and gravel matched to two trucks. This frame exposed an old park hint. The hint funnel is now corrected in source; this particular mid frame predates that correction. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L4 mid desktop](screenshots/c1-l4-mid-desktop.png)
+
+[SEEN] BAD — Phone mid: Sand and gravel matched to two trucks. This frame exposed an old park hint. The hint funnel is now corrected in source; this particular mid frame predates that correction. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L4 mid phone](screenshots/c1-l4-mid-phone.png)
+
+[SEEN] GOOD — Desktop result: Sand and gravel matched to two trucks. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L4 result desktop](screenshots/c1-l4-result-desktop.png)
+
+[SEEN] GOOD — Phone result: Sand and gravel matched to two trucks. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L4 result phone](screenshots/c1-l4-result-phone.png)
+
+## Level 5 — Three timed loading lanes, larger final truck
+
+[SEEN] OK — Desktop start: Three timed loading lanes, larger final truck. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L5 start desktop](screenshots/c1-l5-start-desktop.png)
+
+[SEEN] OK — Phone start: Three timed loading lanes, larger final truck. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L5 start phone](screenshots/c1-l5-start-phone.png)
+
+[SEEN] OK — Desktop mid: Three timed loading lanes, larger final truck. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L5 mid desktop](screenshots/c1-l5-mid-desktop.png)
+
+[SEEN] OK — Phone mid: Three timed loading lanes, larger final truck. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L5 mid phone](screenshots/c1-l5-mid-phone.png)
+
+[SEEN] GOOD — Desktop result: Three timed loading lanes, larger final truck. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L5 result desktop](screenshots/c1-l5-result-desktop.png)
+
+[SEEN] GOOD — Phone result: Three timed loading lanes, larger final truck. Shortcut: unlockall only for initial level selection; real driving/holds; phone viewport changed.
+
+![L5 result phone](screenshots/c1-l5-result-phone.png)
+
+## Special-rule proof
+
+[SEEN] OK — Real contact registered and telemetry confirms a settled 1.42-radian cone; the fallen cone is still partly hidden by the wheel in this side view, desktop. Shortcut: unlockall only to select the starting level; all contact/driving/actions are real input.
+
+![L2 cone-tumble desktop](screenshots/c1-l2-cone-tumble-desktop.png)
+
+[SEEN] OK — Real contact registered and telemetry confirms a settled 1.42-radian cone; the fallen cone is still partly hidden by the wheel in this side view, phone. Shortcut: unlockall only to select the starting level; all contact/driving/actions are real input.
+
+![L2 cone-tumble phone](screenshots/c1-l2-cone-tumble-phone.png)
+
+[SEEN] OK — WRONG TRUCK keeps the sand in the bucket and awards zero loads, desktop. Shortcut: unlockall only to select the starting level; all contact/driving/actions are real input.
+
+![L4 wrong-truck desktop](screenshots/c1-l4-wrong-truck-desktop.png)
+
+[SEEN] OK — WRONG TRUCK keeps the sand in the bucket and awards zero loads, phone. Shortcut: unlockall only to select the starting level; all contact/driving/actions are real input.
+
+![L4 wrong-truck phone](screenshots/c1-l4-wrong-truck-phone.png)
