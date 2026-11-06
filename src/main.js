@@ -821,7 +821,11 @@ window.addEventListener('keydown', (ev) => {
     if (lit === 'Equal' || lit === 'NumpadAdd') { cameraManager.zoomIn(); safe(() => { if (ui) ui.refresh(); }); return; }
     if (lit === 'Minus' || lit === 'NumpadSubtract') { cameraManager.zoomOut(); safe(() => { if (ui) ui.refresh(); }); return; }
     if (gameState !== 'playing') return;          // no driving keys on the start screen
-    if (canPlay() && (ev.code === 'Space' || ev.code.startsWith('Arrow'))) ev.preventDefault();
+    // Space remains the physical brake even while a game window is open.
+    // A timeout focuses its close button; allowing native Space activation there
+    // silently closed TIME IS UP and opened PAUSED during continued driving.
+    // Enter still activates focused UI buttons for keyboard navigation.
+    if (ev.code === 'Space' || ev.code.startsWith('Arrow')) ev.preventDefault();
     const e = normKey(ev);
     unlockAudio();
     const key = e.key.toLowerCase();

@@ -1,6 +1,6 @@
 # V4 strict evidence report — 2026-11-06
 
-[RAN] Score: **11/21**. This is partial Tier 1 work, not a completed tier.
+[RAN] Score: **12/21**. This is partial Tier 1 work, not a completed tier.
 [READ] Branch: arena/0ac523ae-gameprotype; base 1f091a9 (clean-v1). Arena requires keeping this branch, so fix-v4 was not created.
 [RAN] Initial npm install: zero vulnerabilities. Initial and final npm run build pass. Vite reports large chunk/config-format warnings.
 
@@ -25,7 +25,7 @@
 | 15 | [UNKNOWN] NOT PASSED — five collision driving tests not run | V4_NEWPLAYER.txt |
 | 16 | [RAN] PASS — real mouse wheel changes zoom 1 to 0.88 | V4_UI.txt; screenshots/v4-desktop-keycaps.png |
 | 17 | [UNKNOWN] NOT PASSED — rewarded flows not tested in this pass | V4_UI.txt has no ad-flow proof |
-| 18 | [UNKNOWN] NOT PASSED — ten-minute run had zero errors, but spent most of its time paused; rejected as active-input proof | V4_SESSION.txt; screenshots/v4b-session-end.png |
+| 18 | [RAN] PASS — 600.938 wall seconds, 594.013 game seconds, 1,354 key holds; zero unexpected pauses, focus losses or own-code errors | V4_SESSION.txt; PAUSE_REPRO_BEFORE.txt; PAUSE_REPRO_AFTER.txt |
 | 19 | [RAN] PASS — build passes; dist about 5.34 MB, 3 files | npm run build; V4_BUILD.txt |
 | 20 | [SEEN] PASS — 440x956 Chromium touch emulation, two simultaneous fingers, readable controls and picker START | V4_PHONE.txt; screenshots/v4b-phone-two-finger.png, v4b-phone-picker.png |
 | 21 | [UNKNOWN] NOT PASSED — unused-file cleanup not reached | src/docs/FILE_MAP.md; old files retained |
@@ -59,7 +59,7 @@
 [RAN] Initial timeout test ran two WebGL pages together and timed out; a context-close attempt then crashed the single-process Chromium harness. Final test navigated the unused phone page away, focused the desktop page, and reached TIME IS UP by waiting. No timer was set through QA.
 [UNKNOWN] No performance score or honest new Free Play score can be given: that tier was not tested.
 
-[READ] PR must stay open: 11/21 is below the requested 17/21 merge threshold.
+[READ] PR must stay open: 12/21 is below the requested 17/21 merge threshold.
 
 ## Continuation validation and honest exclusions
 
@@ -68,3 +68,9 @@
 [READ] Camera followup uses QA only to set a stationary starting location outside the shed, then the real C key. The synthetic result-close check in V4_FOLLOWUP.txt is a component test only, not a level-completion claim.
 [RAN] Ten-minute run: 600.237 s, 432 real key holds, zero own-code errors. [SEEN] Its final screenshot was PAUSED; holds stopped after minute 3. The original weak harness PASS was explicitly rejected. Checklist 18 is NOT passed. Harness now handles Resume and checks active duration, but that corrected ten-minute run is NOT yet executed.
 [UNKNOWN] No Tier 2 environment/mechanic rebuild, Tier 3 Free Play rebuild, Tier 4 vehicle art/solid-world rebuild, or Tier 5 ad/settings/dead-file cleanup is claimed. In particular, the irrelevant pile/truck/loads text in L2 still needs the specified Tier 2 replacement.
+
+## Step B — real pause bug fixed
+
+[RAN] A focused TIME IS UP close button received a native click from the brake Space key. It closed the fail window and opened PAUSED. Blur/visibility did not cause this reproduction. The reproduction uses a synthetic fail window as component-test setup only, not as evidence of earning a result or waiting for a timeout.
+[READ] Space now always prevents native button activation while playing, including game windows. Enter remains available for keyboard UI activation.
+[RAN] The corrected real-input session brought the page to the front and measured game-clock progress: 600.938 wall seconds, 594.013 game seconds, 383 loops, 1354 key holds, three actual timeout retries, no unplanned pauses, no lost focus, zero own-code errors. Its start/end screenshots were opened.

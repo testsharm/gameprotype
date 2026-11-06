@@ -6,7 +6,7 @@
 
 ## Eight-frame Level 1 filmstrip
 
-[SEEN] OK — Real Level 1 input, shrinking pile and earned result; the art is still simple. No gameplay shortcut.
+[SEEN] OK — Real Level 1 input, shrinking pile and earned result; the art is still simple. No gameplay shortcut. Labels are wall times recorded when each capture finished; the first three capture requests were scheduled for 0 / 5 / 15 seconds, but screenshot processing added delay.
 
 ![Level 1 filmstrip](screenshots/filmstrip-L1.png)
 
@@ -30,13 +30,13 @@
 
 ## L1 5S
 
-[SEEN] OK — Level 1 at five seconds. No shortcut.
+[SEEN] OK — Level 1 capture requested at five seconds (finished at 9.5 seconds). No shortcut.
 
 ![l1-5s](screenshots/page-l1-5s.png)
 
 ## L1 15S
 
-[SEEN] OK — Level 1 at fifteen seconds. No shortcut.
+[SEEN] OK — Level 1 capture requested at fifteen seconds (finished at 19.9 seconds). No shortcut.
 
 ![l1-15s](screenshots/page-l1-15s.png)
 
@@ -142,3 +142,11 @@
 
 ![phone-freeplay](screenshots/page-phone-freeplay.png)
 
+
+## Step B — focused ten-minute test
+
+[SEEN] OK — Start and end of the 600.938-second real-key run. No shortcut or staged save. Both remain in the game, not PAUSED; all three retries followed actual timeout.
+
+![Session start](screenshots/v4b-session-start.png)
+
+![Session end](screenshots/v4b-session-end.png)
