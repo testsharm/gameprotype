@@ -656,6 +656,10 @@ export default class GameUI {
     if (this.el.gLabel) this.el.gLabel.textContent = q;
     if (this.el.fBtn) this.el.fBtn.setAttribute('aria-label', p);
     if (this.el.gBtn) this.el.gBtn.setAttribute('aria-label', q);
+    this.root.querySelectorAll('.tf-pad [data-code=KeyF] small').forEach(e=>e.textContent=p);
+    this.root.querySelectorAll('.tf-pad [data-code=KeyG] small').forEach(e=>e.textContent=q);
+    if(this.el.fBtn?.querySelector('svg'))this.el.fBtn.querySelector('svg').innerHTML=ICON[p==='DRIVE'?'wheel':'dig'];
+    if(this.el.gBtn?.querySelector('svg'))this.el.gBtn.querySelector('svg').innerHTML=ICON[['BRAKE','PARK'].includes(q)?'brake':'dump'];
   }
   setLoads(n, label = 'LOADS LEFT') {
     if (!this.el.loads) return;

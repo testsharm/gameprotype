@@ -87,3 +87,9 @@
 [RAN] L6–10 all reached real-input results, no own-code browser errors. Payouts +695, +700, +744, +904, +1047 in the first complete C2 run. Final independent bridge retest +856 after the same real fall/ten-second penalty. Rank-dependent payouts differ across fresh and carried progression contexts.
 [SEEN] Opened every generated C2 screenshot, including failed attempts. Fresh L7 concrete and L9 deck corrected the visibly bad old ground. L7 older mid/drop shots remain explicitly disclosed. Forklift overlap and simplistic vehicle art remain unpassed E work.
 [UNKNOWN] Strict failures remain 8,9,12,13,14,15,17,21. C3, D, E and optional F are not yet verified.
+
+## C3 current evidence — score 15/21
+
+[RAN] All fifteen levels now have actual real-input results across C1/C2/C3. C3: L11 twelve debris deliveries into four bins; L12 eight digs and exactly 3 m depth; L13 four timed placements and rejected high-hook attempt; L14 eight gates, moving ghost and bonus; L15 twelve mixed goals and CHAMPION (+1604). Zero own-code browser errors in the passing runs.
+[SEEN] All C3 captures and the full fifteen-level contact sheet opened. L13 mid camera remains visibly too close in the published evidence; latest gantry-leg cosmetic adjustment is not yet re-captured. L12 first attempt timed out and L15 first attempt hit the normal truck; adjacent spoil destinations fixed both without increasing their timers.
+[READ] Criteria 8 and 9 now pass. Strict remaining failures: 12 park, 13 vehicle shapes, 14 truck/beacon detail, 15 physical obstacles, 17 rewards, 21 cleanup. Score 15/21; do not merge yet.

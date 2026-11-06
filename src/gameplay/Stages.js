@@ -65,26 +65,26 @@ export const STAGE_TABLE = [
     props: 'debris', sky: 0x8e9aa6, fog: 0.0085, sun: 0.45, hemi: 0.70, accent: 0xfbbf24,
     sound: 'rain', yaw: 0.68, soundBed: 'STORM',
     coach: ['Find the glowing debris', 'Scoop it cleanly', 'Dump, then find the next pile'] },
-  { id: 12, name: 'Foundation Dig', verbs: ['DIG', 'PLACE'], chapter: 'Site Boss',
+  { id: 12, name: 'Foundation Dig', verbs: ['DIG', 'DUMP'], chapter: 'Site Boss',
     ground: 0x6f5a3c, ground2: 0x4d3d28, pattern: 'grid', skyline: 'foundation', landmark: 'rebar',
     props: 'rebar', sky: 0xf0d9bd, fog: 0.0040, sun: 0.85, hemi: 0.90, accent: 0xfbbf24,
     sound: 'site', yaw: -0.72, soundBed: 'FOUNDATION',
-    coach: ['Dig boxes in arrow order', 'Six boxes, one by one', 'Dump, then move to the next'] },
+    coach: ['Eight digs deepen one foundation', 'Dump spoil in the amber ring', 'Watch the depth reach three metres'] },
   { id: 13, name: 'Crane Support', verbs: ['GRAB', 'PLACE'], chapter: 'Site Boss',
     ground: 0xa0a8b0, ground2: 0x727a82, pattern: 'concrete', skyline: 'industrial', landmark: 'towercrane',
     props: 'crates', sky: 0xd8e7f5, fog: 0.0032, sun: 1.05, hemi: 1.00, accent: 0x22d3ee,
     sound: 'site', yaw: 0.30, soundBed: 'CRANE',
-    coach: ['Pick up the crate stack', 'Grip it with the bucket', 'Place it on the amber pad'] },
-  { id: 14, name: 'Skill Course', verbs: ['PARK', 'DRIVE'], chapter: 'Site Boss',
+    coach: ['Grab one crate from the stack', 'Wait for the green low hook', 'Hold PLACE while the hook is low'] },
+  { id: 14, name: 'Ghost Trial', verbs: ['DRIVE', 'BRAKE'], chapter: 'Site Boss',
     ground: 0x1c2333, ground2: 0x111726, pattern: 'hazard', skyline: 'grandstand', landmark: 'lowbeam',
     props: 'tires', sky: 0xd8e7f5, fog: 0.0030, sun: 1.05, hemi: 1.00, accent: 0xfbbf24,
     sound: 'traffic', yaw: -0.38, soundBed: 'SKILL',
-    coach: ['Lower the bucket with E', 'Pass under the low beam', 'Only the amber gate counts'] },
-  { id: 15, name: 'Mega Project', verbs: ['TIME TRIAL', 'PLACE'], chapter: 'Site Boss',
+    coach: ['Chase the moving cyan ghost', 'Pass eight checkpoints in order', 'Beat seventy two seconds for bonus'] },
+  { id: 15, name: 'Mega Project', verbs: ['SCOOP', 'DUMP'], chapter: 'Site Boss',
     ground: 0xc2a878, ground2: 0x8c7850, pattern: 'grid', skyline: 'stadium', landmark: 'stadium',
     props: 'mix', sky: 0xffd9a0, fog: 0.0038, sun: 0.95, hemi: 0.90, accent: 0xfbbf24,
     sound: 'site', yaw: 0.80, soundBed: 'MEGA SITE',
-    coach: ['Three phases, watch the card', 'Haul, checkpoints, then deck fills', 'Finish all goals before time'] }
+    coach: ['Three digs then three haul loads', 'Two fills then four boss trucks', 'Giant final truck gives sixty seconds'] }
 ];
 
 export const STAGE_BY_ID = Object.fromEntries(STAGE_TABLE.map(s => [s.id, s]));
@@ -245,11 +245,14 @@ export class StageManager {
 
     // ---- 1. own ground (covers the shared city ground) -----------------
     const tex = this._own(groundTexture(s));
-    const ground = new THREE.Mesh(this._own(new THREE.PlaneGeometry(520, 520)),
+    let groundGeo=new THREE.PlaneGeometry(520,520);
+    if(id===12){const shape=new THREE.Shape();shape.moveTo(-260,-260);shape.lineTo(260,-260);shape.lineTo(260,260);shape.lineTo(-260,260);shape.closePath();const hole=new THREE.Path();hole.moveTo(-21,-6);hole.lineTo(-21,6);hole.lineTo(-9,6);hole.lineTo(-9,-6);hole.closePath();shape.holes.push(hole);groundGeo.dispose();groundGeo=new THREE.ShapeGeometry(shape);}
+    const ground = new THREE.Mesh(this._own(groundGeo),
       this._own(new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 1,
         polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })));
     ground.rotation.x = -Math.PI / 2; ground.position.y = id===9 ? -0.7 : 0.10;
     g.add(ground);
+    if(id===14){ground.material.map=null;ground.material.color.setHex(0x4c6252);ground.position.y=-.2;}
     if(id<=5) {
       // Large coherent surfaces, not a road texture tiled over an entire world.
       if(id===2||id===3||id===5)ground.material.map=null;

@@ -184,60 +184,60 @@ export const LEVELS = [
   },
   {
     id: 11, name: 'Storm Clean-up', chapter: 3, type: 'CLEAR', theme: 'Storm damage',
-    story: 'Six debris piles block the rescue route. Clear them all in the rain.',
-    steps: [{ kind: 'debris', n: 6 }], loads: 6, time: 320, reward: 780,
+    story: 'Twelve storm debris piles, four rescue bins. Recover the flooded depot.',
+    steps: [{ kind: 'debris', n: 12 }], loads: 12, time: 660, reward: 780,
     start: { back: 25, side: 13, face: 'first', cam: 14 },
     needs: { job: 10 }, bonus: { text: 'Every pile cleared on the first pass', coins: 130 }, env: STORM,
     site: S(270, 240, 50, 28), dressing: 'storm',
     scoopText: 'Clear the marked debris pile', dumpText: 'Empty the bucket in the truck',
     hints: H('Drive to the glowing debris pile and press F.', 'Dump the debris, then find the next pile.'),
-    rule: 'Clear 6 debris piles in heavy rain.'
+    rule: 'Clear all 12 piles into their four marked bins in heavy rain.'
   },
   {
     id: 12, name: 'Foundation Dig', chapter: 3, type: 'TRENCH', theme: 'Deep foundation',
-    story: 'A tower starts here. Open six foundation boxes in the soft morning light.',
-    steps: [{ kind: 'trench', n: 6 }], loads: 6, time: 340, reward: 860,
+    story: 'Eight digs deepen one tower foundation to three metres. Keep out of the pit.',
+    steps: [{ kind: 'trench', n: 8 }], loads: 8, time: 480, reward: 860,
     start: { back: 19, side: -9, face: 'first', cam: 12 },
     needs: { job: 11 }, bonus: { text: 'Every box dug on the first pass', coins: 140 }, env: DAWN,
     site: S(0, 250, 50, 28), dressing: 'trench',
     scoopText: 'Dig the marked foundation box', dumpText: 'Empty the bucket in the truck',
     hints: H('Six boxes. Dig them in the order shown by the arrow.', 'Dump, then move to the next glowing box.'),
-    rule: 'Six deep foundation boxes in order.'
+    rule: 'Eight spoil deliveries. The foundation deepens 0.375m per dig to 3m.'
   },
   {
     id: 13, name: 'Crane Support', chapter: 3, type: 'MOVE', theme: 'Heavy lift',
     story: 'Four crates must reach the crane pad. Carry them one at a time in the bucket.',
-    steps: [{ kind: 'move', n: 4 }], loads: 4, time: 350, reward: 940,
+    steps: [{ kind: 'move', n: 4 }], loads: 4, time: 450, reward: 940,
     start: { back: 23, side: 10, face: 'pile', cam: 13 },
     needs: { job: 12 }, bonus: { text: 'No crate dropped', coins: 150 }, env: DAY,
     site: S(45, 245, 50, 28), dressing: 'crane',
     scoopText: 'Pick up a crate', dumpText: 'Stack the crate on the crane pad',
     hints: H('Press F at the crate stack.', 'Carry it to the amber pad and press F.'),
-    rule: 'Carry 4 crates to the crane pad.'
+    rule: 'Carry four crates. Begin PLACE while the moving hook is low and green.'
   },
   {
-    id: 14, name: 'Skill Course', chapter: 3, type: 'CONE', theme: 'Precision test',
-    story: 'Eight gates, one low beam. Lower the bucket to pass under it. Precision, not speed.',
+    id: 14, name: 'Ghost Trial', chapter: 3, type: 'CONE', theme: 'Precision test',
+    story: 'Race the visible cyan ghost through eight checkpoints on the depot sprint track.',
     steps: [{ kind: 'gate', n: 8 }], loads: 8, time: 300, reward: 1000,
     start: { back: 15, side: -12, face: 'first', cam: 12 },
     needs: { job: 13 }, bonus: { text: 'No cones knocked over', coins: 160 }, env: DAY,
-    site: S(180, 200, 50, 30), dressing: 'course', gates: { width: 4.2, slalom: 10 }, beam: 3,
+    site: S(180, 200, 50, 30), dressing: 'ghost', gates: { width: 5, slalom: 8 },
     scoopText: 'Drive through the gates', dumpText: 'Drive through the gates',
     hints: H('Lower the bucket before the low beam (press E).', 'Only the amber gate counts. Follow the arrow.'),
-    rule: '8 gates. Gate 3 has a low beam: keep the bucket down.'
+    rule: 'Eight ordered checkpoints. Beat the 72-second visible ghost for a bonus.'
   },
   {
     id: 15, name: 'Mega Project', chapter: 3, type: 'MIX', theme: 'Final boss',
-    story: 'The whole city is watching: three haul loads, three checkpoints, two deck fills. Finish the job.',
+    story: 'Four phases: three digs, three hauls, two fills and four timed boss trucks. Eight minutes.',
     steps: [
-      { kind: 'haul', n: 3 }, { kind: 'gate', n: 3 }, { kind: 'fill', n: 2 }
-    ], loads: 8, time: 420, reward: 1400,
+      { kind: 'trench', n: 3 }, { kind: 'haul', n: 3 }, { kind: 'fill', n: 2 }, {kind:'rush',n:4}
+    ], loads: 12, time: 480, reward: 1400,
     start: { back: 27, side: 8, face: 'pile', cam: 15 },
     needs: { job: 14 }, bonus: { text: 'Full combo, no misses', coins: 250 }, env: GOLDEN,
-    site: S(0, 260, 45, 30), dressing: 'mega', gates: { width: 5.0, slalom: 8 }, rush: true,
+    site: S(0, 260, 45, 30), dressing: 'mega', rush: true, truckWait:70,
     scoopText: 'Scoop for the final project', dumpText: 'Dump where the arrow points',
     hints: H('Three phases: haul, checkpoints, deck fills.', 'Watch the mission card. The goal changes after each phase.'),
-    rule: 'Three phases in one job: haul, checkpoints, fill.'
+    rule: '3 DIG + 3 HAUL + 2 FILL + 4 BOSS LOADS. Giant final truck gives 60 seconds.'
   }
 ];
 
@@ -347,11 +347,12 @@ export class LevelEngine {
     this._prevSide.clear();
     this._rushLeave = [];
     this.rushTarget = null;
-    this.crossCar = null;this.roadCars=null;this.parkHold=0;this.resets=0;this.drops=0;this.forklifts=null;
+    this.crossCar = null;this.roadCars=null;this.parkHold=0;this.resets=0;this.drops=0;this.forklifts=null;this.bins=[];this.depth=0;this.foundation=null;this.hookRig=null;this.hookPhase=0;this.ghost=null;this.ghostProgress=0;
     this.materialHeaps={};
     this._buildGoals();
     if(job.id===3) this._buildRoadTraffic();
     if(job.id>=6&&job.id<=10)this._contractorSite();
+    if(job.id>=11)this._bossSite();
     // B2: every goal object exists from the FIRST frame. No lazy creation.
     // B6: the old floating orange cone marker is gone; guidance uses the
     // painted ground ring + chevrons in Guidance.js.
@@ -417,8 +418,8 @@ export class LevelEngine {
         const g = { kind: step.kind, done: false, mesh: null };
         if (step.kind === 'gate') {
           const i = gateN++;
-          const a = job.id===2 ? i*15 : -14 + (d.len + 30) * (i + 0.6) / (gateCount + 0.4);
-          const b = job.id===2 ? Math.sin(i*Math.PI/2)*7 : Math.sin(i * 1.35 + job.id * 0.4) * slalom;
+          const a = (job.id===2||job.id===14) ? i*15 : -14 + (d.len + 30) * (i + 0.6) / (gateCount + 0.4);
+          const b = (job.id===2||job.id===14) ? Math.sin(i*Math.PI/2)*7 : Math.sin(i * 1.35 + job.id * 0.4) * slalom;
           const p = this._at(a, b);
           g.x = p.x; g.z = p.z;
           g.nx = d.ux; g.nz = d.uz;
@@ -432,12 +433,15 @@ export class LevelEngine {
         } else if (step.kind === 'trench' || step.kind === 'debris') {
           const i = spotN++;
           const side = (i % 2 === 0 ? 1 : -1);
-          const p = this._at(-10 + (i % 3) * 12, side * (10 + (i % 3) * 7));
+          const p = job.id===11?this._at(-8+(i%4)*10,(Math.floor(i/4)-1)*12):job.id===12?this._at(-11,0):this._at(-10 + (i % 3) * 12, side * (10 + (i % 3) * 7));
           g.x = p.x; g.z = p.z;
-          g.mesh = step.kind === 'trench' ? this._buildTrench(g, i + 1, spotCount) : this._buildDebris(g, i + 1, spotCount);
+          if(job.id===11){g.bin=Math.floor(i/3);g.dump=this._at(d.len,(g.bin-1.5)*13);}
+          if(job.id===12)g.dump=this._at(-11,20);
+          if(job.id===15&&step.kind==='trench')g.dump=this._at(d.len-10,-15);
+          g.mesh = job.id===12?this._foundationGoal(g,i):step.kind === 'trench' ? this._buildTrench(g, i + 1, spotCount) : this._buildDebris(g, i + 1, spotCount);
         } else if (step.kind === 'fill') {
           fillN++;
-          const p=this.job.id===3?this._at(d.len,(fillN-2)*17):this.job.id===9?this._at(20+(fillN-1)*14,0):this.site.truck;
+          const p=this.job.id===3?this._at(d.len,(fillN-2)*17):this.job.id===9?this._at(20+(fillN-1)*14,0):this.job.id===15?this._at(d.len+12,(fillN-1.5)*17):this.site.truck;
           g.x = p.x; g.z = p.z;g.fillIndex=1;
           g.mesh=this._buildHole(g.x,g.z);if(!this.hole)this.hole=g.mesh;
           this._label('HOLE '+fillN,g.x,2.7,g.z,COL.amber);
@@ -450,9 +454,10 @@ export class LevelEngine {
           const p = this._at(d.len + 7, (i - (rushCount - 1) / 2) * 9.5);
           g.x = p.x; g.z = p.z;
           g.lane = i + 1;
-          g.waitMax = job.truckWait || 45;
+          g.waitMax = job.id===15&&i===3?60:job.truckWait || 45;
           g.wait = g.waitMax;
           g.mesh = this._buildRushTruck(g, i + 1, rushCount);
+          if(job.id===15&&i===3){g.mesh.scale.setScalar(1.7);this._label('GIANT TRUCK — 60s',g.x,8,g.z);}
         } else {
           haulN++;
           g.x = this.site.truck.x; g.z = this.site.truck.z;
@@ -478,7 +483,7 @@ export class LevelEngine {
     g.roundRect ? g.roundRect(2, 2, w - 4, h - 4, 14) : g.fillRect(2, 2, w - 4, h - 4);
     g.fill();
     g.fillStyle = fg;
-    g.font = 'bold ' + Math.round(h * 0.56) + 'px system-ui, sans-serif';
+    let size=Math.round(h*.56);g.font='bold '+size+'px system-ui, sans-serif';while(g.measureText(text).width>w-24&&size>14){size--;g.font='bold '+size+'px system-ui, sans-serif';}
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText(text, w / 2, h / 2 + 2);
     const t = new THREE.CanvasTexture(c);
@@ -720,6 +725,7 @@ export class LevelEngine {
       grp.add(m);
     }
     this._pad(g.x, g.z, 5.5, 0x4a4036, 0.1);
+    if(this.job.id===11&&num%3===0){const timber=new THREE.Mesh(new THREE.BoxGeometry(7,.7,.8),this._mat(0x775538));timber.position.y=.8;timber.rotation.y=num*.7;grp.add(timber);}
     grp.userData = { num, total };
     return grp;
   }
@@ -754,13 +760,14 @@ export class LevelEngine {
     m.position.set(g.scoop.x,1.25,g.scoop.z);this.group.add(m);this.materialHeaps[g.material]=m;this._label(g.material,g.scoop.x,4,g.scoop.z);
   }
   dumpWarning(bp){
+    if(this.job?.id===13&&this.hookPhase>=4)return 'WAIT — hook is high. PLACE on green';
     if(!this.job?.materials)return '';
     const g=this.active();if(!g)return '';
     const other=this.goals.find(q=>q.material!==g.material);
     if(other&&Math.hypot(bp.x-other.x,bp.z-other.z)<10)return 'WRONG TRUCK — '+g.material+' needs its matching truck';
     return '';
   }
-  faceLabels(camera){if(this.group)this.group.traverse(o=>{if(o.userData.labelTexture)o.quaternion.copy(camera.quaternion);});}
+  faceLabels(camera,player){if(this.group)this.group.traverse(o=>{if(o.userData.labelTexture){o.quaternion.copy(camera.quaternion);o.visible=!player||Math.hypot(o.position.x-player.x,o.position.z-player.z)>8;}});}
   _contractorSite(){
     const p=this.site.pile,t=this.site.truck;
     if(this.job.id===6){this._pad(t.x,t.z,7,0x514330,.14);this._ring(t.x,t.z,6,COL.amber,.4);this._label('SPOIL DUMP',t.x,3,t.z);for(const z of [-7,7])this._box(14,.7,.6,COL.steel,t.x,.45,t.z+z);}
@@ -787,6 +794,66 @@ export class LevelEngine {
         this.group.add(g);this.forklifts.push(g);
       }
     }
+  }
+  _foundationGoal(g,i){
+    if(i)return null;
+    this._pad(g.x,g.z,4.3,COL.soil,.13);this._ring(g.x,g.z,4.3,COL.amber,.38);
+    this._label('DIG FOUNDATION',g.x,4.8,g.z);
+    return null;
+  }
+  _bossSite(){
+    const p=this.site.pile,t=this.job.id===12?this.goals[0].dump:this.site.truck;
+    if(this.job.id===11){
+      for(let i=0;i<4;i++){
+        const b=this._at(this._dir().len,(i-1.5)*13);this.bins.push({x:b.x,z:b.z,loads:0});
+        this._box(9,.35,8,COL.dark,b.x,.2,b.z);
+        for(const z of [-4,4])this._box(9,1.1,.4,COL.steel,b.x,.75,b.z+z);
+        this._box(.4,1.1,8,COL.steel,b.x+4.5,.75,b.z);
+        this._ring(b.x,b.z,4,COL.amber,.4);this._label('RESCUE BIN '+(i+1),b.x,3,b.z);
+      }
+      // Fallen utility poles and a rescue gantry make this a broken depot.
+      for(let i=0;i<4;i++){this._box(12,.7,.8,0x5c4633,p.x+i*17,1,p.z+32,i*.2);this._box(.7,8,.7,COL.steel,p.x+i*17,4,p.z-31);}
+      this._label('STORM RESCUE DEPOT',p.x+10,6,p.z-30);
+    }
+    if(this.job.id===12){
+      this.foundation=this._box(12,.3,12,COL.soil,p.x,-.05,p.z);
+      for(const x of [-6.2,6.2])this._box(.4,3.2,12.8,0x5b4433,p.x+x,-1.5,p.z);
+      for(const z of [-6.2,6.2])this._box(12.8,3.2,.4,0x5b4433,p.x,-1.5,p.z+z);
+      for(const z of [-6.5,6.5])this._box(13.4,.4,.4,COL.amber,p.x,.35,p.z+z);
+      for(const x of [-6.5,6.5])this._box(.4,.4,13.4,COL.amber,p.x+x,.35,p.z);
+      this._ring(t.x,t.z,6,COL.amber,.4);this._label('FOUNDATION SPOIL',t.x,4.8,t.z);
+      for(let i=0;i<7;i++){this._box(.35,6,.35,COL.steel,p.x+12+i*2.2,3,p.z+14);this._box(.35,6,.35,COL.steel,p.x+12+i*2.2,3,p.z+24);}
+      this._label('3m FOUNDATION',p.x+6,5,p.z+10);
+    }
+    if(this.job.id===13){
+      for(const z of [-10,10])this._box(1,13,1,COL.amber,t.x,6.5,t.z+z);
+      this._box(1.5,1,22,COL.amber,t.x,13,t.z);
+      this._box(.35,6.8,.35,COL.steel,t.x,9.6,t.z);
+      this.hookRig=this._box(1.5,1.5,1.5,COL.green,t.x,6.2,t.z);
+      this._label('LOW HOOK = GREEN',t.x,14,t.z);
+      for(let i=0;i<4;i++){this._box(2,.3,2,COL.dark,p.x-2+i*2.5,.2,p.z+7);}
+    }
+    if(this.job.id===14){
+      this._box(155,.35,28,0x343c48,p.x+48,-.06,p.z);
+      for(const z of [-14,14])this._box(155,.35,.5,COL.white,p.x+48,.3,p.z+z);
+      this._label('GHOST SPRINT — 8 CHECKPOINTS',p.x+4,5,p.z-14,COL.blue);
+    }
+    if(this.job.id===15){
+      const spoil=this.goals[0].dump;this._ring(spoil.x,spoil.z,5,COL.amber,.4);this._label('MEGA SPOIL',spoil.x,4.5,spoil.z);
+      this._box(50,.4,10,COL.road,t.x,0,p.z+20);
+      this._label('DIG → HAUL → FILL → BOSS',p.x+15,7,p.z-24);
+      for(let i=0;i<4;i++){this._box(3,20+i*4,3,COL.steel,p.x+60+i*6,10+i*2,p.z+46);}
+    }
+  }
+  _updateGhost(vehicle){
+    if(!this.ghost){
+      const ghost=vehicle.mesh.clone(true);
+      ghost.traverse(o=>{if(o.isMesh){o.geometry=o.geometry.clone();o.material=new THREE.MeshBasicMaterial({color:0x22d3ee,transparent:true,opacity:.32,depthWrite:false});o.castShadow=false;}if(o.isLight)o.visible=false;});
+      this.group.add(ghost);this.ghost=ghost;
+    }
+    const path=[{x:this.site.pile.x-15,z:this.site.pile.z},...this.goals.filter(g=>g.kind==='gate')];
+    const f=Math.min(path.length-1,this._t/72*(path.length-1)),i=Math.min(path.length-2,Math.floor(f)),a=path[i],b=path[i+1],k=Math.min(1,f-i);
+    this.ghost.position.set(a.x+(b.x-a.x)*k,1,b.z===undefined?0:a.z+(b.z-a.z)*k);this.ghost.rotation.set(0,Math.atan2(b.x-a.x,b.z-a.z),0);this.ghostProgress=f;
   }
   _buildRoadTraffic(){
     this.roadCars=[];
@@ -831,18 +898,18 @@ export class LevelEngine {
     if (!g) { this.finished = true; return; }
     // B2: the pile and the truck are visible for EVERY kind of goal from frame
     // one. Hiding them was the reason objects "appeared after pressing F".
-    const showTruck = g.kind==='haul'&&!this.job.materials;
+    const showTruck = (g.kind==='haul'||this.job.id===15)&&!this.job.materials;
     // RUSH levels use their own waiting trucks; the blue truck is hidden but moved
     // to the active lane so main.js's dump proximity check still works.
-    const showPile = !['gate','park','move','trench','debris'].includes(g.kind)&&!this.job.materials;
+    const showPile = (this.job.id===15||!['gate','park','move','trench','debris'].includes(g.kind))&&!this.job.materials;
     this.rushTarget = (g.kind === 'rush') ? { x: g.x, z: g.z } : null;
     const pile = (g.kind === 'trench' || g.kind === 'debris') ? { x: g.x, z: g.z } : (g.scoop || this.site.pile);
     // B3: restore the FULL pile after every goal, so load 3 always has dirt.
     if (i === 0 && this.world && this.world.resetDirtPile) this.world.resetDirtPile();
-    this._place('dirtPileGroup', pile.x, pile.z, showPile);
+    this._place('dirtPileGroup', this.job.id===15?this.site.pile.x:pile.x, this.job.id===15?this.site.pile.z:pile.z, showPile);
     if (this.world && this.world.jobSiteBase) this.world.jobSiteBase.visible = false;
     const tz = this.rushTarget || this.site.truck;
-    this._place('truckGroup', tz.x, tz.z, showTruck);
+    this._place('truckGroup',this.job.id===15?this.site.truck.x:tz.x,this.job.id===15?this.site.truck.z:tz.z,showTruck);
     if (this.hooks.truckSolid) this.hooks.truckSolid(showTruck, tz.x, tz.z);
     if (g.kind === 'rush') {
       for (const q of this.goals) {
@@ -889,7 +956,7 @@ export class LevelEngine {
       this.siteNow.truck.x = g.x; this.siteNow.truck.z = g.z;
     } else {
       this.siteNow.pile.x = pile.x; this.siteNow.pile.z = pile.z;
-      const destination=(g.kind==='fill'||this.job.materials)?g:this.site.truck;
+      const destination=g.dump||((g.kind==='fill'||this.job.materials)?g:this.site.truck);
       this.siteNow.truck.x = destination.x; this.siteNow.truck.z = destination.z;
     }
   }
@@ -934,6 +1001,10 @@ export class LevelEngine {
     const g = this.active();
     if (!g) return 'Job complete';
     const j = this.job;
+    if(j.id===12)return 'DEPTH '+this.depth.toFixed(2)+' / 3m · DIGS '+this.done+'/8';
+    if(j.id===13)return this.hookPhase<4?'HOOK LOW — HOLD PLACE':'HOOK HIGH — WAIT FOR GREEN';
+    if(j.id===14)return 'CHECKPOINT '+(this.done+1)+'/8 · GHOST '+Math.max(0,Math.ceil(72-this._t))+'s';
+    if(j.id===15)return ['DIG 3','HAUL 3','FILL 2','BOSS LOADS 4'][g.kind==='trench'?0:g.kind==='haul'?1:g.kind==='fill'?2:3]+' · '+this.done+'/12';
     if(j?.materials){const g=this.active();return g?(hasDirt?'DUMP '+g.material+' IN MATCHING TRUCK':'SCOOP '+g.material):'Four matching loads complete';}
     switch (g.kind) {
       case 'park': return 'Stop inside PARK for one second';
@@ -950,7 +1021,7 @@ export class LevelEngine {
     const g = this.active();
     if (!g) return 'Complete ' + this.done + '/' + this.goals.length;
     const labels = { park:'Park', haul: 'Haul loads', fill: 'Hole fills', move: 'Pipes placed', gate: 'Gates', trench: 'Trenches', debris: 'Piles cleared', rush: 'Trucks loaded' };
-    return labels[g.kind] + ' ' + this.done + '/' + this.goals.length;
+    return (this.job.id===13?'Crates hooked':labels[g.kind]) + ' ' + this.done + '/' + this.goals.length;
   }
   hint(dirty) {
     // A9: three SHORT lines per level, shown one at a time. No repeats.
@@ -995,7 +1066,7 @@ export class LevelEngine {
     if (g.kind === 'move') this._detachCarry();
     // B1: trench / debris / gate goals are only granted when the player DUMPS.
     // Gate goals are still granted by driving through them (see update()).
-    const target = (g.kind==='fill'||this.job.materials||g.kind==='rush')?{x:g.x,z:g.z}:this.site.truck;
+    const target = g.dump||((g.kind==='fill'||this.job.materials||g.kind==='rush')?{x:g.x,z:g.z}:this.site.truck);
     const near = Math.hypot(bucketPos.x - target.x, bucketPos.z - target.z) < 12;
     if (g.kind === 'trench' || g.kind === 'debris') {
       if (!g.dugAt) return { ok: false, count: false, msg: 'Dig the marked spot first' };
@@ -1042,11 +1113,13 @@ export class LevelEngine {
   }
   _digTrench(g) {
     const ud = g.mesh && g.mesh.userData;
+    if(this.job.id===12){this.depth=Math.min(3,(this.done+1)*.375);if(this.foundation)this.foundation.position.y=-.05-this.depth;if(this.hooks.onDepth)this.hooks.onDepth(this.depth);this._spoilAt(g.dump.x+(this.done%3-1)*2,g.dump.z+(this.done%2?2:-2),1);return;}
     if (ud && ud.lid) { ud.lid.position.y = -0.55; ud.lid.scale.setScalar(0.94); }
     if (ud && ud.floor) ud.floor.position.y = -0.28;
-    this._spoilAt(this.site.truck.x + (this.done%2?2:-2), this.site.truck.z + (this.done%3-1)*2, 0.9);
+    const dump=g.dump||this.site.truck;this._spoilAt(dump.x + (this.done%2?2:-2), dump.z + (this.done%3-1)*2, 0.9);
   }
   _clearDebris(g) {
+    if(this.job.id===11){this._spoilAt(g.dump.x+(this.done%3-1)*1.4,g.dump.z,1.1);if(this.bins[g.bin])this.bins[g.bin].loads++;return;}
     if (g.mesh) {
       g.mesh.children.forEach(c => {
         if (c.isMesh && c.geometry && c.geometry.type === 'DodecahedronGeometry') {
@@ -1086,6 +1159,8 @@ export class LevelEngine {
   update(dt, vehicle) {
     if (!this.job || !this.group) return;
     this._t += dt;
+    if(this.hookRig){this.hookPhase=this._t%8;const low=this.hookPhase<4;this.hookRig.position.y=low?6.2:9.6;this.hookRig.material.color.setHex(low?COL.green:0xef4444);if(this._hookLow!==low){this._hookLow=low;this.hooks.onChange?.();}}
+    if(this.job.id===14&&vehicle)this._updateGhost(vehicle);
     // A4: a knocked cone wobbles to rest in <=1.5 s and then stays perfectly still.
     if (this.group) this.group.traverse(o => {
       const t = o.userData && o.userData.tumble;
@@ -1199,7 +1274,7 @@ export class LevelEngine {
     const b = this.job && this.job.bonus ? this.job.bonus : { text: '', coins: 0 };
     let got = false;
     switch (this.job && this.job.type) {
-      case 'CONE': got = this.coneHits === 0; break;
+      case 'CONE': got = this.coneHits === 0&&(this.job.id!==14||this._t<=72); break;
       case 'HAUL': case 'FILL': case 'MOVE': got = this.misses === 0; break;
       case 'TRENCH': case 'CLEAR': got = this.misses === 0; break;
       case 'RUSH': got = this.misses === 0; break;   // no missed truck
@@ -1213,7 +1288,7 @@ export class LevelEngine {
     return {
       id: this.job ? this.job.id : 0, type: this.job ? this.job.type : '',
       goal: this.activeKind(), done: this.done, total: this.goals.length,
-      drops:this.drops||0,resets:this.resets||0, combo: this.combo, maxCombo: this.maxCombo, coneHits: this.coneHits, misses: this.misses,
+      depth:this.depth||0,hookPhase:this.hookPhase||0,ghostProgress:this.ghostProgress||0,binLoads:this.bins?.map(b=>b.loads),drops:this.drops||0,resets:this.resets||0, combo: this.combo, maxCombo: this.maxCombo, coneHits: this.coneHits, misses: this.misses,
       coneAngles:this.goals.filter(g=>g.kind==='gate').map(g=>g.mesh?.userData.cones.map(c=>c.rotation.z)),
       rushWait: this.active() && this.active().kind === 'rush' ? Math.ceil(Math.max(0, this.active().wait)) : null
     };

@@ -1,0 +1,45 @@
+[RAN] PASS L11 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +1,264
+      BONUS +130 INCLUDED
+      
+      
+         RETRY
+         NEXT: FOUNDATION DIG
+      
+      
+[UNKNOWN] FAIL L12 page.waitForFunction: Timeout 7000ms exceeded.
+    at hold (/home/user/gameprotype/scripts/level-walk.mjs:22:108)
+    at async file:///home/user/gameprotype/scripts/level-walk.mjs:46:452
+[RAN] PASS L13 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +1,449
+      BONUS +150 INCLUDED
+      
+      
+         RETRY
+         NEXT: GHOST TRIAL
+      
+      
+[RAN] PASS L14 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +1,458
+      COINS EARNED
+      
+      
+         RETRY
+         NEXT: MEGA PROJECT
+      
+      
+[UNKNOWN] FAIL L15 Error: Driving timeout target 16530,1800 actual {"position":{"x":16525.982421875,"y":1.0863627195358276,"z":1800.2637939453125},"upDot":0.999071454349144,"yaw":1.5715380776411565,"speedKmh":0,"velocity":{"x":0,"y":-0.0617082417011261,"z":0},"elapsed":83.17639999999852,"timeLeft":396.8236000000015,"arm":[-0.2,0.19999999999999996],"action":{"holding":false,"progress":0,"last":{"code":"KeyF","holdEnd":27051.5,"effect":27053.300000000745}},"hasDirt":true,"loads":0,"camera":{"position":[16512.232425998496,6.58629770040505,1800.27434063147],"up":[0,1,0],"blockers":0,"pulledIn":false,"faded":0,"inside":0},"pileScale":[0.9291666666666668,0.9291666666666668,0.9291666666666668],"level":{"id":15,"type":"MIX","goal":"trench","done":0,"total":12,"depth":0,"hookPhase":0,"ghostProgress":0,"binLoads":[],"drops":0,"resets":0,"combo":0,"maxCombo":0,"coneHits":0,"misses":0,"coneAngles":[],"rushWait":null,"goals":[{"kind":"trench","x":16490,"z":1810,"done":false},{"kind":"trench","x":16502,"z":1783,"done":false},{"kind":"trench","x":16514,"z":1824,"done":false},{"kind":"haul","x":16530,"z":1800,"done":false},{"kind":"haul","x":16530,"z":1800,"done":false},{"kind":"haul","x":16530,"z":1800,"done":false},{"kind":"fill","x":16542,"z":1791.5,"done":false},{"kind":"fill","x":16542,"z":1808.5,"done":false},{"kind":"rush","x":16537,"z":1785.75,"done":false},{"kind":"rush","x":16537,"z":1795.25,"done":false},{"kind":"rush","x":16537,"z":1804.75,"done":false},{"kind":"rush","x":16537,"z":1814.25,"done":false}]},"frame":{"dt":0.09510000000149012,"steps":5},"playing":true}
+    at drive (file:///home/user/gameprotype/scripts/level-walk.mjs:21:22)
+    at async file:///home/user/gameprotype/scripts/level-walk.mjs:46:266

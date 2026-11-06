@@ -442,6 +442,7 @@ function updateActionHold(dt) {
 }
 function actionHold(code, on) {
     const live = canPlay();
+    if(!freePlay&&[2,14].includes(currentJob)){if(code==='KeyF')return actionHold('KeyW',on);if(code==='KeyG')return actionHold('Space',on);}
     if (code === 'KeyF' || code === 'KeyG') {
         if (on) { actHolding = !!live; actCode = code; actT = 0; actFired = false; actionProgress(0, code); if (live) safe(() => hub.dig(code === 'KeyG' ? 'dump' : 'scoop', 'start')); }
         else if (!uiSettings.tapAct || !live) { actHolding = false; actT = 0; actFired = false; actionProgress(0, code); }
@@ -1019,7 +1020,7 @@ const siteNow = { pile: { x: 0, z: -120 }, truck: { x: 15, z: -120 } };
 let siteBase = null;
 let truckBody = null;
 const siteGroups = new Map();
-let stageFloor = null;
+let stageFloor = null, stagePitCollider = null;
 
 function ensureJobs() {
     if (!jm) {
@@ -1032,6 +1033,7 @@ function ensureJobs() {
             onDing: () => safe(() => { hub.coin(); }),
             addTime: (sec) => safe(() => { if (jm && jm.addTime) jm.addTime(sec); }),
             onChange: () => refreshCard(),
+            onDepth: (depth) => stagePitCollider?.setTranslationWrtParent({x:-15,y:-depth,z:0}),
             truckSolid: (on, x, z) => syncTruckCollider(!!on, x || siteNow.truck.x, z || siteNow.truck.z)
         });
     }
@@ -1044,14 +1046,15 @@ function syncCoins() {
         else { const c = document.getElementById('coin-count'); if (c) c.textContent = saveData.coins; }
     });
 }
+function counterLabel(job){return {2:'GOALS LEFT',3:'HOLES LEFT',4:'MATCHES LEFT',6:'DIGS LEFT',7:'PIPES LEFT',9:'HOLES LEFT',11:'DEBRIS LEFT',12:'DIGS LEFT',13:'CRATES LEFT',14:'GATES LEFT',15:'GOALS LEFT'}[job.id]||(job.rush?'TRUCKS LEFT':'LOADS LEFT');}
 function refreshCard() {
     safe(() => {
         if (!ui || !jm) return;
         const job = jm.current || jm.get(currentJob);
         if (!job) return;
-        if (level && level.job) ui.setJob(job.name, level.objective(vehicle && vehicle.hasDirt), level.stepText());
+        if (level && level.job){ui.setJob(job.name, level.objective(vehicle && vehicle.hasDirt), level.stepText());if(job.id===15)ui.setVerbs(level.activeKind()==='trench'?'DIG':'SCOOP',level.activeKind()==='fill'?'FILL':'DUMP');}
         else ui.setJob(job.name, job.objective || '', (jm.stepText ? jm.stepText() : ''));
-        if (ui.setLoads && jm.state) ui.setLoads(Math.max(0, (job.loads || 3) - (jm.state.loads || 0)),job.id===2?'GOALS LEFT':job.id===3?'HOLES LEFT':job.id===4?'MATCHES LEFT':job.rush?'TRUCKS LEFT':'LOADS LEFT');
+        if (ui.setLoads && jm.state) ui.setLoads(Math.max(0, (job.loads || 3) - (jm.state.loads || 0)),counterLabel(job));
         worldBuilder.setPileLoads(Math.max(0, (job.loads || 3) - scoopCount));
     });
 }
@@ -1117,8 +1120,12 @@ function placeSite(id) {
         // TIER C: build the stage AROUND this job's own pile/truck, which sit at
         // a different far offset for many levels. No lazy goal spawns.
         if (stageFloor) world.removeRigidBody(stageFloor);
+        stagePitCollider=null;
         stageFloor = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation((px+tx)/2, -.2, (pz+tz)/2));
-        world.createCollider(RAPIER.ColliderDesc.cuboid(id===9?96:260,.3,id===9?6:260).setFriction(1),stageFloor);
+        if(id===12){
+          for(const [x,z,hx,hz] of [[-140.5,0,119.5,260],[125.5,0,134.5,260],[-15,-133,6,127],[-15,133,6,127]])world.createCollider(RAPIER.ColliderDesc.cuboid(hx,.3,hz).setTranslation(x,0,z).setFriction(1),stageFloor);
+          stagePitCollider=world.createCollider(RAPIER.ColliderDesc.cuboid(6,.3,6).setTranslation(-15,0,0),stageFloor);
+        }else world.createCollider(RAPIER.ColliderDesc.cuboid(id===9?96:260,.3,id===9?6:260).setFriction(1),stageFloor);
         if(id===9)for(const z of [-6.5,6.5])world.createCollider(RAPIER.ColliderDesc.cuboid(94,.8,.3).setTranslation(0,1,z),stageFloor);
         const stg = stages.enter(id, { x: (px + tx) / 2, z: (pz + tz) / 2 });
         setEnv(stages.envFor(id), true);          // own sky, fog, sun - snap on stage swap
@@ -1128,7 +1135,7 @@ function placeSite(id) {
         syncTruckCollider(moved, tx, tz);
         if (worldBuilder.jobSiteBase) worldBuilder.jobSiteBase.position.set(px, 0, pz);
         siteGroups.forEach((g, k) => { g.visible = (k === id); });
-        if (id > 10 && !job.site.keep && !siteGroups.has(id)) {
+        if (id > 15 && !job.site.keep && !siteGroups.has(id)) {
             const g = buildSiteDressing(THREE, id, { x: px, z: pz }, { x: tx, z: tz });
             scene.add(g);
             siteGroups.set(id, g);
@@ -1290,7 +1297,7 @@ function deliverLoad(tipOverride) {
             ui.setCoins(saveData.coins); lastCoinsShown = saveData.coins;
         }
         refreshCard();
-        if (ui && ui.setLoads) ui.setLoads(Math.max(0, (r.total || 0) - (r.loads || 0)),currentJob===2?'GOALS LEFT':currentJob===3?'HOLES LEFT':currentJob===4?'MATCHES LEFT':jm.current.rush?'TRUCKS LEFT':'LOADS LEFT');
+        if (ui && ui.setLoads) ui.setLoads(Math.max(0, (r.total || 0) - (r.loads || 0)),counterLabel(jm.current));
         if (!r.complete && ui) ui.setHint(level?.job ? level.hint(vehicle?.hasDirt) : jm.hint());
     });
     if (r.loads === 1) safe(() => { if (guide) guide.onFirstLoad(); });
@@ -1628,7 +1635,7 @@ function animate() {
                 hasScoopedDirt = true;
                 if (lastAction && lastAction.code === 'KeyF') lastAction.effect = performance.now();
                 const statusVal = document.getElementById('job-status-val'); if(statusVal) statusVal.textContent = 'DUMP IN TRUCK';
-                if(worldBuilder.dirtPileGroup.visible && !jm.current.materials)worldBuilder.shrinkDirtPile(); safe(onScooped);
+                if(worldBuilder.dirtPileGroup.visible && !jm.current.materials && !['trench','debris'].includes(level?.activeKind()))worldBuilder.shrinkDirtPile(); safe(onScooped);
                 // A8: the pile eases down to a ~15% flat patch after the last load.
                 const total = (jm && jm.current && jm.current.loads) || 3;
                 scoopCount++;
@@ -1679,7 +1686,7 @@ function animate() {
         trackFPS(dt);
         updateFx(dt);
         safe(() => { if (worldBuilder.updatePile) worldBuilder.updatePile(dt); worldBuilder.showPileLabel(gameState === 'playing' && !freePlay && !jobCompleted && !!worldBuilder.dirtPileGroup.visible, camera); });
-        safe(() => { if (level && level.job && !freePlay && gameState === 'playing' && !uiPaused && !modalOpen) {level.update(dt, vehicle);level.faceLabels(camera);} });
+        safe(() => { if (level && level.job && !freePlay && gameState === 'playing' && !uiPaused && !modalOpen) {level.update(dt, vehicle);level.faceLabels(camera,vehicle.mesh.position);} });
         if (!vehicle.pilePos) vehicle.pilePos = new THREE.Vector3();
         vehicle.pilePos.set(siteNow.pile.x,0,siteNow.pile.z);
         if (!vehicle.truckPos) vehicle.truckPos = new THREE.Vector3();
@@ -1735,7 +1742,7 @@ window.__tfObserve = function () {
         hasDirt: !!vehicle?.hasDirt, loads: jm?.state.loads || 0,
         camera: { position: camera.position.toArray(), up: camera.up.toArray(), ...cameraManager.clearanceInfo },
         pileScale: worldBuilder.dirtPileGroup.scale.toArray(),
-        level: level ? {...level.info(), goals:level.goals.map(g=>({kind:g.kind,x:g.x,z:g.z,done:g.done,scoop:g.scoop,material:g.material}))} : null,
+        level: level ? {...level.info(), goals:level.goals.map(g=>({kind:g.kind,x:g.x,z:g.z,done:g.done,scoop:g.scoop,material:g.material,dump:g.dump}))} : null,
         frame: { dt: lastFrameDt, steps: lastFrameSteps },
         playing: canPlay()
     };

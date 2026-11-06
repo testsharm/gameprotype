@@ -39,17 +39,19 @@ for(let id=from;id<=to;id++){
   }
   else if(g.kind==='park'){await drive(g.x,g.z,2);await stop();await p.waitForTimeout(1300);}
   else{
-   const scoop=g.scoop||(['trench','debris'].includes(g.kind)?g:base.pile);if(id===4)await drive(scoop.x-24,scoop.z,2);await drive(scoop.x-([6,7].includes(id)?0:7),scoop.z,1.4);await hold('f');
+   const scoop=g.scoop||(['trench','debris'].includes(g.kind)?g:base.pile);if(id===4)await drive(scoop.x-24,scoop.z,2);await drive(scoop.x-([6,7,11,12,13].includes(id)||g.kind==='trench'?0:7),scoop.z,1.4);await hold('f');
    if(!(await observe()).hasDirt)throw Error('Scoop rejected '+JSON.stringify(await observe()));
+   if(id===12&&o.loads===7){await p.keyboard.press('c');await p.mouse.move(430,220);await p.mouse.down();await p.mouse.move(650,330,{steps:10});await p.mouse.up();await snap('foundation-depth');await p.keyboard.press('c');await p.keyboard.press('c');await p.keyboard.press('c');}
    if(id===7&&!negative){await keys(['w']);try{await p.waitForFunction(()=>!window.__tfObserve().hasDirt,null,{timeout:15000});}finally{await stop();}const n=await observe();report.push('[RAN] L7 speed drop '+JSON.stringify({drops:n.level.drops,loads:n.loads,hasDirt:n.hasDirt}));if(n.level.drops!==1||n.loads!==0||n.hasDirt)throw Error('Pipe speed drop not proven');await snap('pipe-drop');negative=true;continue;}
    if(id===4&&!negative){const wrong=o.level.goals.find(q=>q.material!==g.material);await drive(wrong.x-7,wrong.z,1.4);await hold('g');const n=await observe();const msg=await p.locator('body').textContent();report.push('[RAN] L4 wrong-truck '+JSON.stringify({loads:n.loads,hasDirt:n.hasDirt,toast:/WRONG TRUCK/.test(msg)}));if(n.loads!==0||!n.hasDirt||!/WRONG TRUCK/.test(msg))throw Error('Wrong-truck negative not met');await snap('wrong-truck');negative=true;}
-   const dump=['trench','debris'].includes(g.kind)?base.truck:g;if(id>=4&&![6,7].includes(id))await drive(dump.x-24,dump.z,2);await drive(dump.x-([6,7].includes(id)?0:7),dump.z,1.4);await hold('g');
+   const dump=g.dump||(['trench','debris'].includes(g.kind)?base.truck:g);if(id>=4&&![6,7,11,12,13].includes(id)&&g.kind!=='trench')await drive(dump.x-24,dump.z,2);await drive(dump.x-([6,7,11,12,13].includes(id)||g.kind==='trench'?0:7),dump.z,1.4);if(id===13&&!negative){await p.waitForFunction(()=>{const p=window.__tfObserve().level.hookPhase;return p>4.15&&p<4.5;},null,{timeout:12000});await hold('g');const n=await observe();if(n.loads!==0||!n.hasDirt)throw Error('High hook must retain cargo and award no load');report.push('[RAN] L13 high-hook rejection '+JSON.stringify({loads:n.loads,hasDirt:n.hasDirt}));await snap('high-hook');negative=true;}if(id===13)await p.waitForFunction(()=>window.__tfObserve().level.hookPhase<.35,null,{timeout:12000});await hold('g');
    if((await observe()).loads<=o.loads)throw Error('Dump rejected '+JSON.stringify(await observe()));
   }
   if(!mid&&(await observe()).loads>0){await snap('mid');mid=true;}
  }
  if(process.env.CONE_VISUAL_ONLY){report.push('[RAN] Cone visual-only followup; result not retested in this run');fs.writeFileSync('docs/C1_CONE_VISUAL.txt',report.join('\n'));await p.goto('about:blank');continue;}
  await p.locator('#tf-coin-count').waitFor({timeout:7000});await p.waitForTimeout(600);await snap('result');
+ if(id===11&&(await observe()).level.binLoads.some(n=>n!==3))throw Error('Four bins must each receive three piles');if(id===12&&(await observe()).level.depth!==3)throw Error('Foundation must reach 3m');if(id===14&&(await observe()).level.ghostProgress<=0)throw Error('Ghost never moved');
  const errors=redErrors(p.__logs);if(errors.length)throw Error(JSON.stringify(errors));report.push(`[RAN] PASS L${id} real-input result `+await p.locator('#tf-win').textContent());console.log(`[RAN] PASS L${id}`);
  }catch(e){failures++;report.push(`[UNKNOWN] FAIL L${id} ${e.stack}`);await stop();await snap('failed');console.log(`[UNKNOWN] FAIL L${id} ${e.message}`);}
  await p.goto('about:blank');

@@ -462,3 +462,157 @@
 [SEEN] OK — Phone: Real fall reset to the source; telemetry proves the extra ten-second deduction. Shortcut: unlockall only for initial selection; real driving/actions; viewport changed for phone.
 
 ![L9 bridge-reset phone](screenshots/c2-l9-bridge-reset-phone.png)
+
+## C3 — Site Boss, levels 11–15
+
+[RAN] Level selection used `?unlockall` only. Movement and actions were real keyboard holds; no teleports, speed injection, timer changes or direct completions. Portrait images resize the same real run, not physical-iPhone proof. `C3_WALK.txt` proves L11; `C3_FINAL.txt` proves L12–15. Earlier failures are retained in `C3_ATTEMPT.txt`.
+
+### Level 11 — Storm cleanup
+
+![Level 11 start desktop](screenshots/c3-l11-start-desktop.png)
+
+[SEEN] OK — Storm cleanup, start, desktop; real input; unlockall selection only.
+
+![Level 11 start phone](screenshots/c3-l11-start-phone.png)
+
+[SEEN] OK — Storm cleanup, start, phone; real input; unlockall selection only.
+
+![Level 11 mid desktop](screenshots/c3-l11-mid-desktop.png)
+
+[SEEN] OK — Storm cleanup, mid, desktop; real input; unlockall selection only.
+
+![Level 11 mid phone](screenshots/c3-l11-mid-phone.png)
+
+[SEEN] OK — Storm cleanup, mid, phone; real input; unlockall selection only.
+
+![Level 11 result desktop](screenshots/c3-l11-result-desktop.png)
+
+[SEEN] OK — Storm cleanup, result, desktop; real input; unlockall selection only.
+
+![Level 11 result phone](screenshots/c3-l11-result-phone.png)
+
+[SEEN] OK — Storm cleanup, result, phone; real input; unlockall selection only.
+
+### Level 12 — Foundation
+
+![Level 12 start desktop](screenshots/c3-l12-start-desktop.png)
+
+[SEEN] OK — Foundation, start, desktop; real input; unlockall selection only.
+
+![Level 12 start phone](screenshots/c3-l12-start-phone.png)
+
+[SEEN] OK — Foundation, start, phone; real input; unlockall selection only.
+
+![Level 12 mid desktop](screenshots/c3-l12-mid-desktop.png)
+
+[SEEN] OK — Foundation, mid, desktop; real input; unlockall selection only.
+
+![Level 12 mid phone](screenshots/c3-l12-mid-phone.png)
+
+[SEEN] OK — Foundation, mid, phone; real input; unlockall selection only.
+
+![Level 12 result desktop](screenshots/c3-l12-result-desktop.png)
+
+[SEEN] OK — Foundation, result, desktop; real input; unlockall selection only.
+
+![Level 12 result phone](screenshots/c3-l12-result-phone.png)
+
+[SEEN] OK — Foundation, result, phone; real input; unlockall selection only.
+
+### Level 13 — Crane support
+
+![Level 13 start desktop](screenshots/c3-l13-start-desktop.png)
+
+[SEEN] OK — Crane support, start, desktop; real input; unlockall selection only.
+
+![Level 13 start phone](screenshots/c3-l13-start-phone.png)
+
+[SEEN] OK — Crane support, start, phone; real input; unlockall selection only.
+
+![Level 13 mid desktop](screenshots/c3-l13-mid-desktop.png)
+
+[SEEN] BAD — Crane support, mid, desktop; real input; unlockall selection only; camera is too close beside the gantry; its legs have since been moved outside the approach, not yet re-captured.
+
+![Level 13 mid phone](screenshots/c3-l13-mid-phone.png)
+
+[SEEN] BAD — Crane support, mid, phone; real input; unlockall selection only; camera is too close beside the gantry; its legs have since been moved outside the approach, not yet re-captured.
+
+![Level 13 result desktop](screenshots/c3-l13-result-desktop.png)
+
+[SEEN] OK — Crane support, result, desktop; real input; unlockall selection only.
+
+![Level 13 result phone](screenshots/c3-l13-result-phone.png)
+
+[SEEN] OK — Crane support, result, phone; real input; unlockall selection only.
+
+### Level 14 — Ghost trial
+
+![Level 14 start desktop](screenshots/c3-l14-start-desktop.png)
+
+[SEEN] OK — Ghost trial, start, desktop; real input; unlockall selection only.
+
+![Level 14 start phone](screenshots/c3-l14-start-phone.png)
+
+[SEEN] OK — Ghost trial, start, phone; real input; unlockall selection only.
+
+![Level 14 mid desktop](screenshots/c3-l14-mid-desktop.png)
+
+[SEEN] OK — Ghost trial, mid, desktop; real input; unlockall selection only.
+
+![Level 14 mid phone](screenshots/c3-l14-mid-phone.png)
+
+[SEEN] OK — Ghost trial, mid, phone; real input; unlockall selection only.
+
+![Level 14 result desktop](screenshots/c3-l14-result-desktop.png)
+
+[SEEN] OK — Ghost trial, result, desktop; real input; unlockall selection only.
+
+![Level 14 result phone](screenshots/c3-l14-result-phone.png)
+
+[SEEN] OK — Ghost trial, result, phone; real input; unlockall selection only.
+
+### Level 15 — Mega project
+
+![Level 15 start desktop](screenshots/c3-l15-start-desktop.png)
+
+[SEEN] OK — Mega project, start, desktop; real input; unlockall selection only.
+
+![Level 15 start phone](screenshots/c3-l15-start-phone.png)
+
+[SEEN] OK — Mega project, start, phone; real input; unlockall selection only.
+
+![Level 15 mid desktop](screenshots/c3-l15-mid-desktop.png)
+
+[SEEN] OK — Mega project, mid, desktop; real input; unlockall selection only.
+
+![Level 15 mid phone](screenshots/c3-l15-mid-phone.png)
+
+[SEEN] OK — Mega project, mid, phone; real input; unlockall selection only.
+
+![Level 15 result desktop](screenshots/c3-l15-result-desktop.png)
+
+[SEEN] OK — Mega project, result, desktop; real input; unlockall selection only.
+
+![Level 15 result phone](screenshots/c3-l15-result-phone.png)
+
+[SEEN] OK — Mega project, result, phone; real input; unlockall selection only.
+
+![Foundation pit at seven of eight digs, 2.63 m shown; final depth assertion is 3 m desktop](screenshots/c3-l12-foundation-depth-desktop.png)
+
+[SEEN] OK — Foundation pit at seven of eight digs, 2.63 m shown; final depth assertion is 3 m; real input, unlockall selection only.
+
+![Foundation pit at seven of eight digs, 2.63 m shown; final depth assertion is 3 m phone](screenshots/c3-l12-foundation-depth-phone.png)
+
+[SEEN] OK — Foundation pit at seven of eight digs, 2.63 m shown; final depth assertion is 3 m; real input, unlockall selection only.
+
+![High-hook attempt retained cargo and awarded no load; phone capture occurs later in the hook cycle desktop](screenshots/c3-l13-high-hook-desktop.png)
+
+[SEEN] OK — High-hook attempt retained cargo and awarded no load; phone capture occurs later in the hook cycle; real input, unlockall selection only.
+
+![High-hook attempt retained cargo and awarded no load; phone capture occurs later in the hook cycle phone](screenshots/c3-l13-high-hook-phone.png)
+
+[SEEN] OK — High-hook attempt retained cargo and awarded no load; phone capture occurs later in the hook cycle; real input, unlockall selection only.
+
+![All fifteen level starts](screenshots/levels-contact-sheet.png)
+
+[SEEN] OK — fifteen real level starts; unlockall used only for selection. Art remains simple and some industrial backgrounds repeat, but the visible job layouts and mechanics differ.
