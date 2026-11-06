@@ -1,3 +1,15 @@
+## LATEST — V4 PARTIAL TIER 1 (2026-11-06)
+
+[READ] Base 1f091a9 from clean-v1. Session branch arena/0ac523ae-gameprotype is fixed by Arena.
+[RAN] npm install and npm run build pass. No new packages.
+[RAN] scripts/newplayer.mjs: normal URL, empty storage, only real W/S/Space/F/G holds and button clicks; L1 finished, +265 result, NEXT into unpaused L2, reload CONTINUE into L2. Read-only QA observations only; no teleports, unlocks, or completion shortcuts.
+[SEEN] docs/screenshots/v4-*.png were opened and inspected. Real phone-sized two-touch input and real timeout screen captured separately.
+[RAN] Checklist 9/21. See docs/V4_REPORT.md and raw V4_NEWPLAYER.txt / V4_UI.txt.
+[UNKNOWN] Tier 1 remains INCOMPLETE. Do not advance Tier 2 or 3 yet. No claim of 15 level completion, improved Free Play, or 10-minute error-free session.
+[READ] Old scripts/level-walk.mjs uses QA teleport and direct goal steps: its historical PASS is NOT evidence for the new requested standard.
+
+---
+
 # STATE - TerraForm 3D (live status)
 
 ## LATEST - QUALITY PASS v3 (2026-11-05) - REAL BROWSER VERIFIED

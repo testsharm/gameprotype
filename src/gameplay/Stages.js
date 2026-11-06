@@ -261,12 +261,12 @@ export class StageManager {
 
     // ---- 5. stage sign: guarantees two stages never look identical -----
     const st = this._own(signTexture(s));
-    const signMat = this._own(new THREE.MeshBasicMaterial({ map: st, side: THREE.DoubleSide }));
-    const sign = this._mesh(new THREE.PlaneGeometry(18, 5.6), signMat, -30, 7.0, -34);
-    sign.rotation.y = 0.30;
+    const signMat = this._own(new THREE.MeshBasicMaterial({ map: st, side: THREE.FrontSide }));
+    const sign = this._mesh(new THREE.PlaneGeometry(2.5, 1.2), signMat, -30, 2.8, -34);
+    sign.lookAt(0, 2.8, 0);
     const postMat = this._mat(0x2a3444);
-    this._mesh(new THREE.BoxGeometry(0.5, 7, 0.5), postMat, -34, 3.5, -33);
-    this._mesh(new THREE.BoxGeometry(0.5, 7, 0.5), postMat, -26, 3.5, -35);
+    this._mesh(new THREE.BoxGeometry(0.5, 2.2, 0.5), postMat, -30, 1.1, -34);
+
 
     // ---- 6. fog + sky handled by main.js via envFor(id) -----------------
     if (this.scene.fog) { this.scene.fog.density = s.fog; this.scene.fog.color.setHex(s.sky); }

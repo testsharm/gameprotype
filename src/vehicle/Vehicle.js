@@ -134,7 +134,7 @@ export class Vehicle {
         if (this.hasDirt) { this._hint('Bucket full. Dump it first.'); return false; }
         const bp = new THREE.Vector3(); this.bucketPivot.getWorldPosition(bp);
         if (!this.pilePos || bp.distanceTo(this.pilePos) > 9) { this._hint('Drive to the dirt pile'); return false; }
-        window.dispatchEvent(new CustomEvent('bh-dig', { detail: 'scoop' }));
+        this.scoopDirt(); this.spawnDirtBurst();
         return true;
     }
     dump() {
@@ -142,7 +142,7 @@ export class Vehicle {
         if (!this.hasDirt) { this._hint('SCOOP FIRST'); return false; }
         const bp = new THREE.Vector3(); this.bucketPivot.getWorldPosition(bp);
         if (!this.truckPos || bp.distanceTo(this.truckPos) > 8) { this._hint('Drive to the blue truck'); return false; }
-        window.dispatchEvent(new CustomEvent('bh-dig', { detail: 'dump' }));
+        this.dropDirt(); this.spawnDirtBurst();
         return true;
     }
     autoAction() { return this.hasDirt ? this.dump() : this.scoop(); }
@@ -511,14 +511,14 @@ export class Vehicle {
             this.throttleState += sign * throttleRampRate * deltaTime;
             if (Math.abs(this.throttleState) > 1) this.throttleState = Math.sign(this.throttleState);
         } else {
-            const decay = 2.5 * deltaTime;
+            const decay = 20 * deltaTime;
             if (Math.abs(this.throttleState) <= decay) this.throttleState = 0;
             else this.throttleState -= Math.sign(this.throttleState) * decay;
         }
         
         // === Governor (top speed caps) ===
         const maxForwardSpeed = Math.min(32 + (this.engineMultiplier - 1) * 10, 60) / 3.6;
-        const maxReverseSpeed = Math.min(14 + (this.engineMultiplier - 1) * 2.0, 28) / 3.6;
+        const maxReverseSpeed = 14 / 3.6;
         
         const currentFwdSpeed = this.getForwardSpeedMps();
         
@@ -550,6 +550,15 @@ export class Vehicle {
             for (let i = 0; i < 4; i++) this.vehicleController.setWheelBrake(i, 0);
         }
         
+        // Predictable stop assist, preserving gravity and vertical suspension.
+        if (targetThrottle === 0 || input.brake) {
+            const v = this.chassisBody.linvel();
+            const speed = Math.hypot(v.x, v.z);
+            const decel = input.brake ? 7.5 : 5.5;
+            const next = Math.max(0, speed - decel * deltaTime);
+            const scale = speed < 2 / 3.6 ? 0 : next / Math.max(speed, 0.001);
+            this.chassisBody.setLinvel({ x: v.x * scale, y: v.y, z: v.z * scale }, true);
+        }
         // === Speed-sensitive steering ===
         const speedAbs = Math.abs(currentFwdSpeed);
         const speedFactor = Math.max(0.25, 1 - speedAbs / 12);
@@ -626,7 +635,7 @@ export class Vehicle {
         // The dial uses the SIGNED forward speed (lateral sliding must not inflate it)
         // and is clamped to the current cap, so a physics overshoot cannot show 35 at level 1.
         const capFwd = Math.min(32 + (this.engineMultiplier - 1) * 10, 60);
-        const capRev = Math.min(14 + (this.engineMultiplier - 1) * 2, 28);
+        const capRev = 14;
         const fwdKmh = this.getForwardSpeedMps() * 3.6;
         const shown = Math.min(Math.abs(fwdKmh), fwdKmh >= 0 ? capFwd : capRev);
         this.smoothedSpeed = this.smoothedSpeed * 0.85 + shown * 0.15;

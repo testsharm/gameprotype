@@ -24,13 +24,13 @@ import StuntPark, { PARK_CENTER } from './gameplay/StuntPark.js';
 let fx = null, guide = null, sfx = null, tutStep = 0, lastTarget = 'none';
 function safe(f) { try { return f(); } catch (e) { console.warn('[fx]', e); } }
 let lastHasDirt = false;
+const LAST_JOB_KEY = 'terraform_last_job_v1';
 const START_LEVEL = (() => {
     try { const n = parseInt(new URLSearchParams(location.search).get('job'), 10); return n >= 1 && n <= 15 ? n : readLastJob(); }
     catch (e) { return readLastJob(); }
 })();
 let ui = null, music = null, trafficPhys = null, jm = null, currentJob = START_LEVEL, lastLoads = 0, lastCoinsShown = -1;
-// UX milestone: the timer only exists while the player is actually playing.
-const LAST_JOB_KEY = 'terraform_last_job_v1';
+// The timer only runs while playing.
 const QUALITY_KEY = 'terraform_quality_v1';
 let gameState = 'menu';            // 'menu' | 'playing'
 let uiPaused = false;              // drawer / window / pause open
@@ -63,7 +63,7 @@ function readLastJob() {
     try { const n = parseInt(localStorage.getItem(LAST_JOB_KEY), 10); return (n >= 1 && n <= 15) ? n : 1; }
     catch (e) { return 1; }
 }
-function writeLastJob(id) { try { localStorage.setItem(LAST_JOB_KEY, String(id)); } catch (e) {} }
+function writeLastJob(id) { try { localStorage.setItem(LAST_JOB_KEY, String(Math.max(readLastJob(), id))); } catch (e) {} }
 function readQuality() { try { return localStorage.getItem(QUALITY_KEY); } catch (e) { return null; } }
 function writeQuality(q) { try { localStorage.setItem(QUALITY_KEY, q); } catch (e) {} }
 let level = null;
@@ -71,36 +71,16 @@ const JOB_TITLE = 'Clear the Highway', JOB_OBJ = 'Load the blue truck with dirt'
 let dig = null, digSound = null;
 const dm = { fill: 1, drop: -1, b: 0, k: 0, was: false };
 function updateDig(dt) {
-    safe(() => {
-        if (!dig && vehicle) {
-            dig = new DigAnimator(vehicle, THREE);
-            window.addEventListener('bh-dig', e => { if (!dig.busy) { dig.start(e.detail); } });
-            dig.onEvent = (n) => {
-                hub.dig(dig._type, n);
-                if (n === 'dig') { cameraShake = 0.06; const p = new THREE.Vector3(); vehicle.bucketPivot.getWorldPosition(p); if (fx) fx.onScoop(p); }
-                if (n === 'fill') { vehicle.scoopDirt(); vehicle.spawnDirtBurst(); cameraShake = 0.1; vehicle.bucketDirtGroup.scale.setScalar(0.15); dm.fill = 0; }
-                if (n === 'drop') { vehicle.spawnDirtBurst(); dm.drop = 0; }
-                if (n === 'thud') cameraShake = 0.2;
-            };
-        }
-        if (dig) {
-            const bp = vehicle.boomPivot, kp = vehicle.bucketPivot;
-            if (!dm.was && dig.busy) { dm.b = bp.rotation.x; dm.k = kp.rotation.x; }
-            dig.update(dt);
-            if (dig.busy) {
-                const f = 1 - Math.exp(-16 * dt);
-                dm.b += (bp.rotation.x - dm.b) * f; dm.k += (kp.rotation.x - dm.k) * f;
-                bp.rotation.x = dm.b; kp.rotation.x = dm.k;
-            }
-            dm.was = dig.busy;
-            const g = vehicle.bucketDirtGroup;
-            if (dm.fill < 1) { dm.fill = Math.min(1, dm.fill + dt / 0.6); const e = 1 - Math.pow(1 - dm.fill, 3); g.scale.setScalar(0.15 + 0.85 * e); }
-            if (dm.drop >= 0) {
-                dm.drop += dt / 0.8; g.scale.setScalar(Math.max(0.05, 1 - dm.drop));
-                if (dm.drop >= 1) { vehicle.dropDirt(); g.scale.setScalar(1); dm.drop = -1; }
-            }
-        }
-    });
+    if (!vehicle) return;
+    const p = actHolding ? Math.min(1, actT / actionDuration(actCode)) : 0;
+    const scoop = actCode !== 'KeyG';
+    const boom = actHolding ? (scoop ? Math.sin(p * Math.PI) * 0.9 - 0.2 : -0.35) : -0.2;
+    const bucket = actHolding ? (scoop ? -0.5 + p * 1.7 : 1.2 - p * 2.1) : 0.2;
+    const k = actHolding ? 1 : Math.min(1, dt / 0.3);
+    vehicle.boomPivot.rotation.x += (boom - vehicle.boomPivot.rotation.x) * k;
+    vehicle.bucketPivot.rotation.x += (bucket - vehicle.bucketPivot.rotation.x) * k;
+    vehicle.targetBoomAngle = vehicle.boomPivot.rotation.x;
+    vehicle.targetBucketAngle = vehicle.bucketPivot.rotation.x;
 }
 function initUi() {
     if (ui) return;
@@ -345,6 +325,7 @@ function canPlay() {
 }
 function clearInput() {
     input.forward = false; input.backward = false; input.left = false; input.right = false; input.brake = false;
+    actHolding = false; actT = 0; actionProgress(0);
     safe(() => hub.setEngine(0, 0));
 }
 function unlockAudio() {
@@ -354,12 +335,13 @@ function unlockAudio() {
 }
 function uiState() {
     ensureJobs();
-    const job = jm.current || jm.get(currentJob) || {};
+    const menuLevel = LEVEL_LIST.find(j => !jm.isDone(j.id))?.id || 15;
+    const job = gameState === 'menu' ? jm.get(menuLevel) : (jm.current || jm.get(currentJob) || {});
     const sv = jm.save || {};
     let rank = 'ROOKIE';
     try { rank = jm.rankInfo().name; } catch (e) {}
     return {
-        level: currentJob,
+        level: gameState === 'menu' ? menuLevel : currentJob,
         jobName: job.name || 'First Scoop',
         chapter: ['', 'ROOKIE YARD', 'CONTRACTOR', 'SITE BOSS'][job.chapter] || 'ROOKIE YARD',
         coins: saveData.coins,
@@ -386,9 +368,9 @@ function uiData() {
     coins: saveData.coins,
     volumes: hub.getVolumes ? hub.getVolumes() : { master: 1, music: 1, effects: 1 },
     muted: !!hub.isMuted(), quality: currentQuality,
-    big: !!uiSettings.big, lefty: !!uiSettings.lefty, guide: uiSettings.guide !== false,
+    big: !!uiSettings.big, lefty: !!uiSettings.lefty, guide: uiSettings.guide !== false, tapAct: !!uiSettings.tapAct,
     jobs, chapters: (CHAPTERS || []).map(c => ({ id: c.id, name: c.name.toUpperCase() })),
-    currentJob,
+    currentJob, nextLevel: LEVEL_LIST.find(j => !jm.isDone(j.id))?.id || 15,
     upgrades: GARAGE.map(g => {
       const lv = Math.max(1, Math.min(GARAGE_MAX, saveData[g.save] || 1));
       return { key: g.key, name: g.name, icon: g.icon, level: lv, maxPips: GARAGE_MAX,
@@ -428,6 +410,7 @@ function mapData() {
 // the button and the ground ring show the exact same progress.
 const ACT_BASE = { KeyF: 1.6, KeyG: 1.2 };
 let actHolding = false, actT = 0, actFired = false, actCode = 'KeyF';
+let lastAction = null;
 function actionDuration(code) {
     const base = ACT_BASE[code] || 1.6;
     const hyd = Math.max(1, Math.min(6, saveData.hydraulicLevel || 1));
@@ -441,7 +424,7 @@ function updateActionHold(dt) {
         actionProgress(Math.min(1, actT / dur), actCode);
         if (actT >= dur) {
             actHolding = false; actFired = true; actT = 0;
-            actionProgress(0, actCode);
+            lastAction = { code: actCode, holdEnd: performance.now(), effect: null };
             if (vehicle) { if (actCode === 'KeyG') vehicle.dump(); else vehicle.scoop(); }
             safe(() => { if (guide && guide.pulseGround) guide.pulseGround(actCode === 'KeyG'); });
         }
@@ -450,8 +433,8 @@ function updateActionHold(dt) {
 function actionHold(code, on) {
     const live = canPlay();
     if (code === 'KeyF' || code === 'KeyG') {
-        if (on) { actHolding = !!live; actCode = code; actT = 0; actFired = false; actionProgress(0, code); }
-        else { actHolding = false; actT = 0; actFired = false; actionProgress(0, code); }
+        if (on) { actHolding = !!live; actCode = code; actT = 0; actFired = false; actionProgress(0, code); if (live) safe(() => hub.dig(code === 'KeyG' ? 'dump' : 'scoop', 'start')); }
+        else if (!uiSettings.tapAct || !live) { actHolding = false; actT = 0; actFired = false; actionProgress(0, code); }
     }
     else if (code === 'KeyW') input.forward = on && live;
     else if (code === 'KeyS') input.backward = on && live;
@@ -492,6 +475,7 @@ function pauseWindow() { pauseForMenu(); }
 function startGame() {
     unlockAudio();
     freePlay = false;
+    currentJob = LEVEL_LIST.find(j => !ensureJobs().isDone(j.id))?.id || 15;
     stages.enter(currentJob);
     if (park) park.hide();
     gameState = 'playing';
@@ -570,6 +554,7 @@ function setUiSetting(p) {
     hub.setVolumes(vols.master, vols.music, vols.effects);
   } else if (k === 'mute') { hub.setMuted(+v === 1); safe(() => { if (ui) ui.toast('Sound ' + (+v === 1 ? 'off' : 'on'), 'info'); }); }
   else if (k === 'quality') { window.setQuality(String(v)); }
+  else if (k === 'tapAct') { uiSettings.tapAct = +v === 1; }
   else if (k === 'big') { uiSettings.big = +v === 1; safe(() => { if (ui) ui.setBig(uiSettings.big); }); }
   else if (k === 'lefty') { uiSettings.lefty = +v === 1; safe(() => { if (ui) ui.setLefty(uiSettings.lefty); }); }
   else if (k === 'guide') { uiSettings.guide = +v === 1; safe(() => { if (guide) guide.setVisible(uiSettings.guide); }); }
@@ -577,18 +562,19 @@ function setUiSetting(p) {
   safe(() => { if (ui) ui.refresh(); });
 }
 function windowClosed(kind) {
-  // Closing RESULT or TIME-UP with the X must never leave the player stuck in
-  // a finished/failed job: send them to the level picker instead.
-  if (kind === 'result' || kind === 'fail') {
-    setTimeout(() => safe(() => openPicker()), 0);
+  // Programmatic navigation suppresses close side effects; X opens pause.
+  if ((kind === 'result' || kind === 'fail') && gameState === 'playing') {
+    pauseForMenu();
+    safe(() => { if (ui) ui.showModal('pause'); });
     return;
   }
   resumeGame();
 }
 function nextFromResult() {
   const id = lastResult && lastResult.nextId ? lastResult.nextId : (ensureJobs().nextId(jobCtx()) || currentJob);
+  if (lastResult && lastResult.job.id === 15) { startFreePlay(); return; }
   goJob(id);
-  safe(() => { if (ui) ui.hideModal(); });
+  safe(() => { if (ui) ui.toast('GET READY · ' + jm.current.name, 'info'); });
   // TIER 9: midgame ad ONLY on NEXT, never on start, never during driving.
   if (ads.canMidgame()) ads.request('midgame');
 }
@@ -813,7 +799,7 @@ function normKey(ev) {
 }
 // Release all driving keys if the window loses focus (prevents a stuck key)
 window.addEventListener('blur', () => {
-    input.forward = false; input.backward = false; input.left = false; input.right = false; input.brake = false;
+    clearInput();
 });
 const keyMap = { 'w': 'btn-w', 'arrowup': 'btn-w', 'a': 'btn-a', 'arrowleft': 'btn-a', 's': 'btn-s', 'arrowdown': 'btn-s', 'd': 'btn-d', 'arrowright': 'btn-d', 'e': 'btn-e', 'f': 'btn-f' };
 
@@ -1068,7 +1054,7 @@ function keepCameraClear(dt) {
 const panels = {
   hide: () => safe(() => { if (ui) ui.hideModal(); }),
   briefing: () => {},
-  showResult: (r) => safe(() => { lastResult = r; if (ui) ui.showResult({ stars: r.stars, coins: r.coins + (r.bonus ? r.bonus.coins : 0), bonusGot: !!(r.bonus && r.bonus.got), ads: ads.rewardedAvailable() }); }),
+  showResult: (r) => safe(() => { lastResult = r; if (ui) ui.showResult({ stars: r.stars, coins: r.coins + r.tips, nextName: jm.get(r.nextId)?.name || '', champion: r.job.id === 15, bonusCoins: r.bonus?.coins || 0, bonusGot: !!(r.bonus && r.bonus.got), ads: ads.rewardedAvailable() }); }),
   showFail: (job, loads) => safe(() => { lastFail = { loads, total: job ? job.loads : 3 }; if (ui) ui.showFail({ loads, total: job ? job.loads : 3, ads: ads.rewardedAvailable() }); }),
   showPicker: () => safe(() => { if (ui) ui.showPicker(); }),
   showShop: () => safe(() => { if (ui) ui.showGarage(); })
@@ -1189,6 +1175,7 @@ function placeSite(id) {
             siteGroups.set(id, g);
         }
         if (level) level.start(job, { pile: { x: px, z: pz }, truck: { x: tx, z: tz } });
+        cameraManager.setCollidables([pg, tg, ...(stages.group ? stages.group.children.filter(o => o.isMesh && o.geometry?.type !== 'PlaneGeometry' && o !== stages.group.children[1]) : [])]);
     });
 }
 
@@ -1362,6 +1349,7 @@ function deliverLoad(tipOverride) {
 function finishJob() {
     ensureJobs();
     const r = jm.complete(jobCtx());
+    writeLastJob(r.nextId || currentJob);
     if (level && level.job) {
         const b = level.bonus();
         r.bonus = b;
@@ -1427,10 +1415,10 @@ setTimeout(() => safe(() => {
 const clock = new THREE.Clock();
 
 // ---- Fixed 60 Hz physics (same speed on 30, 60, 144, 165, 240 Hz screens) ----
-const FIXED_DT = 1 / 60, MAX_STEPS = 6;
+const FIXED_DT = 1 / 60, MAX_STEPS = 5;
 let physAcc = 0;
 function advanceAccumulator(acc, frameDt) {
-    acc += Math.min(frameDt, 0.1);
+    acc += Math.min(frameDt, 0.25);
     let steps = 0;
     while (acc >= FIXED_DT - 1e-9 && steps < MAX_STEPS) { acc -= FIXED_DT; steps++; }
     if (steps === MAX_STEPS && acc >= FIXED_DT) acc = 0;
@@ -1510,7 +1498,7 @@ window.__tfQA = {
     loads: jm && jm.state ? jm.state.loads : 0, total: jm && jm.current ? jm.current.loads : 0,
     hasDirt: !!(vehicle && vehicle.hasDirt), scoopCount, coins: saveData.coins,
     speed: vehicle ? +vehicle.currentSpeed.toFixed(2) : 0, fwd: !!input.forward,
-    actHolding, actCode, actT: +actT.toFixed(2), duration: +actionDuration(actCode).toFixed(2),
+    lastAction, actHolding, actCode, actT: +actT.toFixed(2), duration: +actionDuration(actCode).toFixed(2),
     canvas: !!document.getElementById('game-container') }),
   qaRender: () => ({ calls: _lastCalls, tris: _lastTris,
     fps: +((_fpsWin.length ? _fpsWin.reduce((a, b) => a + b, 0) / _fpsWin.length : 0)).toFixed(1),
@@ -1629,7 +1617,7 @@ function animate() {
     requestAnimationFrame(animate);
     const frameDt = clock.getDelta();
     if (isGameRunning && physReady && world && vehicle) {
-        const dt = Math.min(frameDt, 0.05);
+        const dt = Math.min(frameDt, 0.25);
         updateActionHold(dt);
         const adv = advanceAccumulator(physAcc, frameDt);
         physAcc = adv.acc;
@@ -1676,6 +1664,7 @@ function animate() {
             
             if (!hasScoopedDirt && vehicle.hasDirt) {
                 hasScoopedDirt = true;
+                if (lastAction && lastAction.code === 'KeyF') lastAction.effect = performance.now();
                 const statusVal = document.getElementById('job-status-val'); if(statusVal) statusVal.textContent = 'DUMP IN TRUCK';
                 worldBuilder.shrinkDirtPile(); safe(onScooped);
                 // A8: the pile eases down to a ~15% flat patch after the last load.
@@ -1694,6 +1683,7 @@ function animate() {
                     safe(() => { if (level) level.onMiss(); if (ui) { ui.toast('Missed the target - scoop again', 'warn'); if (jm) jm.setPhase('scoop'); refreshCard(); } });
                 } else {
                     hasScoopedDirt = false;
+                    if (lastAction && lastAction.code === 'KeyG') lastAction.effect = performance.now();
                     worldBuilder.addDirtToTruck();
                     audio.playDumpThud();
                     safe(() => { if (fx) fx.onDump(worldBuilder.truckGroup.position.clone(), bucketPos.clone()); if (sfx) sfx.coin(); if (guide && tutStep === 3) { guide.nextTutorialStep(); tutStep = 4; } });
@@ -1760,7 +1750,7 @@ window.__speedInfo = function () {
     const mult = vehicle ? vehicle.engineMultiplier : 1;
     return { engineLevel: saveData.engineLevel || 1, multiplier: mult,
         forwardCapKmh: Math.min(32 + (mult - 1) * 10, 60),
-        reverseCapKmh: Math.min(14 + (mult - 1) * 2, 28),
+        reverseCapKmh: 14,
         shownKmh: vehicle ? vehicle.currentSpeed : 0,
         signedKmh: vehicle ? vehicle.signedSpeedKmh : 0 };
 };

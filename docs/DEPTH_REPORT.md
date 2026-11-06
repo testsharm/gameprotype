@@ -1,3 +1,11 @@
+# Latest V4 status — 2026-11-06
+
+[READ] This pass is PARTIAL, not a finished game rebuild. Historical reports below do not establish the new checklist.
+[RAN] Strict checklist 9/21, with evidence and exclusions in [V4_REPORT.md](V4_REPORT.md).
+[UNKNOWN] Tier 1 stopping/camera/low-fps feel and remaining visual details block advancing to Tier 2.
+
+---
+
 # DEPTH REPORT — TerraForm 3D, Quality Pass v3
 
 Date: 2026-11-05. Branch: `arena/154f02b1-gameprotype`, based on

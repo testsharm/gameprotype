@@ -203,6 +203,8 @@ const CSS = `
 .tf-sw i{width:34px;height:34px;border-radius:50%;border:3px solid var(--border);cursor:pointer}
 .tf-sw i.on{outline:3px solid var(--goal)}
 
+@keyframes nextPulse{50%{box-shadow:0 0 0 4px #f59e0b66}}
+.tf-card.newlevel{outline:2px solid #fbbf24;animation:nextPulse 1.5s infinite}
 /* result / fail */
 .tf-stars{display:flex;justify-content:center;gap:8px;margin:4px 0 10px}
 .tf-stars .tf-ic{width:44px;height:44px;color:#3a4c68}
@@ -393,12 +395,12 @@ export default class Menus {
     this._focusFirst();
     if (kind === 'result' && this.data.coins) this._countCoins(this.data.coins);
   }
-  close() {
+  close(notify = true) {
     const was = this.kind;
     this.win.classList.add('off');
     this.kind = null;
     this.data = null;
-    if (was) this._act('window-close', was);
+    if (was && notify) this._act('window-close', was);
   }
   _countCoins(target) {
     const el = this.win.querySelector('#tf-coin-count');
@@ -461,6 +463,7 @@ export default class Menus {
     const q = d.quality || s.quality || 'high';
     return `<h2 class="tf-h2 tf-title">SETTINGS</h2>
       ${row('master', 'MASTER')}${row('music', 'MUSIC')}${row('effects', 'EFFECTS')}
+      <div class="tf-row"><label>TAP TO ACT</label>${this._tog('tapAct', !!d.tapAct)}</div>
       <div class="tf-row"><label>SOUND</label>${this._tog('mute', !!d.muted)}</div>
       <div class="tf-row"><label>GRAPHICS</label>${this._seg('quality', [
         { v: 'low', t: 'LOW' }, { v: 'medium', t: 'MED' }, { v: 'high', t: 'HIGH' }], q)}</div>
@@ -489,11 +492,11 @@ export default class Menus {
     return `<h2 class="tf-h2 tf-title">LEVELS</h2>
       <div class="tf-tabs">${chapters.map(c =>
         `<button class="tf-sec ${c.id === this.chapter ? 'on' : ''}" data-a="chapter" data-ch="${c.id}">${c.name}</button>`).join('')}</div>
-      <div class="tf-cards">${list.map(j => `<button class="tf-card tf-sec ${j.id === this.selected ? 'sel' : ''} ${j.locked ? 'lock' : ''}"
+      <div class="tf-cards">${list.map(j => `<button class="tf-card tf-sec ${j.id === this.selected ? 'sel' : ''} ${j.locked ? 'lock' : ''} ${j.id === d.nextLevel && !j.locked ? 'newlevel' : ''}"
           data-a="select" data-id="${j.id}" aria-label="Level ${j.id} ${j.name}">
           <span class="n">LEVEL ${j.id}</span><span class="nm">${j.name}</span>
           <span class="st">${stars(j.stars)}</span>
-          ${j.locked ? `<span class="lk">${svg('lock')}</span>` : `<span class="tag">${j.type}</span>`}
+          ${j.locked ? `<span class="lk">${svg('lock')} FINISH LEVEL ${j.id - 1}</span>` : `<span class="tag">${j.id === d.nextLevel ? 'NEW' : j.type}</span>`}
         </button>`).join('')}</div>
       <div class="tf-pick-foot">
         <div class="desc">${sel.locked ? (sel.reason || 'Locked') : (sel.rule || sel.name)}</div>
@@ -521,14 +524,14 @@ export default class Menus {
         `<i class="${i === (d.paint || 0) ? 'on' : ''}" style="background:${c}" data-a="paint" data-i="${i}" aria-label="Paint ${i + 1}"></i>`).join('')}</div>`;
   }
   _result(r) {
-    return `<div class="tf-confirm"><h2 class="tf-h2">JOB COMPLETE</h2>
+    return `<div class="tf-confirm"><h2 class="tf-h2">${r.champion ? 'CHAMPION' : 'JOB COMPLETE'}</h2>
       <div class="tf-stars">${[0, 1, 2].map(i => `<svg class="tf-ic ${i < (r.stars || 0) ? 'on' : ''}" viewBox="0 0 24 24">${ICON.star}</svg>`).join('')}</div>
-      <div class="tf-bigcoin" id="tf-coin-count">+0</div>
-      <div class="tf-mut">${r.bonusGot ? 'BONUS EARNED' : 'COINS'}</div>
+      <div class="tf-bigcoin" id="tf-coin-count">+${Number(r.coins || 0).toLocaleString('en-US')}</div>
+      <div class="tf-mut">${r.bonusGot ? 'BONUS +' + (r.bonusCoins || 0) + ' INCLUDED' : 'COINS EARNED'}</div>
       ${r.ads ? '<button class="tf-reward tf-sec" data-a="reward-coins">'+svg('spark')+' DOUBLE COINS (AD)</button>' : ''}
       <div class="tf-acts">
         <button class="tf-sec" data-a="retry">${svg('restart')} RETRY</button>
-        <button class="tf-amber" data-a="next">${svg('next')} NEXT</button>
+        <button class="tf-amber" data-a="next">${svg('next')} ${r.champion ? 'FREE PLAY' : 'NEXT: ' + (r.nextName || 'NEXT LEVEL').toUpperCase()}</button>
       </div></div>`;
   }
   _fail(r) {

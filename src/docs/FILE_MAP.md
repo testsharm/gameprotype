@@ -1,3 +1,13 @@
+## V4 update (2026-11-06)
+
+[READ] main.js: forward-only resume save, next unfinished start info, silent modal navigation, immediate hold effects, frame-time clock, five-step physics cap, action timing observations.
+[READ] Vehicle.js: direct scoop/dump effects; stronger coast assist; reverse limit stays 14.
+[READ] Levels.js: no pile reset between loads. Stages.js: smaller front-facing signs.
+[READ] Menus.js / GameUI.js: real reward text survives refresh, named NEXT, champion label, NEW level outline, optional tap-to-act, desktop keycap visibility and amber key-down state.
+[READ] CameraManager.js: recursive collision ray, closer pull-in, upright camera, corrected wheel direction.
+[RAN] scripts/newplayer.mjs and scripts/v4-ui.mjs are this pass's real-input browser tests.
+[UNKNOWN] See docs/V4_REPORT.md for strict checklist and outstanding work.
+
 # FILE MAP - TerraForm 3D (depth summary of every file)
 
 ## LATEST - QUALITY PASS v3 (2026-11-05)

@@ -1,0 +1,34 @@
+[RAN] Fresh PLAY state: {"gameState":"playing","uiPaused":false,"modalOpen":false,"job":1,"timerRunning":true,"camera":"chase","zoom":1,"startPose":{"x":-17.796865936899042,"y":1.2,"z":-115.51993077630755,"yaw":1.8281336249106805,"cam":12,"quat":{"x":0,"y":0.791993192890424,"z":0,"w":0.610529919344852}},"site":{"pile":{"x":0.8803789073645447,"z":-120.435266474653},"truck":{"x":15,"z":-118.82499999701977}}}
+[RAN] Scoop 1: {"gameState":"playing","currentJob":1,"freePlay":false,"uiPaused":false,"modalOpen":false,"paused":false,"physReady":true,"loads":0,"total":3,"hasDirt":true,"scoopCount":1,"coins":0,"speed":1,"fwd":false,"lastAction":{"code":"KeyF","holdEnd":15766.399999999907,"effect":15768.399999999907},"actHolding":false,"actCode":"KeyF","actT":0,"duration":1.6,"canvas":true}
+[RAN] PASS scoop 1 immediate effect
+[RAN] Dump 1: {"gameState":"playing","currentJob":1,"freePlay":false,"uiPaused":false,"modalOpen":false,"paused":false,"physReady":true,"loads":1,"total":3,"hasDirt":false,"scoopCount":1,"coins":10,"speed":3,"fwd":false,"lastAction":{"code":"KeyG","holdEnd":27105.099999999977,"effect":27107},"actHolding":false,"actCode":"KeyG","actT":0,"duration":1.2,"canvas":true}
+[RAN] PASS dump 1 counted immediately
+[RAN] Scoop 2: {"gameState":"playing","currentJob":1,"freePlay":false,"uiPaused":false,"modalOpen":false,"paused":false,"physReady":true,"loads":1,"total":3,"hasDirt":true,"scoopCount":2,"coins":10,"speed":0,"fwd":false,"lastAction":{"code":"KeyF","holdEnd":39143.29999999993,"effect":39144.79999999993},"actHolding":false,"actCode":"KeyF","actT":0,"duration":1.6,"canvas":true}
+[RAN] PASS scoop 2 immediate effect
+[RAN] Dump 2: {"gameState":"playing","currentJob":1,"freePlay":false,"uiPaused":false,"modalOpen":false,"paused":false,"physReady":true,"loads":2,"total":3,"hasDirt":false,"scoopCount":2,"coins":20,"speed":2,"fwd":false,"lastAction":{"code":"KeyG","holdEnd":50294.09999999998,"effect":50295.79999999993},"actHolding":false,"actCode":"KeyG","actT":0,"duration":1.2,"canvas":true}
+[RAN] PASS dump 2 counted immediately
+[RAN] Scoop 3: {"gameState":"playing","currentJob":1,"freePlay":false,"uiPaused":false,"modalOpen":false,"paused":false,"physReady":true,"loads":2,"total":3,"hasDirt":true,"scoopCount":3,"coins":20,"speed":1,"fwd":false,"lastAction":{"code":"KeyF","holdEnd":61607.69999999995,"effect":61609.19999999995},"actHolding":false,"actCode":"KeyF","actT":0,"duration":1.6,"canvas":true}
+[RAN] PASS scoop 3 immediate effect
+[RAN] Dump 3: {"gameState":"playing","currentJob":1,"freePlay":false,"uiPaused":false,"modalOpen":false,"paused":false,"physReady":true,"loads":3,"total":3,"hasDirt":false,"scoopCount":3,"coins":265,"speed":2,"fwd":false,"lastAction":{"code":"KeyG","holdEnd":72829,"effect":72830.29999999993},"actHolding":false,"actCode":"KeyG","actT":0,"duration":1.2,"canvas":true}
+[RAN] PASS dump 3 counted immediately
+[RAN] PASS result shows +265
+[RAN] Result text 
+      
+        
+        JOB COMPLETE
+      
+      +265
+      BONUS +40 INCLUDED
+      
+      
+         RETRY
+         NEXT: CONE SCHOOL
+      
+      
+[RAN] NEXT {"gameState":"playing","uiPaused":false,"modalOpen":false,"job":2,"timerRunning":true,"camera":"chase","zoom":1.0833333333333333,"startPose":{"x":148,"y":1.2,"z":-42,"yaw":-2.8026963806674807,"cam":13,"quat":{"x":0,"y":-0.9856779823931126,"z":0,"w":0.16863841503478075}},"site":{"pile":{"x":134,"z":-54},"truck":{"x":110,"z":-54}}}
+[RAN] PASS NEXT starts L2 unpaused without a window
+[RAN] PASS reload names L2
+[RAN] Reload LEVEL 2 · CONE SCHOOL
+[RAN] PASS CONTINUE starts L2
+[RAN] CONTINUE {"gameState":"playing","uiPaused":false,"modalOpen":false,"job":2,"timerRunning":true,"camera":"chase","zoom":1.0833333333333333,"startPose":{"x":148,"y":1.2,"z":-42,"yaw":-2.8026963806674807,"cam":13,"quat":{"x":0,"y":-0.9856779823931126,"z":0,"w":0.16863841503478075}},"site":{"pile":{"x":134,"z":-54},"truck":{"x":110,"z":-54}}}
+[RAN] Console: []

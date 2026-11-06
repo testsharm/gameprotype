@@ -37,6 +37,7 @@ const CSS = `
   pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;outline:none;cursor:pointer}
 #tf-hud button:focus-visible{outline:3px solid var(--goal);outline-offset:2px}
 #tf-hud button:active{transform:translateY(2px)}
+#tf-hud button.held{transform:translateY(2px);border-color:#fbbf24;background:linear-gradient(#a16207,#713f12);box-shadow:0 0 0 2px #fbbf2477}
 #tf-hud.off,#tf-hud.hide{display:none}
 /* Free Play / job-complete call setTimer(null); hide the stale countdown. */
 #tf-hud .tf-timer.off{display:none}
@@ -85,9 +86,10 @@ body.tf-menu #tf-hud{display:none !important}
 .tf-tools .tf-b .tf-ic{color:var(--goal)}
 
 /* ---- keyboard hint pad (desktop only) --------------------------------- */
-.tf-pad{position:absolute;left:calc(12px + ${SAFE_L});top:calc(240px + ${SAFE_T});width:200px;
+.tf-pad{position:absolute;left:calc(12px + ${SAFE_L});top:calc(240px + ${SAFE_T});width:310px;
   flex-direction:column;gap:6px;display:none;pointer-events:none}
 #tf-hud .tf-pad{display:none !important}
+@media(min-width:1000px) and (min-height:650px){#tf-hud:not(.tf-touch-on) .tf-pad{display:flex !important} #tf-hud:not(.tf-touch-on) .tf-drive{display:none}}
 .tf-pad .r{display:flex;gap:6px;justify-content:center}
 .tf-pad .tf-b{width:56px;height:56px;font-size:15px;flex-direction:column;gap:1px}
 .tf-pad .tf-b.wide{width:116px}
@@ -546,7 +548,7 @@ export default class GameUI {
   isMenuOpen() { return this.menus.isOpen(); }
 
   showModal(kind, data) { this.menus.open(kind === 'controls' ? 'help' : kind, data); }
-  hideModal() { this.menus.close(); }
+  hideModal() { this.menus.close(false); }
   confirm(cfg) { this.menus.open('confirm', cfg); }
   showResult(r) { this.menus.open('result', r); }
   showFail(r) { this.menus.open('fail', r); }

@@ -76,6 +76,7 @@ export class CameraManager {
             .applyQuaternion(vehicleMesh.quaternion);
         this.camera.position.set(p.x, p.y, p.z).add(offset);
         this.currentLookAt.set(p.x, p.y + 2, p.z);
+        this.camera.up.set(0, 1, 0);
         this.camera.lookAt(this.currentLookAt);
     }
 
@@ -104,7 +105,7 @@ export class CameraManager {
         this.domElement.addEventListener('wheel', (e) => {
             if (!this.canZoom()) return;
             e.preventDefault();
-            this.zoomBy(e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP);
+            this.zoomBy(e.deltaY < 0 ? -ZOOM_STEP : ZOOM_STEP);
         }, { passive: false });
     }
 
@@ -224,7 +225,8 @@ export class CameraManager {
             const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir).normalize();
             const look = headPos.clone().addScaledVector(right, 5.2);
             this.currentLookAt.lerp(look, k(3.2));
-            this.camera.lookAt(this.currentLookAt);
+            this.camera.up.set(0, 1, 0);
+        this.camera.lookAt(this.currentLookAt);
             return;
         }
 
@@ -233,7 +235,8 @@ export class CameraManager {
             idealPos.copy(headPos).add(offset);
             this.camera.position.lerp(idealPos, k(10));
             this.currentLookAt.lerp(headPos, k(13));
-            this.camera.lookAt(this.currentLookAt);
+            this.camera.up.set(0, 1, 0);
+        this.camera.lookAt(this.currentLookAt);
 
         } else if (this.currentMode === 'chase') {
             // Behind + above: see the whole machine and the area ahead of it.
@@ -241,7 +244,8 @@ export class CameraManager {
             idealPos.copy(vehiclePos).add(offset);
             this.camera.position.lerp(idealPos, k(6.5));
             this.currentLookAt.lerp(headPos, k(10));
-            this.camera.lookAt(this.currentLookAt);
+            this.camera.up.set(0, 1, 0);
+        this.camera.lookAt(this.currentLookAt);
 
         } else if (this.currentMode === 'cab') {
             offset.copy(CAB_EYE).applyQuaternion(vehicleMesh.quaternion);
@@ -257,7 +261,8 @@ export class CameraManager {
             idealPos.copy(focus).add(offset);
             this.camera.position.lerp(idealPos, k(6.5));
             this.currentLookAt.lerp(focus, k(13));
-            this.camera.lookAt(this.currentLookAt);
+            this.camera.up.set(0, 1, 0);
+        this.camera.lookAt(this.currentLookAt);
         }
 
         // building / tree collision (works only if meshes were given with setCollidables)
@@ -268,11 +273,11 @@ export class CameraManager {
                 rayDir.normalize();
                 this.raycaster.set(headPos, rayDir);
                 this.raycaster.far = distance;
-                const intersects = this.raycaster.intersectObjects(this.collidableMeshes, false);
+                const intersects = this.raycaster.intersectObjects(this.collidableMeshes, true);
                 if (intersects.length > 0) {
                     const hitDist = intersects[0].distance;
                     if (hitDist < distance) {
-                        const safeDist = Math.max(this.minDistance, hitDist - 0.5);
+                        const safeDist = Math.max(0.5, hitDist - 0.8);
                         this.camera.position.copy(headPos).add(rayDir.multiplyScalar(safeDist));
                     }
                 }

@@ -771,7 +771,7 @@ export class LevelEngine {
     this.rushTarget = (g.kind === 'rush') ? { x: g.x, z: g.z } : null;
     const pile = (g.kind === 'trench' || g.kind === 'debris') ? { x: g.x, z: g.z } : this.site.pile;
     // B3: restore the FULL pile after every goal, so load 3 always has dirt.
-    if (this.world && this.world.resetDirtPile) this.world.resetDirtPile();
+    if (i === 0 && this.world && this.world.resetDirtPile) this.world.resetDirtPile();
     this._place('dirtPileGroup', pile.x, pile.z, showPile);
     if (this.world && this.world.jobSiteBase) this.world.jobSiteBase.visible = true;
     const tz = this.rushTarget || this.site.truck;

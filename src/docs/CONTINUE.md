@@ -511,4 +511,6 @@ Round 1 (M4f) applied, backup 2026-11-05T07-51-19-422Z-lgp, NOT saved. New HUD v
   844x390 / 440x956 / 390x844, capture the 15 screenshots, check the console, then merge
   the PR into clean-v1 and submit to CrazyGames. Old notes below are history only.
 
+- 2026-11-06 V4 PARTIAL TIER 1: [RAN] fresh-save normal-URL L1 completed with real driving and holds; NEXT/reload CONTINUE L2 verified. +265 result and 1–2 ms action effect observations. [SEEN] pile progression, phone two-finger controls, desktop keycaps and TIME IS UP. [UNKNOWN] Tier 1 NOT complete, Tier 2 onward NOT started. Checklist 9/21, do not merge. Read docs/V4_REPORT.md first. Old level-walk uses teleport and direct steps, not valid gameplay proof under v4.
+
 SESSION LOG END MARKER (do not remove this line)
