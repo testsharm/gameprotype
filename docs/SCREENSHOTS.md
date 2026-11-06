@@ -1,5 +1,12 @@
 # Real game screenshots — Fix v4
 
+[SEEN] Latest phone proof: fresh-player truck tipping below. Full gallery retains earlier failures and discloses all setup shortcuts.
+
+![Latest normal-play phone truck tipping](screenshots/e-smoke-l1-mid-phone.png)
+
+[SEEN] OK — real first delivery, normal URL and fresh storage; no shortcuts.
+
+
 [RAN] Captured in Chromium from the current branch at 1280×720 and 390×844. Fresh storage; Level 1 was finished with real driving and action holds. Phone result uses that same real finish, with the viewport changed.
 
 [READ] These are baseline images, not a claim that the level and Free Play rebuilds are finished. Every image below was opened and inspected. Only the Level 3 starting-level selection used unlockall; its caption says so.
@@ -668,4 +675,176 @@
 ![Park respawn phone](screenshots/d-park-respawn-phone.png)
 
 [SEEN] OK — Park respawn, phone; real driving/actions; no shortcuts.
+
+
+## E — vehicle shapes, truck detail, and collision limits
+
+[RAN] `E_WALK.txt`: seven shapes × ten colors = seventy unique fleet pairs, rotating beacon, five real W contacts, and a real F/G delivery. QA position/scene setup only; no injected velocity, loads, coins or timers. `E_INSPECTION.txt` additionally uses a fixed inspection camera for art closeups. These are NOT normal gameplay-camera evidence. The chassis collides but the long bucket can overlap props; strict collision criterion remains failed.
+
+![sedan closeup](screenshots/e-shape-sedan-phone.png)
+
+[SEEN] OK — sedan, simple but distinct code-made shape; unlockall/QA scene and inspection-camera setup, not gameplay proof.
+
+![hatchback closeup](screenshots/e-shape-hatchback-phone.png)
+
+[SEEN] OK — hatchback, simple but distinct code-made shape; unlockall/QA scene and inspection-camera setup, not gameplay proof.
+
+![suv closeup](screenshots/e-shape-suv-phone.png)
+
+[SEEN] OK — suv, simple but distinct code-made shape; unlockall/QA scene and inspection-camera setup, not gameplay proof.
+
+![pickup closeup](screenshots/e-shape-pickup-phone.png)
+
+[SEEN] OK — pickup, simple but distinct code-made shape; unlockall/QA scene and inspection-camera setup, not gameplay proof.
+
+![van closeup](screenshots/e-shape-van-phone.png)
+
+[SEEN] OK — van, simple but distinct code-made shape; unlockall/QA scene and inspection-camera setup, not gameplay proof.
+
+![bus closeup](screenshots/e-shape-bus-phone.png)
+
+[SEEN] OK — bus, simple but distinct code-made shape; unlockall/QA scene and inspection-camera setup, not gameplay proof.
+
+![flatbed closeup](screenshots/e-shape-flatbed-phone.png)
+
+[SEEN] OK — flatbed, simple but distinct code-made shape; unlockall/QA scene and inspection-camera setup, not gameplay proof.
+
+![E backhoe-inspection desktop](screenshots/e-backhoe-inspection-desktop.png)
+
+[SEEN] OK — backhoe-inspection, desktop; QA position/scene setup; inspection camera.
+
+![E backhoe-inspection phone](screenshots/e-backhoe-inspection-phone.png)
+
+[SEEN] BAD — backhoe-inspection, phone; QA position/scene setup; inspection camera; closeup crops the bucket.
+
+![E bed-before-inspection desktop](screenshots/e-bed-before-inspection-desktop.png)
+
+[SEEN] OK — bed-before-inspection, desktop; QA position/scene setup; inspection camera.
+
+![E bed-before-inspection phone](screenshots/e-bed-before-inspection-phone.png)
+
+[SEEN] OK — bed-before-inspection, phone; QA position/scene setup; inspection camera.
+
+![E bed-tilt-inspection desktop](screenshots/e-bed-tilt-inspection-desktop.png)
+
+[SEEN] OK — bed-tilt-inspection, desktop; QA position/scene setup; inspection camera.
+
+![E bed-tilt-inspection phone](screenshots/e-bed-tilt-inspection-phone.png)
+
+[SEEN] OK — bed-tilt-inspection, phone; QA position/scene setup; inspection camera.
+
+![E bed-after-inspection desktop](screenshots/e-bed-after-inspection-desktop.png)
+
+[SEEN] OK — bed-after-inspection, desktop; QA position/scene setup; inspection camera.
+
+![E bed-after-inspection phone](screenshots/e-bed-after-inspection-phone.png)
+
+[SEEN] OK — bed-after-inspection, phone; QA position/scene setup; inspection camera.
+
+![E traffic-lineup desktop](screenshots/e-traffic-lineup-desktop.png)
+
+[SEEN] OK — traffic-lineup, desktop; QA position/scene setup; normal orbit camera.
+
+![E traffic-lineup phone](screenshots/e-traffic-lineup-phone.png)
+
+[SEEN] BAD — traffic-lineup, phone; QA position/scene setup; normal orbit camera.
+
+![E traffic-lineup-inspection desktop](screenshots/e-traffic-lineup-inspection-desktop.png)
+
+[SEEN] BAD — traffic-lineup-inspection, desktop; QA position/scene setup; inspection camera; too far away, use the seven closeups above.
+
+![E traffic-lineup-inspection phone](screenshots/e-traffic-lineup-inspection-phone.png)
+
+[SEEN] BAD — traffic-lineup-inspection, phone; QA position/scene setup; inspection camera; too far away, use the seven closeups above.
+
+![E garage-paints desktop](screenshots/e-garage-paints-desktop.png)
+
+[SEEN] OK — garage-paints, desktop; actual Garage after real +10 earned load; ten visible paints; prior QA scene setup.
+
+![E garage-paints phone](screenshots/e-garage-paints-phone.png)
+
+[SEEN] OK — garage-paints, phone; actual Garage after real +10 earned load; ten visible paints; prior QA scene setup.
+
+![E parked-car-inspection desktop](screenshots/e-parked-car-inspection-desktop.png)
+
+[SEEN] OK — parked-car-inspection, desktop; QA position/scene setup; inspection camera; bucket overlaps parked SUV — strict collision failure.
+
+![E parked-car-inspection phone](screenshots/e-parked-car-inspection-phone.png)
+
+[SEEN] BAD — parked-car-inspection, phone; QA position/scene setup; inspection camera; bucket overlaps parked SUV — strict collision failure.
+
+![barrier contact desktop](screenshots/e-collision-barrier-desktop.png)
+
+[SEEN] OK — barrier contact, desktop; QA approach-position setup, then real W and brake. Chassis contact proven; bucket clipping remains, especially parked-car view.
+
+![barrier contact phone](screenshots/e-collision-barrier-phone.png)
+
+[SEEN] OK — barrier contact, phone; QA approach-position setup, then real W and brake. Chassis contact proven; bucket clipping remains, especially parked-car view.
+
+![fence contact desktop](screenshots/e-collision-fence-desktop.png)
+
+[SEEN] OK — fence contact, desktop; QA approach-position setup, then real W and brake. Chassis contact proven; bucket clipping remains, especially parked-car view.
+
+![fence contact phone](screenshots/e-collision-fence-phone.png)
+
+[SEEN] OK — fence contact, phone; QA approach-position setup, then real W and brake. Chassis contact proven; bucket clipping remains, especially parked-car view.
+
+![container contact desktop](screenshots/e-collision-container-desktop.png)
+
+[SEEN] OK — container contact, desktop; QA approach-position setup, then real W and brake. Chassis contact proven; bucket clipping remains, especially parked-car view.
+
+![container contact phone](screenshots/e-collision-container-phone.png)
+
+[SEEN] OK — container contact, phone; QA approach-position setup, then real W and brake. Chassis contact proven; bucket clipping remains, especially parked-car view.
+
+![pile-edge contact desktop](screenshots/e-collision-pile-edge-desktop.png)
+
+[SEEN] OK — pile-edge contact, desktop; QA approach-position setup, then real W and brake. Chassis contact proven; bucket clipping remains, especially parked-car view.
+
+![pile-edge contact phone](screenshots/e-collision-pile-edge-phone.png)
+
+[SEEN] OK — pile-edge contact, phone; QA approach-position setup, then real W and brake. Chassis contact proven; bucket clipping remains, especially parked-car view.
+
+![parked-car contact desktop](screenshots/e-collision-parked-car-desktop.png)
+
+[SEEN] BAD — parked-car contact, desktop; QA approach-position setup, then real W and brake. Chassis contact proven; bucket clipping remains, especially parked-car view.
+
+![parked-car contact phone](screenshots/e-collision-parked-car-phone.png)
+
+[SEEN] BAD — parked-car contact, phone; QA approach-position setup, then real W and brake. Chassis contact proven; bucket clipping remains, especially parked-car view.
+
+
+## Final fresh-player check — normal URL, empty storage
+
+![Final L1 start desktop](screenshots/e-smoke-l1-start-desktop.png)
+
+[SEEN] OK — final L1 start, desktop; normal URL, fresh storage, real keys and NEXT click, NO setup shortcuts. Result +242 with bonus; capture time affects time-based payout.
+
+![Final L1 start phone](screenshots/e-smoke-l1-start-phone.png)
+
+[SEEN] OK — final L1 start, phone; normal URL, fresh storage, real keys and NEXT click, NO setup shortcuts. Result +242 with bonus; capture time affects time-based payout.
+
+![Final L1 mid desktop](screenshots/e-smoke-l1-mid-desktop.png)
+
+[SEEN] OK — final L1 mid, desktop; normal URL, fresh storage, real keys and NEXT click, NO setup shortcuts. Result +242 with bonus; capture time affects time-based payout.
+
+![Final L1 mid phone](screenshots/e-smoke-l1-mid-phone.png)
+
+[SEEN] OK — final L1 mid, phone; normal URL, fresh storage, real keys and NEXT click, NO setup shortcuts. Result +242 with bonus; capture time affects time-based payout.
+
+![Final L1 result desktop](screenshots/e-smoke-l1-result-desktop.png)
+
+[SEEN] OK — final L1 result, desktop; normal URL, fresh storage, real keys and NEXT click, NO setup shortcuts. Result +242 with bonus; capture time affects time-based payout.
+
+![Final L1 result phone](screenshots/e-smoke-l1-result-phone.png)
+
+[SEEN] OK — final L1 result, phone; normal URL, fresh storage, real keys and NEXT click, NO setup shortcuts. Result +242 with bonus; capture time affects time-based payout.
+
+![Final L1 next-l2 desktop](screenshots/e-smoke-l1-next-l2-desktop.png)
+
+[SEEN] OK — final L1 next-l2, desktop; normal URL, fresh storage, real keys and NEXT click, NO setup shortcuts. Result +242 with bonus; capture time affects time-based payout.
+
+![Final L1 next-l2 phone](screenshots/e-smoke-l1-next-l2-phone.png)
+
+[SEEN] OK — final L1 next-l2, phone; normal URL, fresh storage, real keys and NEXT click, NO setup shortcuts. Result +242 with bonus; capture time affects time-based payout.
 

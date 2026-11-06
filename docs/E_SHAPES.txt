@@ -1,0 +1,8 @@
+[SEEN BY CAPTURE] sedan actual parked model; QA level/camera setup only, no gameplay claim.
+[SEEN BY CAPTURE] hatchback actual parked model; QA level/camera setup only, no gameplay claim.
+[SEEN BY CAPTURE] suv actual parked model; QA level/camera setup only, no gameplay claim.
+[SEEN BY CAPTURE] pickup actual parked model; QA level/camera setup only, no gameplay claim.
+[SEEN BY CAPTURE] van actual parked model; QA level/camera setup only, no gameplay claim.
+[SEEN BY CAPTURE] bus actual parked model; QA level/camera setup only, no gameplay claim.
+[SEEN BY CAPTURE] flatbed actual parked model; QA level/camera setup only, no gameplay claim.
+[RAN] Seven real scene-model closeups; zero own-code browser errors.

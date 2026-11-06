@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createTrafficModel, TRAFFIC_COLORS } from './Vehicles.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // World: city, roads, sky, props, job site.
@@ -1098,10 +1099,12 @@ export class World {
       this.truckGroup.add(m);
       return m;
     };
+    this.truckBed=new THREE.Group();this.truckBed.position.set(0,1.4,-4);this.truckGroup.add(this.truckBed);
     [[4.2, 0.4, 6, 0, 1.4, -1], [0.3, 1.6, 6, -2.05, 2.2, -1], [0.3, 1.6, 6, 2.05, 2.2, -1],
       [4.2, 1.6, 0.3, 0, 2.2, -4], [4.2, 1.6, 0.3, 0, 2.2, 2]].forEach((b) => {
-      add(new THREE.BoxGeometry(b[0], b[1], b[2]), bedMat, b[3], b[4], b[5]);
+      const part=add(new THREE.BoxGeometry(b[0], b[1], b[2]), bedMat, b[3], b[4], b[5]);this.truckBed.attach(part);
     });
+    for(const x of [-2.23,2.23])for(let z=-3.6;z<2;z+=.8){const rib=add(new THREE.BoxGeometry(.35,1.6,.3),blueMat,x,2.2,z);this.truckBed.attach(rib);}
     add(new THREE.BoxGeometry(3.2, 1.5, 0.4), glassMat, 0, 3.7, 6.0);
     add(new THREE.BoxGeometry(0.4, 1.4, 2.2), glassMat, -2.0, 3.7, 4.2);
     add(new THREE.BoxGeometry(0.4, 1.4, 2.2), glassMat, 2.0, 3.7, 4.2);
@@ -1142,36 +1145,8 @@ export class World {
 
   createOptimizedTraffic() {
     const R = this.rand;
-    const carColors = [0xd62d2d, 0x2bb24c, 0x2f6fdd, 0xf2c230, 0xf4f4f4, 0xb0b4ba, 0x333a44, 0xe07b24];
-    const bodyGeo = new THREE.BoxGeometry(2, 0.8, 4.5);
-    const cabinGeo = new THREE.BoxGeometry(1.8, 0.8, 2.2);
-    const cabinMat = new THREE.MeshStandardMaterial({ color: 0x1c2733, roughness: 0.15, metalness: 0.3 });
-    const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
-    wheelGeo.rotateZ(Math.PI / 2);
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
-    const bodyMats = {};
-    const getBody = (c) => bodyMats[c] || (bodyMats[c] = new THREE.MeshStandardMaterial({ color: c, roughness: 0.4, metalness: 0.4 }));
-
     for (let i = 0; i < 70; i++) {
-      const color = carColors[Math.floor(R() * carColors.length)];
-      const carGroup = new THREE.Group();
-      const body = new THREE.Mesh(bodyGeo, getBody(color));
-      body.position.y = 0.6;
-      body.castShadow = true;
-      carGroup.add(body);
-      const cabin = new THREE.Mesh(cabinGeo, cabinMat);
-      cabin.position.set(0, 1.4, -0.2);
-      cabin.castShadow = true;
-      carGroup.add(cabin);
-      const wheels = [];
-      [{ x: -1.0, y: 0.4, z: 1.4 }, { x: 1.0, y: 0.4, z: 1.4 }, { x: -1.0, y: 0.4, z: -1.4 }, { x: 1.0, y: 0.4, z: -1.4 }].forEach((pos) => {
-        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-        wheel.position.set(pos.x, pos.y, pos.z);
-        wheel.castShadow = true;
-        carGroup.add(wheel);
-        wheels.push(wheel);
-      });
-
+      const carGroup=createTrafficModel(i,TRAFFIC_COLORS[i%10]),wheels=carGroup.userData.wheels;
       const isXAxis = R() > 0.5;
       const isPositiveDir = R() > 0.5;
       const laneOffset = isPositiveDir ? 6 : -6;
@@ -1815,10 +1790,12 @@ export class World {
     dirtMesh.position.set((Math.random() - 0.5) * 1.5, 1.9 + (this.truckDirtLevel * 0.45), -1 + (Math.random() - 0.5) * 2);
     dirtMesh.scale.set(1.5, 1, 1.5);
     dirtMesh.castShadow = true;
-    this.truckGroup.add(dirtMesh);
+    this.truckBed.add(dirtMesh);dirtMesh.position.sub(this.truckBed.position);
     this.truckDirtMeshes.push(dirtMesh);
   }
 
+  tipTruck(){this._tipTime=0;}
+  updateTruck(dt){if(this._tipTime==null)return;this._tipTime+=dt;const t=this._tipTime;this.truckBed.rotation.x=-(t<2?t/2*.8:t<6?.8:Math.max(0,.8*(8-t)/2));if(t>4&&!this._tipEmptied){for(const m of this.truckDirtMeshes)m.removeFromParent();this.truckDirtMeshes=[];this.truckDirtLevel=0;this._tipEmptied=true;}if(t>=8){this._tipTime=null;this._tipEmptied=false;}}
   setCityPhysicsEnabled(enabled) {
     this.cityPhysicsEnabled = !!enabled;
     for (const collider of this._cityColliders || []) collider.setEnabled(!!enabled);

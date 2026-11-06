@@ -4,6 +4,7 @@
 // All geometry / textures / colours are code-made. Nothing is loaded lazily
 // when a goal appears: the whole stage exists before the first frame.
 import * as THREE from 'three';
+import {createTrafficModel,TRAFFIC_COLORS} from '../core/Vehicles.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // ---------------------------------------------------------------------------
@@ -437,6 +438,7 @@ export class StageManager {
   }
 
   _props(s) {
+    if(s.props==='cars'){for(let i=0;i<14;i++){const car=createTrafficModel(i,TRAFFIC_COLORS[i%10]);car.position.set(-18+(i%7)*6,0,-38-Math.floor(i/7)*14);this.group.add(car);}return;}
     const n = 26;
     const shapes = {
       fence: () => new THREE.BoxGeometry(3, 1.4, 0.3),

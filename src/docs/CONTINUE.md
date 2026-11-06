@@ -1,3 +1,14 @@
+# Current Fix v4 — 2026-11-06
+
+[RAN] Same branch arena/0ac523ae-gameprotype, same PR #5 to clean-v1. Evidence-backed score 18/21; threshold 17 met. A, B, C1/C2/C3, D and E art/detail published in order.
+[RAN] All fifteen levels have real-input results. Final normal-URL/fresh-storage L1 +242 and NEXT L2 passed after E changes. B ten-minute active-input proof remains in V4_SESSION.txt. No own-code browser errors in final passing runs.
+[SEEN] Every generated screenshot opened; docs/SCREENSHOTS.md contains relative embeds, grades and shortcut disclosures. New phone truck-tip proof has no shortcuts. Art closeups explicitly use QA positioning/inspection camera.
+[READ] Remaining FAILS: 15 bucket/prop clipping (chassis contacts work); 17 rewarded flows unverified; 21 optional settings/dead-file cleanup incomplete. Do not claim 21/21. F cut first.
+[UNKNOWN] Physical iPhone, full park ascent/all rings, complete post-E fifteen-level replay remain unverified. L13 latest cosmetic camera fix not re-captured. Park terrain shading remains subtle.
+[RAN] Current build passes, about 5.4 MB/three application files; standard Vite warnings. Live preview 4173 serves dist.
+
+--- Historical notes below (current block above wins) ---
+
 # Current Fix v4 continuation — 2026-11-06
 
 [RAN] SAME branch arena/0ac523ae-gameprotype; SAME open PR #5. Score 13/21, DO NOT MERGE below 17/21.

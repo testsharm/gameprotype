@@ -48,7 +48,7 @@ export class Vehicle {
             this.engineMultiplier = 1 + (Math.max(1, saveData.engineLevel || 1) - 1) * 0.5;
             this.hydraulicMultiplier = 1 + (Math.max(1, saveData.hydraulicLevel || 1) - 1) * 0.6;
             this.tyreGrip = 1 + (Math.max(1, saveData.tyreLevel || 1) - 1) * 0.12;
-            if (this.beaconMesh) this.beaconMesh.visible = (saveData.beaconLevel || 1) > 1;
+            if (this.beaconMesh) this.beaconMesh.visible = true;
         }
     }
 
@@ -272,13 +272,10 @@ export class Vehicle {
         this.beaconMesh = beaconMesh;
         beaconMesh.castShadow = false;
         this.beaconMesh = beaconMesh;
-        const blinkLoop = () => {
-            if (!this.beaconMesh) return;
-            const t = performance.now() * 0.004;
-            this.beaconMesh.material.emissiveIntensity = (Math.sin(t) > 0.3) ? 2.6 : 0.15;
-            requestAnimationFrame(blinkLoop);
-        };
-        requestAnimationFrame(blinkLoop);
+        beaconMesh.material.transparent=true;beaconMesh.material.opacity=.65;beaconMesh.material.depthWrite=false;
+        this.beaconRotor=new THREE.Group();this.beaconRotor.position.copy(beaconMesh.position);backhoeGroup.add(this.beaconRotor);
+        const reflector=new THREE.Mesh(new THREE.BoxGeometry(.4,.26,.12),steel);this.beaconRotor.add(reflector);
+        for(const side of [-1,1]){const hose=new THREE.CatmullRomCurve3([new THREE.Vector3(side*.65,1.2,.5),new THREE.Vector3(side*.95,1.7,1.3),new THREE.Vector3(side*.85,1.3,2),new THREE.Vector3(side*.65,1,2.6)]);const tube=new THREE.Mesh(new THREE.TubeGeometry(hose,12,.07,6,false),blackPlastic);backhoeGroup.add(tube);}
 
         // ---------- exhaust ----------
         this.exhaustTip = new THREE.Object3D(); this.exhaustTip.position.set(0.9, 3.55, 1.15); backhoeGroup.add(this.exhaustTip);
@@ -596,6 +593,7 @@ export class Vehicle {
     }
 
     updateVisuals(audio, dt) {
+        if(this.beaconRotor){this.beaconRotor.rotation.y+=dt*7;this.beaconMesh.material.emissiveIntensity=.8+1.5*Math.max(0,Math.cos(this.beaconRotor.rotation.y));}
         // === Safety check (before sync, so a reset is reflected this frame) ===
         const rotPre = this.chassisBody.rotation();
         const transPre = this.chassisBody.translation();

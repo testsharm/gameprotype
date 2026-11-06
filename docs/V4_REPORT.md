@@ -1,6 +1,6 @@
 # V4 strict evidence report — 2026-11-06
 
-[RAN] Score: **13/21**. This is partial Tier 1 work, not a completed tier.
+[RAN] Score: **18/21**. A–D and E vehicle/detail proof are published; strict collisions and optional F remain incomplete.
 [READ] Branch: arena/0ac523ae-gameprotype; base 1f091a9 (clean-v1). Arena requires keeping this branch, so fix-v4 was not created.
 [RAN] Initial npm install: zero vulnerabilities. Initial and final npm run build pass. Vite reports large chunk/config-format warnings.
 
@@ -15,14 +15,14 @@
 | 5 | [RAN] PASS — 20.21 km/h to zero in 0.906 s, about 1.74 m; 31.55 km/h brake to zero in 0.877 s | V4_HANDLING.txt; V4_HANDLING_SAMPLES.json; screenshots/v4b-coast-stop.png |
 | 6 | [SEEN] PASS — pile becomes a small patch | screenshots/v4-pile-1.png, v4-pile-2.png, v4-pile-3.png |
 | 7 | [SEEN] PASS in the requested pile/orbit/wall scenarios — camera lifts rather than enters the cab; near surfaces fade | V4_CAMERA_ACTIONS.txt; V4_FOLLOWUP.txt; screenshots/v4b-camera-pile-approach.png, v4b-camera-past-pile.png, v4b-camera-wall.png |
-| 8 | [UNKNOWN] NOT PASSED — L1–10 contact sheet; L11–15 still blank | screenshots/levels-contact-sheet.png |
-| 9 | [UNKNOWN] NOT PASSED — ten real-input completions; L11–15 remain | C1_RETRY.txt, C1_CONE.txt, C2_WALK.txt, C2_BRIDGE_FINAL.txt; current level-walk uses real keys only |
+| 8 | [SEEN] PASS — all fifteen real starts on contact sheet | screenshots/levels-contact-sheet.png; C1/C2/C3 gallery |
+| 9 | [RAN] PASS — all fifteen real-input completions | C1_RETRY.txt, C1_CONE.txt, C2_WALK.txt, C2_BRIDGE_FINAL.txt, C3_WALK.txt, C3_FINAL.txt |
 | 10 | [RAN] PASS — L2 settled cone, L4 WRONG TRUCK, L7 speed drop/recovery, L9 real fall plus ten-second penalty | C1_CONE.txt, C1_RETRY.txt, C2_WALK.txt, C2_BRIDGE_FINAL.txt |
 | 11 | [SEEN] PASS — waited for actual L1 expiry | V4_UI.txt; screenshots/v4-time-up.png |
-| 12 | [UNKNOWN] NOT PASSED — Free Play rebuild not reached | V4_WORST.md |
-| 13 | [UNKNOWN] NOT PASSED — traffic shapes not rebuilt | V4_WORST.md |
-| 14 | [UNKNOWN] NOT PASSED — truck tilt/beacon rotation not implemented | V4_WORST.md |
-| 15 | [UNKNOWN] NOT PASSED — five collision driving tests not run | V4_NEWPLAYER.txt |
+| 12 | [RAN] PASS — separate park, real rings/jump/dig/respawn/exit | D_WALK.txt, D_VISUAL.txt; park gallery; hill ascent not tested |
+| 13 | [SEEN] PASS — seven distinct shapes, ten colors, seventy pairs | E_WALK.txt; E_SHAPES.txt; seven phone closeups (QA scene/camera setup) |
+| 14 | [SEEN] PASS — ribbed tipping bed, rotating beacon, hoses, teeth, ten paints | E_WALK.txt, E_INSPECTION.txt; normal-play E_FINAL_SMOKE.txt and phone mid image |
+| 15 | [UNKNOWN] NOT PASSED — chassis contacts work, bucket still clips props | E_WALK.txt; parked SUV side inspection shows overlap |
 | 16 | [RAN] PASS — real mouse wheel changes zoom 1 to 0.88 | V4_UI.txt; screenshots/v4-desktop-keycaps.png |
 | 17 | [UNKNOWN] NOT PASSED — rewarded flows not tested in this pass | V4_UI.txt has no ad-flow proof |
 | 18 | [RAN] PASS — 600.938 wall seconds, 594.013 game seconds, 1,354 key holds; zero unexpected pauses, focus losses or own-code errors | V4_SESSION.txt; PAUSE_REPRO_BEFORE.txt; PAUSE_REPRO_AFTER.txt |
@@ -100,3 +100,19 @@
 [SEEN] All park screenshots opened. Independent green park, rings, ramps, hill and readable RESPAWN/X are visible; terrain shading is still subtle.
 [READ] Park is 200×200 m with real boundary colliders, 1/2/3.5 m ramps, radius-eight turntable at 20 degrees/second, 40×30 deformable collider/mesh field, ten physics cones, pond, twelve-metre spiral, thirty rings and 150-coin cap. Criterion 12 passes. Remaining failures: 13,14,15,17,21.
 [UNKNOWN] Full spiral ascent, all thirty rings and physical-iPhone performance have not been tested. No merge below 17/21.
+
+## Final E evidence and strict limits
+
+[RAN] Build passes. E_WALK exercised five actual W-driven contacts with physical response/thud callback; four contacts sampled negative forward velocity, while the cone edge remained climbable. Real scoop/dump earned a load and drove the bed animation. E_INSPECTION measured -0.5982 radians at capture start. E_SHAPES photographed all seven actual scene models. All generated images were opened.
+[RAN] E_FINAL_SMOKE passed fresh storage, normal URL, all three L1 loads, +242 result including +40 bonus, and NEXT into active L2. No setup shortcuts or own-code browser errors. Screenshot capture time affects payouts.
+[READ] Strict score 18/21. FAIL 15: bucket/prop overlap despite solid chassis contacts. FAIL 17: rewarded flows not verified. FAIL 21: dead-file/settings consolidation cleanup not completed. Optional F deliberately cut before risking campaign regressions.
+
+### Five worst visible issues
+
+1. [SEEN] Bucket penetrates parked SUV: NOT fixed; criterion 15 remains failed.
+2. [SEEN] Park crater shading was almost invisible: partly fixed with depth-linked vertex shading, three genuine digs and orbit evidence; still subtle.
+3. [SEEN] Original L14 hazard ground obscured its road: fixed; new road/grass/ghost frames opened.
+4. [SEEN] Wide traffic inspection was too distant and phone lineup cropped shapes: fixed evidence with seven individual phone closeups; original bad frames retained.
+5. [SEEN] Original L13 mid camera was too close: [READ] gantry legs moved outside approach and rope shortened; [UNKNOWN] refreshed mid camera not re-captured.
+
+[UNKNOWN] NOT VERIFIED: physical iPhone/Safari performance; complete park spiral ascent and all thirty rings; full fifteen-level replay after E art/collider additions (fresh L1/NEXT re-tested); rewarded ads; cleanup; bucket compound collisions. Night forklift overlap remains visually rough.

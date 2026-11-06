@@ -3,6 +3,7 @@ import { Vehicle } from './vehicle/Vehicle.js';
 import { AudioHub } from './core/Audio.js';
 import { CameraManager } from './core/CameraManager.js';
 import { World } from './core/World.js';
+import SolidWorld from './core/SolidWorld.js';
 import { QAManager } from './core/QAManager.js';
 import JobEffects from './gameplay/JobEffects.js';
 import Guidance from './gameplay/Guidance.js';
@@ -48,7 +49,7 @@ const GARAGE = [
   { key: 'beacon', name: 'BEACON', icon: 'star', save: 'beaconLevel', stat: 'COIN BONUS', lines: ['+0%', '+3%', '+6%', '+10%', '+15%'] }
 ];
 const GARAGE_PRICES = [100, 250, 500, 900];
-const PAINTS = [0xffb400, 0x2f6fdb, 0x34d399, 0xef4444, 0xe5e7eb, 0x7c3aed];
+const PAINTS = [0xffb400, 0x2f6fdb, 0x34d399, 0xef4444, 0xe5e7eb, 0x7c3aed, 0xf97316, 0x14b8a6, 0x263244, 0x94a3b8];
 const GARAGE_MAX = GARAGE_PRICES.length + 1;
 let uiSettings = { big: false, lefty: false, guide: true };
 try { const raw = localStorage.getItem(UI_KEY); if (raw) Object.assign(uiSettings, JSON.parse(raw)); } catch (e) {}
@@ -643,7 +644,7 @@ function setVehiclePose(x, y, z, q) {
         vehicle.hasDirt = false;
         if (vehicle.bucketDirtGroup) vehicle.bucketDirtGroup.children.forEach(c => { c.visible = false; });
         if (worldBuilder.truckDirtMeshes) {
-            worldBuilder.truckDirtMeshes.forEach(m => worldBuilder.truckGroup.remove(m));
+            worldBuilder.truckDirtMeshes.forEach(m => m.removeFromParent());
             worldBuilder.truckDirtMeshes = [];
             worldBuilder.truckDirtLevel = 0;
         }
@@ -715,7 +716,7 @@ function startFpsTest() {
 const miniCanvas = document.getElementById('minimap-canvas');
 const miniCtx = miniCanvas.getContext('2d');
 
-let world, vehicle, RAPIER;
+let world, vehicle, RAPIER,solidWorld,qaInspection=null;
 let physReady = false;
 let isGameRunning = true;
 let hasScoopedDirt = false;
@@ -881,7 +882,7 @@ async function initPhysics() {
         const RAPIER_MODULE = await import('@dimforge/rapier3d-compat');
         RAPIER = RAPIER_MODULE.default; await RAPIER.init();
         world = new RAPIER.World({ x: 0, y: -9.81, z: 0 }); world.timestep = 1/60;
-        worldBuilder.createPhysicsColliders(world, RAPIER);
+        worldBuilder.createPhysicsColliders(world, RAPIER);solidWorld=new SolidWorld(world,RAPIER,()=>{hub.dig('dump','thud');cameraShake=.06;});
         vehicle = new Vehicle(scene, world, RAPIER); vehicle.setUpgrades(saveData);
         safe(() => { if (vehicle.setPaint) vehicle.setPaint(PAINTS[saveData.paint || 0]); });
         physReady = true;
@@ -1120,7 +1121,7 @@ function placeSite(id) {
             scene.add(g);
             siteGroups.set(id, g);
         }
-        if (level) level.start(job, { pile: { x: px, z: pz }, truck: { x: tx, z: tz } });
+        if (level) level.start(job, { pile: { x: px, z: pz }, truck: { x: tx, z: tz } });solidWorld?.rebuild(stages.group,level,rawSite);
         cameraManager.setCollidables([pg, tg, level?.group, siteGroups.get(id), ...(stages.group ? stages.group.children.filter(o => o.isMesh && o.geometry?.type !== 'PlaneGeometry' && o !== stages.group.children[1]) : [])]);
     });
 }
@@ -1281,14 +1282,14 @@ function deliverLoad(tipOverride) {
         if (!r.complete && ui) ui.setHint(level?.job ? level.hint(vehicle?.hasDirt) : jm.hint());
     });
     if (r.loads === 1) safe(() => { if (guide) guide.onFirstLoad(); });
-    if (!r.complete && r.loads % 3 === 0) {
+    if (!r.complete && r.loads % 3 === 0 && jm.current.id===8) {
         setTimeout(() => safe(() => {
             if (!jm || !jm.state.running) return;
-            worldBuilder.truckDirtMeshes.forEach(m => worldBuilder.truckGroup.remove(m));
+            worldBuilder.truckDirtMeshes.forEach(m => m.removeFromParent());
             worldBuilder.truckDirtMeshes = [];
             worldBuilder.truckDirtLevel = 0;
             if (ui) ui.toast('Truck is full. A new truck is here.', 'info');
-        }), 1500);
+        }), 4500);
     }
     return r.complete;
 }
@@ -1446,6 +1447,8 @@ window.__tfQA = {
     speed: vehicle ? +vehicle.currentSpeed.toFixed(2) : 0, fwd: !!input.forward,
     lastAction, actHolding, actCode, actT: +actT.toFixed(2), duration: +actionDuration(actCode).toFixed(2),
     canvas: !!document.getElementById('game-container') }),
+  qaInspect:(pos,look)=>{if(!new URLSearchParams(location.search).has('qadebug'))return false;qaInspection=pos?{pos,look}:null;return true;},
+  qaArt:()=>({traffic:worldBuilder.trafficCars.map(c=>({type:c.mesh.userData.trafficType,color:c.mesh.userData.color})),truckAngle:worldBuilder.truckBed?.rotation.x,beaconAngle:vehicle?.beaconRotor?.rotation.y,solid:solidWorld?.info(),practiceMeshes:level?.group?.children.filter(c=>c.name.startsWith('solid-')).map(c=>({name:c.name,visible:c.visible,children:c.children.map(m=>({type:m.userData.trafficType,visible:m.visible,children:m.children.map(n=>({visible:n.visible,opacity:n.material?.opacity}))}))}))}),
   qaRender: () => ({ calls: _lastCalls, tris: _lastTris,
     fps: +((_fpsWin.length ? _fpsWin.reduce((a, b) => a + b, 0) / _fpsWin.length : 0)).toFixed(1),
     frames: _fpsWin.length }),
@@ -1468,6 +1471,7 @@ window.__tfQA = {
   qaAllStages: () => STAGE_TABLE.map(t => ({ id: t.id, name: t.name, verbs: t.verbs,
     chapter: t.chapter, ground: t.ground, sky: t.sky, skyline: t.skyline, landmark: t.landmark,
     props: t.props, startYaw: t.yaw, coach: t.coach })),
+  qaPlace:(x,z,yaw=0)=>{if(!new URLSearchParams(location.search).has('qadebug'))return false;const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);vehicle.chassisBody.setTranslation({x,y:1.3,z},true);vehicle.chassisBody.setRotation(q,true);vehicle.chassisBody.setLinvel({x:0,y:0,z:0},true);vehicle.chassisBody.setAngvel({x:0,y:0,z:0},true);vehicle.mesh.position.set(x,1.3,z);vehicle.mesh.quaternion.copy(q);vehicle.resetInterpolation();cameraManager.snapTo(vehicle.mesh);return true;},
   qaPlay: () => { startGame(); return true; },
   qaFree: () => { startFreePlay(); return true; },
   qaMenu: () => { returnToMenu(); return true; },
@@ -1571,7 +1575,7 @@ function animate() {
         const driveInput = (gameState === 'playing' && !uiPaused && !modalOpen && !paused) ? input : ZERO_INPUT;
         for (let s = 0; s < adv.steps; s++) {
             vehicle.updateController(driveInput, FIXED_DT);
-            world.step();
+            const priorVelocity={...vehicle.chassisBody.linvel()};world.step();if(!freePlay)solidWorld?.contact(vehicle,FIXED_DT,priorVelocity);
             vehicle.capturePhysicsState();
         }
         vehicle.applyStopAssist(driveInput, dt);
@@ -1581,7 +1585,7 @@ function animate() {
         // physics now runs in the fixed-step loop above
         // physics step moved to the fixed-step loop above
         vehicle.updateVisuals(audio, dt);
-        cameraManager.update(vehicle.mesh, dt, vehicle.currentSpeed);
+        cameraManager.update(vehicle.mesh, dt, vehicle.currentSpeed);if(qaInspection){camera.position.set(...qaInspection.pos);camera.lookAt(...qaInspection.look);}
         // CameraManager owns the final collision-safe eye position.
         if (worldBuilder.sky) worldBuilder.sky.position.copy(camera.position);
         drawMinimap();
@@ -1635,7 +1639,7 @@ function animate() {
                 } else {
                     hasScoopedDirt = false;
                     if (lastAction && lastAction.code === 'KeyG') lastAction.effect = performance.now();
-                    worldBuilder.addDirtToTruck();
+                    worldBuilder.addDirtToTruck();worldBuilder.tipTruck();
                     audio.playDumpThud();
                     safe(() => { if (fx) fx.onDump(worldBuilder.truckGroup.position.clone(), bucketPos.clone()); if (sfx) sfx.coin(); if (guide && tutStep === 3) { guide.nextTutorialStep(); tutStep = 4; } });
                     cameraShake = 0.5;
@@ -1665,7 +1669,7 @@ function animate() {
         updateSunShadow();
         trackFPS(dt);
         updateFx(dt);
-        safe(() => { if (worldBuilder.updatePile) worldBuilder.updatePile(dt); worldBuilder.showPileLabel(gameState === 'playing' && !freePlay && !jobCompleted && !!worldBuilder.dirtPileGroup.visible, camera); });
+        safe(() => { if(worldBuilder.updateTruck)worldBuilder.updateTruck(dt);if (worldBuilder.updatePile) worldBuilder.updatePile(dt); worldBuilder.showPileLabel(gameState === 'playing' && !freePlay && !jobCompleted && !!worldBuilder.dirtPileGroup.visible, camera); });
         safe(() => { if (level && level.job && !freePlay && gameState === 'playing' && !uiPaused && !modalOpen) {level.update(dt, vehicle);level.faceLabels(camera,vehicle.mesh.position);} });
         if (!vehicle.pilePos) vehicle.pilePos = new THREE.Vector3();
         vehicle.pilePos.set(siteNow.pile.x,0,siteNow.pile.z);

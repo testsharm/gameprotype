@@ -1,0 +1,14 @@
+[RAN] PASS L1 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +242
+      BONUS +40 INCLUDED
+      
+      
+         RETRY
+         NEXT: CONE SCHOOL
+      
+      
+[RAN] PASS NEXT L2, normal URL/fresh storage, no setup shortcuts.

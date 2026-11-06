@@ -1,3 +1,14 @@
+# Fix v4 current additions
+
+[READ] src/gameplay/StuntPark.js: independent 200 m Rapier sandbox and deformable terrain.
+[READ] src/core/Vehicles.js: seven code-made traffic types, ten colors; shared merged geometry templates.
+[READ] src/core/SolidWorld.js: stage/yard fixed colliders and contact-driven recoil/thud. Bucket compound collider still missing.
+[READ] scripts/level-walk.mjs, park-walk.mjs, vehicle-walk.mjs: real-input proof; art-inspect.mjs and car-closeups.mjs explicitly use QA setup.
+[READ] scripts/final-smoke.mjs: fresh storage, normal URL L1 completion and NEXT L2, no mutations.
+[READ] docs/SCREENSHOTS.md and V4_REPORT.md: current visual evidence/strict 18/21 score. Old unused files are retained; cleanup criterion fails.
+
+--- Historical map below ---
+
 ## V4 continuation map (2026-11-06)
 
 [READ] Vehicle.applyStopAssist runs once after the physics solver batch using frame game time; it snaps slow grounded horizontal motion to zero. Governors use physical speed, not the display cap.

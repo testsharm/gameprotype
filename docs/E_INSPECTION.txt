@@ -1,0 +1,4 @@
+[RAN] Fleet 7 shapes, 10 colors, 70 unique pairs
+[RAN] Bed angle at capture start -0.5982000000000001
+[RAN] Earned first load; animated bed angle -0.37156000000014944
+[RAN] PASS E; zero own-code browser errors. QA hooks only positioned the vehicle/selected scenes; W collisions and F/G delivery were real input. No injected velocity, goals, coins or timers. Portrait resized same run.
