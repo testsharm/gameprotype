@@ -48,7 +48,7 @@ export class Vehicle {
             this.engineMultiplier = 1 + (Math.max(1, saveData.engineLevel || 1) - 1) * 0.5;
             this.hydraulicMultiplier = 1 + (Math.max(1, saveData.hydraulicLevel || 1) - 1) * 0.6;
             this.tyreGrip = 1 + (Math.max(1, saveData.tyreLevel || 1) - 1) * 0.12;
-            if (this.beaconMesh) this.beaconMesh.visible = (saveData.beaconLevel || 1) > 1;
+            if (this.beaconMesh) this.beaconMesh.visible = true;
         }
     }
 
@@ -134,7 +134,7 @@ export class Vehicle {
         if (this.hasDirt) { this._hint('Bucket full. Dump it first.'); return false; }
         const bp = new THREE.Vector3(); this.bucketPivot.getWorldPosition(bp);
         if (!this.pilePos || bp.distanceTo(this.pilePos) > 9) { this._hint('Drive to the dirt pile'); return false; }
-        window.dispatchEvent(new CustomEvent('bh-dig', { detail: 'scoop' }));
+        this.scoopDirt(); this.spawnDirtBurst();
         return true;
     }
     dump() {
@@ -142,7 +142,7 @@ export class Vehicle {
         if (!this.hasDirt) { this._hint('SCOOP FIRST'); return false; }
         const bp = new THREE.Vector3(); this.bucketPivot.getWorldPosition(bp);
         if (!this.truckPos || bp.distanceTo(this.truckPos) > 8) { this._hint('Drive to the blue truck'); return false; }
-        window.dispatchEvent(new CustomEvent('bh-dig', { detail: 'dump' }));
+        this.dropDirt(); this.spawnDirtBurst();
         return true;
     }
     autoAction() { return this.hasDirt ? this.dump() : this.scoop(); }
@@ -272,13 +272,10 @@ export class Vehicle {
         this.beaconMesh = beaconMesh;
         beaconMesh.castShadow = false;
         this.beaconMesh = beaconMesh;
-        const blinkLoop = () => {
-            if (!this.beaconMesh) return;
-            const t = performance.now() * 0.004;
-            this.beaconMesh.material.emissiveIntensity = (Math.sin(t) > 0.3) ? 2.6 : 0.15;
-            requestAnimationFrame(blinkLoop);
-        };
-        requestAnimationFrame(blinkLoop);
+        beaconMesh.material.transparent=true;beaconMesh.material.opacity=.65;beaconMesh.material.depthWrite=false;
+        this.beaconRotor=new THREE.Group();this.beaconRotor.position.copy(beaconMesh.position);backhoeGroup.add(this.beaconRotor);
+        const reflector=new THREE.Mesh(new THREE.BoxGeometry(.4,.26,.12),steel);this.beaconRotor.add(reflector);
+        for(const side of [-1,1]){const hose=new THREE.CatmullRomCurve3([new THREE.Vector3(side*.65,1.2,.5),new THREE.Vector3(side*.95,1.7,1.3),new THREE.Vector3(side*.85,1.3,2),new THREE.Vector3(side*.65,1,2.6)]);const tube=new THREE.Mesh(new THREE.TubeGeometry(hose,12,.07,6,false),blackPlastic);backhoeGroup.add(tube);}
 
         // ---------- exhaust ----------
         this.exhaustTip = new THREE.Object3D(); this.exhaustTip.position.set(0.9, 3.55, 1.15); backhoeGroup.add(this.exhaustTip);
@@ -503,7 +500,7 @@ export class Vehicle {
         
         // === Throttle ramp ===
         const throttleRampRate = 1 / 0.35; // 0 -> full in 0.6s
-        const targetThrottle = input.forward ? 1 : (input.backward ? -1 : 0);
+        const targetThrottle = input.brake ? 0 : (input.forward ? 1 : (input.backward ? -1 : 0));
         
         if (targetThrottle !== 0) {
             if (this.throttleState * targetThrottle < 0) this.throttleState = 0;
@@ -511,14 +508,12 @@ export class Vehicle {
             this.throttleState += sign * throttleRampRate * deltaTime;
             if (Math.abs(this.throttleState) > 1) this.throttleState = Math.sign(this.throttleState);
         } else {
-            const decay = 2.5 * deltaTime;
-            if (Math.abs(this.throttleState) <= decay) this.throttleState = 0;
-            else this.throttleState -= Math.sign(this.throttleState) * decay;
+            this.throttleState = 0;
         }
         
         // === Governor (top speed caps) ===
         const maxForwardSpeed = Math.min(32 + (this.engineMultiplier - 1) * 10, 60) / 3.6;
-        const maxReverseSpeed = Math.min(14 + (this.engineMultiplier - 1) * 2.0, 28) / 3.6;
+        const maxReverseSpeed = 14 / 3.6;
         
         const currentFwdSpeed = this.getForwardSpeedMps();
         
@@ -526,11 +521,9 @@ export class Vehicle {
         let forceMultiplier = 1;
         
         if (this.throttleState > 0.01) {
-            if (currentFwdSpeed > maxForwardSpeed * 0.95) forceMultiplier = 0;
-            else if (currentFwdSpeed > maxForwardSpeed * 0.85) forceMultiplier = 0.4;
+            if (currentFwdSpeed > maxForwardSpeed) forceMultiplier = 0;
         } else if (this.throttleState < -0.01) {
-            if (currentFwdSpeed < -maxReverseSpeed * 0.95) forceMultiplier = 0;
-            else if (currentFwdSpeed < -maxReverseSpeed * 0.85) forceMultiplier = 0.4;
+            if (currentFwdSpeed < -maxReverseSpeed) forceMultiplier = 0;
         }
         
         const appliedForce = baseEngineForce * this.throttleState * forceMultiplier;
@@ -569,7 +562,38 @@ export class Vehicle {
         this.vehicleController.updateVehicle(deltaTime);
     }
 
+    // Apply AFTER the solver: otherwise suspension/tyre impulses reintroduce
+    // a small creep immediately after the assist zeroes the chassis velocity.
+    applyStopAssist(input, dt) {
+        const v = this.chassisBody.linvel();
+        const speed = Math.hypot(v.x, v.z);
+        let grounded = false;
+        for (let i = 0; i < 4; i++) grounded ||= this.vehicleController.wheelIsInContact(i);
+        if (!grounded) return;
+        if (input.brake || (!input.forward && !input.backward)) {
+            const next = Math.max(0, speed - (input.brake ? 7.5 : 5.5) * dt);
+            const k = next < 2 / 3.6 ? 0 : next / Math.max(speed, 0.001);
+            this.chassisBody.setLinvel({ x: v.x * k, y: v.y, z: v.z * k }, true);
+            if (k === 0) {
+                this.smoothedSpeed = 0;
+                this.currentSpeed = 0;
+            }
+        } else {
+            const forward = this._tempForward.set(0, 0, 1);
+            const q = this.chassisBody.rotation();
+            this._tempQuat.set(q.x, q.y, q.z, q.w);
+            forward.applyQuaternion(this._tempQuat); forward.y = 0; forward.normalize();
+            const signed = v.x * forward.x + v.z * forward.z;
+            const capped = Math.max(-14 / 3.6, Math.min((32 + (this.engineMultiplier - 1) * 10) / 3.6, signed));
+            if (capped !== signed) this.chassisBody.setLinvel({
+                x: v.x + forward.x * (capped - signed), y: v.y,
+                z: v.z + forward.z * (capped - signed)
+            }, true);
+        }
+    }
+
     updateVisuals(audio, dt) {
+        if(this.beaconRotor){this.beaconRotor.rotation.y+=dt*7;this.beaconMesh.material.emissiveIntensity=.8+1.5*Math.max(0,Math.cos(this.beaconRotor.rotation.y));}
         // === Safety check (before sync, so a reset is reflected this frame) ===
         const rotPre = this.chassisBody.rotation();
         const transPre = this.chassisBody.translation();
@@ -626,7 +650,7 @@ export class Vehicle {
         // The dial uses the SIGNED forward speed (lateral sliding must not inflate it)
         // and is clamped to the current cap, so a physics overshoot cannot show 35 at level 1.
         const capFwd = Math.min(32 + (this.engineMultiplier - 1) * 10, 60);
-        const capRev = Math.min(14 + (this.engineMultiplier - 1) * 2, 28);
+        const capRev = 14;
         const fwdKmh = this.getForwardSpeedMps() * 3.6;
         const shown = Math.min(Math.abs(fwdKmh), fwdKmh >= 0 ? capFwd : capRev);
         this.smoothedSpeed = this.smoothedSpeed * 0.85 + shown * 0.15;

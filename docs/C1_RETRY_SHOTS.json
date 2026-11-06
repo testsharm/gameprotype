@@ -1,0 +1,170 @@
+[
+  {
+    "id": 2,
+    "phase": "start",
+    "name": "desktop",
+    "file": "c1-l2-start-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 2,
+    "phase": "start",
+    "name": "phone",
+    "file": "c1-l2-start-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 2,
+    "phase": "failed",
+    "name": "desktop",
+    "file": "c1-l2-failed-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 2,
+    "phase": "failed",
+    "name": "phone",
+    "file": "c1-l2-failed-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 3,
+    "phase": "start",
+    "name": "desktop",
+    "file": "c1-l3-start-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 3,
+    "phase": "start",
+    "name": "phone",
+    "file": "c1-l3-start-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 3,
+    "phase": "mid",
+    "name": "desktop",
+    "file": "c1-l3-mid-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 3,
+    "phase": "mid",
+    "name": "phone",
+    "file": "c1-l3-mid-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 3,
+    "phase": "result",
+    "name": "desktop",
+    "file": "c1-l3-result-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 3,
+    "phase": "result",
+    "name": "phone",
+    "file": "c1-l3-result-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 4,
+    "phase": "start",
+    "name": "desktop",
+    "file": "c1-l4-start-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 4,
+    "phase": "start",
+    "name": "phone",
+    "file": "c1-l4-start-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 4,
+    "phase": "wrong-truck",
+    "name": "desktop",
+    "file": "c1-l4-wrong-truck-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 4,
+    "phase": "wrong-truck",
+    "name": "phone",
+    "file": "c1-l4-wrong-truck-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 4,
+    "phase": "mid",
+    "name": "desktop",
+    "file": "c1-l4-mid-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 4,
+    "phase": "mid",
+    "name": "phone",
+    "file": "c1-l4-mid-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 4,
+    "phase": "result",
+    "name": "desktop",
+    "file": "c1-l4-result-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 4,
+    "phase": "result",
+    "name": "phone",
+    "file": "c1-l4-result-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 5,
+    "phase": "start",
+    "name": "desktop",
+    "file": "c1-l5-start-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 5,
+    "phase": "start",
+    "name": "phone",
+    "file": "c1-l5-start-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 5,
+    "phase": "mid",
+    "name": "desktop",
+    "file": "c1-l5-mid-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 5,
+    "phase": "mid",
+    "name": "phone",
+    "file": "c1-l5-mid-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 5,
+    "phase": "result",
+    "name": "desktop",
+    "file": "c1-l5-result-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 5,
+    "phase": "result",
+    "name": "phone",
+    "file": "c1-l5-result-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  }
+]

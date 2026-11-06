@@ -37,6 +37,7 @@ const CSS = `
   pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;outline:none;cursor:pointer}
 #tf-hud button:focus-visible{outline:3px solid var(--goal);outline-offset:2px}
 #tf-hud button:active{transform:translateY(2px)}
+#tf-hud button.held{transform:translateY(2px);border-color:#fbbf24;background:linear-gradient(#a16207,#713f12);box-shadow:0 0 0 2px #fbbf2477}
 #tf-hud.off,#tf-hud.hide{display:none}
 /* Free Play / job-complete call setTimer(null); hide the stale countdown. */
 #tf-hud .tf-timer.off{display:none}
@@ -45,6 +46,7 @@ body.tf-menu #tf-hud{display:none !important}
 #tf-hud .tf-p{position:absolute;background:var(--panel);border:2px solid var(--border);
   border-radius:var(--radius);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),var(--shadow);
   pointer-events:auto;display:flex;align-items:center}
+.tf-park-tools{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);gap:8px;pointer-events:auto}.tf-park-tools button{min-width:44px;height:48px;padding:0 12px;font-size:14px}.tf-park .tf-park-tools{display:flex}.tf-park .tf-pips{display:none}@media(max-width:600px){.tf-park-tools{left:128px;transform:none}.tf-park-tools button{padding:0 10px}}
 /* Every base is SOLID dark steel - no transparent blends with the world. */
 .tf-b{position:relative;display:flex;align-items:center;justify-content:center;
   background:var(--steel-flat);border:2px solid var(--border);border-radius:12px;
@@ -85,9 +87,10 @@ body.tf-menu #tf-hud{display:none !important}
 .tf-tools .tf-b .tf-ic{color:var(--goal)}
 
 /* ---- keyboard hint pad (desktop only) --------------------------------- */
-.tf-pad{position:absolute;left:calc(12px + ${SAFE_L});top:calc(240px + ${SAFE_T});width:200px;
+.tf-pad{position:absolute;left:calc(12px + ${SAFE_L});top:calc(240px + ${SAFE_T});width:310px;
   flex-direction:column;gap:6px;display:none;pointer-events:none}
 #tf-hud .tf-pad{display:none !important}
+@media(min-width:1000px) and (min-height:650px){#tf-hud:not(.tf-touch-on) .tf-pad{display:flex !important} #tf-hud:not(.tf-touch-on) .tf-drive{display:none}}
 .tf-pad .r{display:flex;gap:6px;justify-content:center}
 .tf-pad .tf-b{width:56px;height:56px;font-size:15px;flex-direction:column;gap:1px}
 .tf-pad .tf-b.wide{width:116px}
@@ -145,7 +148,7 @@ body.tf-menu #tf-hud{display:none !important}
 .tf-toast.warn{border-left-color:var(--danger)}
 @keyframes tfpop{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
 .tf-hint{position:absolute;left:50%;transform:translateX(-50%);top:calc(90px + ${SAFE_T});
-  padding:8px 14px;font-size:14px;font-weight:800;color:var(--ink);white-space:nowrap;display:none}
+  padding:8px 14px;font-size:14px;font-weight:800;color:var(--ink);white-space:normal;max-width:calc(100vw - 110px);width:max-content;box-sizing:border-box;text-align:center;justify-content:center;display:none}
 .tf-hint.on{display:flex}
 .tf-announce{position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);text-align:center;
   pointer-events:none;z-index:14;opacity:0;transition:opacity .3s;max-width:90vw}
@@ -216,6 +219,16 @@ body.tf-menu #tf-hud{display:none !important}
   #tf-hud.tf-lefty .tf-pause{right:auto;left:calc(10px + ${SAFE_L})}
 }
 
+/* Narrow landscape keeps the timer and every icon out of the mission row. */
+@media (max-width:740px) and (orientation:landscape){
+  #tf-hud .tf-mission{width:220px}
+  #tf-hud .tf-timer{left:auto;right:76px;transform:none}
+  #tf-hud .tf-tools{top:60px;right:10px}
+  #tf-hud .tf-mini{top:120px}
+  #tf-hud #tf-loads{top:114px}
+  #tf-hud .tf-hint{top:158px}
+}
+
 /* --------------------------------------------------------- phone portrait */
 @media (max-width:560px) and (orientation:portrait){
   #tf-hud{font-size:14px}
@@ -239,7 +252,7 @@ body.tf-menu #tf-hud{display:none !important}
   .tf-speed .v{font-size:36px}
   .tf-toasts{bottom:calc(276px + ${SAFE_B});width:min(320px,84vw)}
   .tf-toast{font-size:14px;padding:9px 12px}
-  .tf-hint{top:calc(276px + ${SAFE_T})}
+  .tf-hint{top:calc(276px + ${SAFE_T});left:calc(50% - 24px)}
   #tf-loads{top:calc(230px + ${SAFE_T})}
   .tf-pad{display:none}
   #tf-hud.tf-lefty .tf-drive{left:auto;right:calc(12px + ${SAFE_R})}
@@ -300,6 +313,7 @@ export default class GameUI {
     const root = document.createElement('div');
     root.id = 'tf-hud';
     root.innerHTML = `
+      <div class="tf-park-tools"><button class="tf-b" data-a="park-respawn" id="tf-park-respawn">RESPAWN</button><button class="tf-b" data-a="park-exit" aria-label="Exit Free Play">X</button></div>
       <div class="tf-timer tf-p" id="tf-timer">${svg('clock')}<span id="tf-time">0:00</span></div>
       <div class="tf-coins tf-p" id="tf-coins">${svg('coin')}<span id="tf-coins-v">0</span><i class="tf-dot" id="tf-dot-coins"></i></div>
       <button class="tf-pause tf-b" id="tf-pause" aria-label="Pause menu" title="Pause (P)">${svg('pause')}<i class="tf-dot" id="tf-dot-menu"></i></button>
@@ -546,7 +560,7 @@ export default class GameUI {
   isMenuOpen() { return this.menus.isOpen(); }
 
   showModal(kind, data) { this.menus.open(kind === 'controls' ? 'help' : kind, data); }
-  hideModal() { this.menus.close(); }
+  hideModal() { this.menus.close(false); }
   confirm(cfg) { this.menus.open('confirm', cfg); }
   showResult(r) { this.menus.open('result', r); }
   showFail(r) { this.menus.open('fail', r); }
@@ -554,7 +568,9 @@ export default class GameUI {
   showGarage(d) { this.menus.open('garage', d); }
   showMap() { this.menus.open('map'); }
 
+  setFreePlay(on){this.root.classList.toggle('tf-park',!!on);}
   reset() {
+    this.setFreePlay(false);
     this.releaseAll();
     this.closeMenu();
     this.menus.close();
@@ -644,19 +660,23 @@ export default class GameUI {
     if (this.el.gLabel) this.el.gLabel.textContent = q;
     if (this.el.fBtn) this.el.fBtn.setAttribute('aria-label', p);
     if (this.el.gBtn) this.el.gBtn.setAttribute('aria-label', q);
+    this.root.querySelectorAll('.tf-pad [data-code=KeyF] small').forEach(e=>e.textContent=p);
+    this.root.querySelectorAll('.tf-pad [data-code=KeyG] small').forEach(e=>e.textContent=q);
+    if(this.el.fBtn?.querySelector('svg'))this.el.fBtn.querySelector('svg').innerHTML=ICON[p==='DRIVE'?'wheel':'dig'];
+    if(this.el.gBtn?.querySelector('svg'))this.el.gBtn.querySelector('svg').innerHTML=ICON[['BRAKE','PARK'].includes(q)?'brake':'dump'];
   }
-  setLoads(n) {
+  setLoads(n, label = 'LOADS LEFT') {
     if (!this.el.loads) return;
-    this.el.loads.textContent = 'LOADS LEFT ' + Math.max(0, n | 0);
+    this.el.loads.textContent = label + ' ' + Math.max(0, n | 0);
     this.el.loads.classList.toggle('on', n > 0);
   }
-  announce2(t1, t2) {
+  announce2(t1, t2, duration = 1600) {
     if (!this.el.announce) return;
     this.el.annT1.textContent = t1 || '';
     this.el.annT2.textContent = t2 || '';
     this.el.announce.classList.add('on');
     clearTimeout(this._annT);
-    this._annT = setTimeout(() => this.el.announce.classList.remove('on'), 1600);
+    this._annT = setTimeout(() => this.el.announce.classList.remove('on'), duration);
   }
   setKey(code, on) {
     // TIER 4: a real keyboard press lights the matching on-screen key.

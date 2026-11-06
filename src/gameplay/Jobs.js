@@ -1,6 +1,6 @@
 // TerraForm 3D - real jobs, levels, economy, ranks, daily bonus (M7a part 1).
-// Pure logic plus its own small window system (briefing, result, fail, job picker).
-// No THREE needed. main.js connects to it in M7a part 2.
+// Economy and progression, plus code-made site dressing.
+import * as THREE from 'three';
 // Coins stay in main.js (saveData.coins). This file only tells main.js how many to add.
 // Round 2: the 15 real levels live in Levels.js; this file keeps economy, save and windows.
 import { LEVELS, chapterOf } from './Levels.js';
@@ -220,8 +220,7 @@ export class JobSystem {
     if (!j) return 'Unknown job';
     try { if (/[?&]unlockall/.test(location.search)) return ''; } catch (e) { /* ignore */ }
     const n = j.needs || {};
-    if (n.job && !this.isDone(n.job)) return 'Finish job ' + n.job + ' first';
-    if (n.engine && (ctx.engineLevel || 1) < n.engine) return 'Needs Engine level ' + n.engine;
+    if (n.job && !this.isDone(n.job)) return 'FINISH LEVEL ' + n.job;
     return '';
   }
   isUnlocked(id, ctx) { return this.lockReason(id, ctx) === ''; }
@@ -362,7 +361,13 @@ export class JobSystem {
     }
     return this._layout;
   }
-  siteFor(id) { return (this._layout && this._layout.get(id)) || { ok: false }; }
+  siteFor(id) {
+    // Independent job sites: no shared street/building/pile coordinates.
+    if (id <= 15) { const x = id * 1100, z = 1800;
+      return {ok:true, keep:false, pile:{x,z}, truck:{x:x+(id===2?80:id===8?70:id===9?80:30),z}};
+    }
+    return (this._layout && this._layout.get(id)) || { ok: false };
+  }
 }
 
 // TIER 3: the old JobPanels window system (briefing / result / fail / picker /
@@ -456,11 +461,11 @@ export function buildSiteDressing(THREE, id, pile, truck) {
     const len = Math.hypot(pile.x, pile.z) || 1;
     const nx = -pile.x / len, nz = -pile.z / len;
     const ry = Math.atan2(nx, nz);
-    const cx = pile.x + nx * 10 + nz * 6, cz = pile.z + nz * 10 - nx * 6;
-    cyl(0.2, 0.2, 3.4, cx - nz * 3, 1.7, cz + nx * 3, 0x5b6573);
-    cyl(0.2, 0.2, 3.4, cx + nz * 3, 1.7, cz - nx * 3, 0x5b6573);
-    box(7.4, 2.4, 0.4, cx, 3.5, cz, 0x1b2535, ry);
-    const face = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.2), new THREE.MeshBasicMaterial({ map: tex }));
+    const cx = pile.x + nx * 50 + nz * 30, cz = pile.z + nz * 50 - nx * 30;
+    cyl(0.2, 0.2, 3.4, cx - nz, 1.7, cz + nx, 0x5b6573);
+    cyl(0.2, 0.2, 3.4, cx + nz, 1.7, cz - nx, 0x5b6573);
+    box(2.5, 1.2, 0.4, cx, 3.5, cz, 0x1b2535, ry);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(2.46, 1.16), new THREE.MeshBasicMaterial({ map: tex }));
     face.position.set(cx + nx * 0.23, 3.5, cz + nz * 0.23);
     face.rotation.y = ry;
     g.add(face);
@@ -544,7 +549,7 @@ export function buildSiteDressing(THREE, id, pile, truck) {
     }
     for (let row = 0; row < 2; row++) for (let i = 0; i < 6; i++) { const p = P(dl - 7 + row * 0.8, -4 + i * 1.3, pile); box(1.2, 0.5, 0.8, p.x, 0.3 + row * 0.5, p.z, 0xb6a27a, yawU + Math.PI / 2); }
   } else if (dress === 'crane' || dress === 'mega' || dress === 'pipes') { // tower crane / final site / pipe yard
-    const base = P(-2, 11);
+    const base = P(12, 35);
     box(3.4, 1.0, 3.4, base.x, 0.5, base.z, 0x6b7280);
     box(1.2, 26, 1.2, base.x, 13.5, base.z, 0xf5b301);
     box(24, 0.9, 0.9, base.x + ux * 8, 26.6, base.z + uz * 8, 0xf5b301, Math.atan2(uz, -ux) + Math.PI / 2 * 0 + 0, {});

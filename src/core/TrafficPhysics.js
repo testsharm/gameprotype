@@ -34,23 +34,25 @@ export default class TrafficPhysics {
       const body = this.world.createRigidBody(bodyDesc);
 
       const colDesc = R.ColliderDesc.cuboid(
-        this._half.x,
-        this._half.y,
-        this._half.z
+        (mesh.userData.width||2)/2,
+        (mesh.userData.height||1.6)/2,
+        (mesh.userData.length||4.5)/2
       );
-      colDesc.setTranslation(0, 1.0, 0).setRestitution(0).setFriction(0.5);
+      colDesc.setTranslation(0, (mesh.userData.height||2)/2, 0).setRestitution(0).setFriction(0.5);
       this.world.createCollider(colDesc, body);
 
       this.bodies.push(body);
     }
   }
 
-  update() {
+  update(enabled = true) {
     for (let i = 0; i < this.trafficCars.length; i++) {
       const car = this.trafficCars[i];
       const body = this.bodies[i];
       if (!body || !car || !car.mesh) continue;
 
+      body.setEnabled(enabled);
+      if (!enabled) continue;
       const p = car.mesh.position;
       const q = car.mesh.quaternion;
 

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createTrafficModel, TRAFFIC_COLORS } from './Vehicles.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // World: city, roads, sky, props, job site.
@@ -1098,10 +1099,12 @@ export class World {
       this.truckGroup.add(m);
       return m;
     };
+    this.truckBed=new THREE.Group();this.truckBed.position.set(0,1.4,-4);this.truckGroup.add(this.truckBed);
     [[4.2, 0.4, 6, 0, 1.4, -1], [0.3, 1.6, 6, -2.05, 2.2, -1], [0.3, 1.6, 6, 2.05, 2.2, -1],
       [4.2, 1.6, 0.3, 0, 2.2, -4], [4.2, 1.6, 0.3, 0, 2.2, 2]].forEach((b) => {
-      add(new THREE.BoxGeometry(b[0], b[1], b[2]), bedMat, b[3], b[4], b[5]);
+      const part=add(new THREE.BoxGeometry(b[0], b[1], b[2]), bedMat, b[3], b[4], b[5]);this.truckBed.attach(part);
     });
+    for(const x of [-2.23,2.23])for(let z=-3.6;z<2;z+=.8){const rib=add(new THREE.BoxGeometry(.35,1.6,.3),blueMat,x,2.2,z);this.truckBed.attach(rib);}
     add(new THREE.BoxGeometry(3.2, 1.5, 0.4), glassMat, 0, 3.7, 6.0);
     add(new THREE.BoxGeometry(0.4, 1.4, 2.2), glassMat, -2.0, 3.7, 4.2);
     add(new THREE.BoxGeometry(0.4, 1.4, 2.2), glassMat, 2.0, 3.7, 4.2);
@@ -1142,36 +1145,8 @@ export class World {
 
   createOptimizedTraffic() {
     const R = this.rand;
-    const carColors = [0xd62d2d, 0x2bb24c, 0x2f6fdd, 0xf2c230, 0xf4f4f4, 0xb0b4ba, 0x333a44, 0xe07b24];
-    const bodyGeo = new THREE.BoxGeometry(2, 0.8, 4.5);
-    const cabinGeo = new THREE.BoxGeometry(1.8, 0.8, 2.2);
-    const cabinMat = new THREE.MeshStandardMaterial({ color: 0x1c2733, roughness: 0.15, metalness: 0.3 });
-    const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
-    wheelGeo.rotateZ(Math.PI / 2);
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
-    const bodyMats = {};
-    const getBody = (c) => bodyMats[c] || (bodyMats[c] = new THREE.MeshStandardMaterial({ color: c, roughness: 0.4, metalness: 0.4 }));
-
     for (let i = 0; i < 70; i++) {
-      const color = carColors[Math.floor(R() * carColors.length)];
-      const carGroup = new THREE.Group();
-      const body = new THREE.Mesh(bodyGeo, getBody(color));
-      body.position.y = 0.6;
-      body.castShadow = true;
-      carGroup.add(body);
-      const cabin = new THREE.Mesh(cabinGeo, cabinMat);
-      cabin.position.set(0, 1.4, -0.2);
-      cabin.castShadow = true;
-      carGroup.add(cabin);
-      const wheels = [];
-      [{ x: -1.0, y: 0.4, z: 1.4 }, { x: 1.0, y: 0.4, z: 1.4 }, { x: -1.0, y: 0.4, z: -1.4 }, { x: 1.0, y: 0.4, z: -1.4 }].forEach((pos) => {
-        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-        wheel.position.set(pos.x, pos.y, pos.z);
-        wheel.castShadow = true;
-        carGroup.add(wheel);
-        wheels.push(wheel);
-      });
-
+      const carGroup=createTrafficModel(i,TRAFFIC_COLORS[i%10]),wheels=carGroup.userData.wheels;
       const isXAxis = R() > 0.5;
       const isPositiveDir = R() > 0.5;
       const laneOffset = isPositiveDir ? 6 : -6;
@@ -1739,6 +1714,40 @@ export class World {
   // ---------------------------------------------------------- game functions
 
   // A8: the pile eases down to a small flat patch instead of staying huge.
+  setPileLoads(n) {
+    if (!this._pileLabel) {
+      const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 128;
+      const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
+      const material = new THREE.SpriteMaterial({ map: texture, depthTest: true, transparent: true });
+      this._pileLabel = new THREE.Sprite(material);
+      this._pileLabel.scale.set(7, 1.75, 1);
+      this._pileLabel.name = 'pile-loads-label';
+      this.scene.add(this._pileLabel);
+      this._pileLabelCanvas = canvas;
+    }
+    if (this._pileLabelCount === n) return;
+    this._pileLabelCount = n;
+    const ctx = this._pileLabelCanvas.getContext('2d');
+    ctx.clearRect(0,0,512,128); ctx.fillStyle = '#151d2b'; ctx.fillRect(4,12,504,104);
+    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 6; ctx.strokeRect(4,12,504,104);
+    ctx.fillStyle = '#fde68a'; ctx.font = 'bold 48px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('LOADS LEFT ' + Math.max(0,n),256,81);
+    this._pileLabel.material.map.needsUpdate = true;
+  }
+  showPileLabel(on, camera) {
+    if (!this._pileLabel) return;
+    this._pileLabel.visible = !!on && this.dirtPileGroup.visible;
+    this._pileLabel.position.copy(this.dirtPileGroup.position); this._pileLabel.position.y += 5;
+    if (camera) {
+      camera.updateMatrixWorld(true);
+      if (!this._pileLabelEye) this._pileLabelEye = new THREE.Vector3();
+      const depth = -this._pileLabelEye.copy(this._pileLabel.position).applyMatrix4(camera.matrixWorldInverse).z;
+      const pixels = window.innerWidth < 560 ? 150 : 180;
+      const width = pixels * 2 * Math.tan(camera.fov * Math.PI / 360) * Math.max(0.1, depth) / window.innerHeight;
+      this._pileLabel.scale.set(width, width / 4, 1);
+      this._pileLabel.visible &&= depth > camera.near;
+    }
+  }
   setPileFraction(f) { this._pileTarget = Math.max(0.15, Math.min(1, Number(f) || 1)); }
   updatePile(dt) {
     if (!this.dirtPileGroup) return;
@@ -1781,20 +1790,28 @@ export class World {
     dirtMesh.position.set((Math.random() - 0.5) * 1.5, 1.9 + (this.truckDirtLevel * 0.45), -1 + (Math.random() - 0.5) * 2);
     dirtMesh.scale.set(1.5, 1, 1.5);
     dirtMesh.castShadow = true;
-    this.truckGroup.add(dirtMesh);
+    this.truckBed.add(dirtMesh);dirtMesh.position.sub(this.truckBed.position);
     this.truckDirtMeshes.push(dirtMesh);
   }
 
+  tipTruck(){this._tipTime=0;}
+  updateTruck(dt){if(this._tipTime==null)return;this._tipTime+=dt;const t=this._tipTime;this.truckBed.rotation.x=-(t<2?t/2*.8:t<6?.8:Math.max(0,.8*(8-t)/2));if(t>4&&!this._tipEmptied){for(const m of this.truckDirtMeshes)m.removeFromParent();this.truckDirtMeshes=[];this.truckDirtLevel=0;this._tipEmptied=true;}if(t>=8){this._tipTime=null;this._tipEmptied=false;}}
+  setCityPhysicsEnabled(enabled) {
+    this.cityPhysicsEnabled = !!enabled;
+    for (const collider of this._cityColliders || []) collider.setEnabled(!!enabled);
+  }
+
   createPhysicsColliders(world, RAPIER) {
+    this._cityColliders = [];
     const groundBodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0, 0);
     const groundBody = world.createRigidBody(groundBodyDesc);
     const groundColliderDesc = RAPIER.ColliderDesc.cuboid(1000, 0.1, 1000);
     const propBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
     (this.propColliders || []).forEach((p) => {
-      world.createCollider(
+      this._cityColliders.push(world.createCollider(
         RAPIER.ColliderDesc.cuboid(p.w / 2, p.h / 2, p.d / 2).setTranslation(p.x, p.y, p.z).setFriction(0.8).setRestitution(0),
         propBody
-      );
+      ));
     });
     world.createCollider(groundColliderDesc, groundBody);
 
@@ -1802,7 +1819,7 @@ export class World {
       const bodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(data.x, data.y, data.z);
       const body = world.createRigidBody(bodyDesc);
       const colliderDesc = RAPIER.ColliderDesc.cuboid(data.w / 2, data.h / 2, data.d / 2);
-      world.createCollider(colliderDesc, body);
+      this._cityColliders.push(world.createCollider(colliderDesc, body));
     });
   }
 }

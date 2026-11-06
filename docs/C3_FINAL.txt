@@ -1,0 +1,53 @@
+[RAN] PASS L12 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +1,338
+      BONUS +140 INCLUDED
+      
+      
+         RETRY
+         NEXT: CRANE SUPPORT
+      
+      
+[RAN] L13 high-hook rejection {"loads":0,"hasDirt":true}
+[RAN] PASS L13 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +1,299
+      COINS EARNED
+      
+      
+         RETRY
+         NEXT: GHOST TRIAL
+      
+      
+[RAN] PASS L14 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +1,618
+      BONUS +160 INCLUDED
+      
+      
+         RETRY
+         NEXT: MEGA PROJECT
+      
+      
+[RAN] PASS L15 real-input result 
+      
+        
+        CHAMPION
+      
+      +1,604
+      COINS EARNED
+      
+      
+         RETRY
+         FREE PLAY
+      
+      

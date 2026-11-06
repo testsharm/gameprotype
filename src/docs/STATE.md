@@ -1,3 +1,51 @@
+# Current Fix v4 — 2026-11-06
+
+[RAN] Same branch arena/0ac523ae-gameprotype, same PR #5 to clean-v1. Evidence-backed score 18/21; threshold 17 met. A, B, C1/C2/C3, D and E art/detail published in order.
+[RAN] All fifteen levels have real-input results. Final normal-URL/fresh-storage L1 +242 and NEXT L2 passed after E changes. B ten-minute active-input proof remains in V4_SESSION.txt. No own-code browser errors in final passing runs.
+[SEEN] Every generated screenshot opened; docs/SCREENSHOTS.md contains relative embeds, grades and shortcut disclosures. New phone truck-tip proof has no shortcuts. Art closeups explicitly use QA positioning/inspection camera.
+[READ] Remaining FAILS: 15 bucket/prop clipping (chassis contacts work); 17 rewarded flows unverified; 21 optional settings/dead-file cleanup incomplete. Do not claim 21/21. F cut first.
+[UNKNOWN] Physical iPhone, full park ascent/all rings, complete post-E fifteen-level replay remain unverified. L13 latest cosmetic camera fix not re-captured. Park terrain shading remains subtle.
+[RAN] Current build passes, about 5.4 MB/three application files; standard Vite warnings. Live preview 4173 serves dist.
+
+--- Historical notes below (current block above wins) ---
+
+# Current Fix v4 continuation — 2026-11-06
+
+[RAN] SAME branch arena/0ac523ae-gameprotype; SAME open PR #5. Score 13/21, DO NOT MERGE below 17/21.
+[RAN] A gallery published and B corrected full ten-minute active-input run passed (600.938 wall / 594.013 game seconds / 1354 holds / zero pauses, focus losses or own-code errors).
+[RAN] C1 five completions and C2 five completions use real keys/actions. unlockall only selects initial levels, readonly telemetry guides routes, no gameplay mutation. C2_WALK.txt covers L6–10; C2_BRIDGE_FINAL.txt repeats L9 after deck-water rendering fix. L7 real overspeed drop/recovery passed; L9 real fall adds exactly ten extra seconds. Checklist 10 now passes.
+[SEEN] All C2 screenshots opened. L7 fresh start uses concrete; older blue-grid mid/drop explicitly disclosed. L9 final start/mid/result/reset show a solid visible deck. Night forklift overlap is BAD and remains E work. Contact sheet has ten real starts, five blanks. Gallery has desktop/390x844 start/mid/results plus negatives.
+[UNKNOWN] NEXT: C3 L11–15, then D park, then E art/collisions; optional F last. C3/D/E not yet implemented or verified. Push/report after each group and continue without questions. Failures 8,9,12,13,14,15,17,21.
+[RAN] Build passes, standard Vite warnings only; preview 4173 serves current dist.
+
+--- Historical notes below (current block above wins) ---
+
+--- Historical notes below (new current block above wins) ---
+
+## LATEST — V4 TIER 1 CONTINUATION (2026-11-06)
+
+[RAN] Strict checklist now 11/21; see docs/V4_REPORT.md. PR #5 stays open, not merged.
+[RAN] Real handling inputs: 20.21 km/h release stops in 0.906 s; 31.55 km/h Space brake stops in 0.877 s; measured reverse 14 km/h. Zero horizontal creep after stopping.
+[SEEN] Camera lifts above the pile instead of entering the cab; near-wall materials fade. L3 now starts upright: hidden city colliders were tipping it. Selected L6/L11/L13/L15 starts inspected.
+[RAN] Real tap-to-act and cancellation-to-rest tested. Five-frame clock: about 1 ms drift over eight seconds. Fresh normal-URL L1 -> +265 -> GET READY/NEXT L2 -> reload CONTINUE L2 passed again.
+[SEEN] Picker amber outline, lock labels and START fixed at phone and landscape sizes. Floating pile label is bounded in screen size.
+[UNKNOWN] Ten-minute zero-error run rejected as active-input proof: it sat paused after minute 3. Corrected harness not re-run. Do not count checklist 18.
+[UNKNOWN] Tier 1 still not fully signed off: real L15 champion flow and full start/path clearance remain unverified. Tiers 2–5 remain blocked/unbuilt. Do not claim all 15 different levels or upgraded Free Play.
+
+---
+
+## LATEST — V4 PARTIAL TIER 1 (2026-11-06)
+
+[READ] Base 1f091a9 from clean-v1. Session branch arena/0ac523ae-gameprotype is fixed by Arena.
+[RAN] npm install and npm run build pass. No new packages.
+[RAN] scripts/newplayer.mjs: normal URL, empty storage, only real W/S/Space/F/G holds and button clicks; L1 finished, +265 result, NEXT into unpaused L2, reload CONTINUE into L2. Read-only QA observations only; no teleports, unlocks, or completion shortcuts.
+[SEEN] docs/screenshots/v4-*.png were opened and inspected. Real phone-sized two-touch input and real timeout screen captured separately.
+[RAN] Checklist 9/21. See docs/V4_REPORT.md and raw V4_NEWPLAYER.txt / V4_UI.txt.
+[UNKNOWN] Tier 1 remains INCOMPLETE. Do not advance Tier 2 or 3 yet. No claim of 15 level completion, improved Free Play, or 10-minute error-free session.
+[READ] Old scripts/level-walk.mjs uses QA teleport and direct goal steps: its historical PASS is NOT evidence for the new requested standard.
+
+---
+
 # STATE - TerraForm 3D (live status)
 
 ## LATEST - QUALITY PASS v3 (2026-11-05) - REAL BROWSER VERIFIED

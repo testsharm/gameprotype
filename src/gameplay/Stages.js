@@ -4,6 +4,7 @@
 // All geometry / textures / colours are code-made. Nothing is loaded lazily
 // when a goal appears: the whole stage exists before the first frame.
 import * as THREE from 'three';
+import {createTrafficModel,TRAFFIC_COLORS} from '../core/Vehicles.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // ---------------------------------------------------------------------------
@@ -19,18 +20,18 @@ export const STAGE_TABLE = [
     ground: 0x2d5a8c, ground2: 0x21436b, pattern: 'lanes', skyline: 'grandstand', landmark: 'scoreboard',
     props: 'cones', sky: 0xd8e7f5, fog: 0.0030, sun: 1.05, hemi: 1.00, accent: 0xff6a1a,
     sound: 'traffic', yaw: 0.12, soundBed: 'COURSE',
-    coach: ['Follow the amber gate ring', 'Keep the bucket low', 'Pass every gate in order'] },
+    coach: ['Six gates make an S', 'Keep the bucket low', 'Stop inside PARK for one second'] },
   { id: 3, name: 'Fill the Pothole', verbs: ['DIG', 'PLACE'], chapter: 'Rookie Yard',
     ground: 0x5b6068, ground2: 0x3f444b, pattern: 'cracks', skyline: 'roadworks', landmark: 'roadroller',
     props: 'barriers', sky: 0xcfe2f3, fog: 0.0036, sun: 1.00, hemi: 1.00, accent: 0xfbbf24,
     sound: 'traffic', yaw: 0.35, soundBed: 'ROAD',
-    coach: ['Scoop the near dirt pile', 'Aim for the amber ring', 'Dump inside the marked hole'] },
-  { id: 4, name: 'Park Clean-up', verbs: ['GRAB', 'PLACE'], chapter: 'Rookie Yard',
-    ground: 0x7ba05b, ground2: 0x537b3c, pattern: 'leaves', skyline: 'forest', landmark: 'gazebo',
+    coach: ['Three holes need one load each', 'Watch the crossing traffic', 'Fill the amber hole, then the next'] },
+  { id: 4, name: 'Material Match', verbs: ['SCOOP', 'DUMP'], chapter: 'Rookie Yard',
+    ground: 0xb7a084, ground2: 0x857c6b, pattern: 'concrete', skyline: 'industrial', landmark: 'weighbridge',
     props: 'trees', sky: 0xd8e7f5, fog: 0.0042, sun: 1.05, hemi: 1.00, accent: 0x34d399,
     sound: 'birds', yaw: -0.42, soundBed: 'PARK',
-    coach: ['Drive the long park road', 'Watch the trees on both sides', 'Line up with the truck bed'] },
-  { id: 5, name: 'Rush Hour Lite', verbs: ['TIME TRIAL', 'DUMP'], chapter: 'Rookie Yard',
+    coach: ['SAND to amber, GRAVEL to blue', 'Read the material above each truck', 'Wrong truck keeps your bucket full'] },
+  { id: 5, name: 'Rush Hour Lite', verbs: ['SCOOP', 'DUMP'], chapter: 'Rookie Yard',
     ground: 0x3a3f47, ground2: 0x272c33, pattern: 'asphalt', skyline: 'city', landmark: 'trafficlight',
     props: 'cars', sky: 0xe8c9a8, fog: 0.0048, sun: 0.70, hemi: 0.80, accent: 0xef4444,
     sound: 'traffic', yaw: 0.55, soundBed: 'CITY',
@@ -41,21 +42,21 @@ export const STAGE_TABLE = [
     sound: 'site', yaw: -0.60, soundBed: 'TRENCH',
     coach: ['Stop on the trench plate', 'Hold SCOOP to dig', 'Dump spoil, then find the next'] },
   { id: 7, name: 'Pipe Layer', verbs: ['GRAB', 'PLACE'], chapter: 'Contractor',
-    ground: 0x2f6f86, ground2: 0x1e4a5c, pattern: 'grid', skyline: 'industrial', landmark: 'crane',
+    ground: 0x7f8c8d, ground2: 0x64727e, pattern: 'concrete', skyline: 'industrial', landmark: 'crane',
     props: 'piperack', sky: 0xd8e7f5, fog: 0.0032, sun: 1.05, hemi: 1.00, accent: 0x22d3ee,
     sound: 'site', yaw: 0.22, soundBed: 'PIPE YARD',
-    coach: ['Pick up the pipe rack', 'Carry it slowly', 'Place it on the amber pad'] },
+    coach: ['Grab one pipe from the rack', 'Stay below 12 km/h or it drops', 'Recover dropped pipes before placing'] },
   { id: 8, name: 'Night Shift', verbs: ['SCOOP', 'DUMP'], chapter: 'Contractor',
     ground: 0x1b2530, ground2: 0x111a25, pattern: 'soil', skyline: 'night', landmark: 'floodlight',
     props: 'lamps', sky: 0x0a1020, fog: 0.0070, sun: 0.16, hemi: 0.32, accent: 0xfbbf24,
     sound: 'night', yaw: -0.30, soundBed: 'NIGHT', night: true,
     coach: ['Use your work lights', 'Follow the map arrow', 'Drive slowly in the dark'] },
-  { id: 9, name: 'Bridge Repair', verbs: ['PLACE', 'PUSH'], chapter: 'Contractor',
+  { id: 9, name: 'Bridge Repair', verbs: ['SCOOP', 'FILL'], chapter: 'Contractor',
     ground: 0x3878a8, ground2: 0x24567a, pattern: 'water', skyline: 'bridge', landmark: 'bridge',
     props: 'barriers', sky: 0xf0d9bd, fog: 0.0040, sun: 0.85, hemi: 0.90, accent: 0x22d3ee,
     sound: 'wind', yaw: 0.48, soundBed: 'BRIDGE',
-    coach: ['Scoop, then cross the barrier', 'Keep the load level', 'Dump on the bridge deck'] },
-  { id: 10, name: 'Night Rush', verbs: ['TIME TRIAL', 'DUMP'], chapter: 'Contractor',
+    coach: ['Five holes along the narrow bridge', 'Stay inside the steel rails', 'Falling resets you and costs ten seconds'] },
+  { id: 10, name: 'Night Rush', verbs: ['SCOOP', 'DUMP'], chapter: 'Contractor',
     ground: 0x232a33, ground2: 0x151c24, pattern: 'asphalt', skyline: 'neon', landmark: 'neonarch',
     props: 'cars', sky: 0x090d1c, fog: 0.0068, sun: 0.16, hemi: 0.32, accent: 0xef4444,
     sound: 'night', yaw: -0.52, soundBed: 'NIGHT CITY', night: true,
@@ -65,26 +66,26 @@ export const STAGE_TABLE = [
     props: 'debris', sky: 0x8e9aa6, fog: 0.0085, sun: 0.45, hemi: 0.70, accent: 0xfbbf24,
     sound: 'rain', yaw: 0.68, soundBed: 'STORM',
     coach: ['Find the glowing debris', 'Scoop it cleanly', 'Dump, then find the next pile'] },
-  { id: 12, name: 'Foundation Dig', verbs: ['DIG', 'PLACE'], chapter: 'Site Boss',
+  { id: 12, name: 'Foundation Dig', verbs: ['DIG', 'DUMP'], chapter: 'Site Boss',
     ground: 0x6f5a3c, ground2: 0x4d3d28, pattern: 'grid', skyline: 'foundation', landmark: 'rebar',
     props: 'rebar', sky: 0xf0d9bd, fog: 0.0040, sun: 0.85, hemi: 0.90, accent: 0xfbbf24,
     sound: 'site', yaw: -0.72, soundBed: 'FOUNDATION',
-    coach: ['Dig boxes in arrow order', 'Six boxes, one by one', 'Dump, then move to the next'] },
+    coach: ['Eight digs deepen one foundation', 'Dump spoil in the amber ring', 'Watch the depth reach three metres'] },
   { id: 13, name: 'Crane Support', verbs: ['GRAB', 'PLACE'], chapter: 'Site Boss',
     ground: 0xa0a8b0, ground2: 0x727a82, pattern: 'concrete', skyline: 'industrial', landmark: 'towercrane',
     props: 'crates', sky: 0xd8e7f5, fog: 0.0032, sun: 1.05, hemi: 1.00, accent: 0x22d3ee,
     sound: 'site', yaw: 0.30, soundBed: 'CRANE',
-    coach: ['Pick up the crate stack', 'Grip it with the bucket', 'Place it on the amber pad'] },
-  { id: 14, name: 'Skill Course', verbs: ['PARK', 'DRIVE'], chapter: 'Site Boss',
+    coach: ['Grab one crate from the stack', 'Wait for the green low hook', 'Hold PLACE while the hook is low'] },
+  { id: 14, name: 'Ghost Trial', verbs: ['DRIVE', 'BRAKE'], chapter: 'Site Boss',
     ground: 0x1c2333, ground2: 0x111726, pattern: 'hazard', skyline: 'grandstand', landmark: 'lowbeam',
     props: 'tires', sky: 0xd8e7f5, fog: 0.0030, sun: 1.05, hemi: 1.00, accent: 0xfbbf24,
     sound: 'traffic', yaw: -0.38, soundBed: 'SKILL',
-    coach: ['Lower the bucket with E', 'Pass under the low beam', 'Only the amber gate counts'] },
-  { id: 15, name: 'Mega Project', verbs: ['TIME TRIAL', 'PLACE'], chapter: 'Site Boss',
+    coach: ['Chase the moving cyan ghost', 'Pass eight checkpoints in order', 'Beat seventy two seconds for bonus'] },
+  { id: 15, name: 'Mega Project', verbs: ['SCOOP', 'DUMP'], chapter: 'Site Boss',
     ground: 0xc2a878, ground2: 0x8c7850, pattern: 'grid', skyline: 'stadium', landmark: 'stadium',
     props: 'mix', sky: 0xffd9a0, fog: 0.0038, sun: 0.95, hemi: 0.90, accent: 0xfbbf24,
     sound: 'site', yaw: 0.80, soundBed: 'MEGA SITE',
-    coach: ['Three phases, watch the card', 'Haul, checkpoints, then deck fills', 'Finish all goals before time'] }
+    coach: ['Three digs then three haul loads', 'Two fills then four boss trucks', 'Giant final truck gives sixty seconds'] }
 ];
 
 export const STAGE_BY_ID = Object.fromEntries(STAGE_TABLE.map(s => [s.id, s]));
@@ -198,6 +199,7 @@ export class StageManager {
   _hideCity() {
     if (this._cityHidden) return;
     this._cityHidden = true;
+    this.world.setCityPhysicsEnabled(false);
     const keep = new Set([
       this.world.jobSiteBase, this.world.dirtPileGroup, this.world.truckGroup
     ]);
@@ -213,6 +215,7 @@ export class StageManager {
   _showCity() {
     if (!this._cityHidden) return;
     this._cityHidden = false;
+    this.world.setCityPhysicsEnabled(true);
     for (const [root, wasVisible] of this._cityPrev) {
       try { root.visible = wasVisible; } catch (e) {}
     }
@@ -243,11 +246,27 @@ export class StageManager {
 
     // ---- 1. own ground (covers the shared city ground) -----------------
     const tex = this._own(groundTexture(s));
-    const ground = new THREE.Mesh(this._own(new THREE.PlaneGeometry(520, 520)),
+    let groundGeo=new THREE.PlaneGeometry(520,520);
+    if(id===12){const shape=new THREE.Shape();shape.moveTo(-260,-260);shape.lineTo(260,-260);shape.lineTo(260,260);shape.lineTo(-260,260);shape.closePath();const hole=new THREE.Path();hole.moveTo(-21,-6);hole.lineTo(-21,6);hole.lineTo(-9,6);hole.lineTo(-9,-6);hole.closePath();shape.holes.push(hole);groundGeo.dispose();groundGeo=new THREE.ShapeGeometry(shape);}
+    const ground = new THREE.Mesh(this._own(groundGeo),
       this._own(new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 1,
         polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })));
-    ground.rotation.x = -Math.PI / 2; ground.position.y = 0.10;
+    ground.rotation.x = -Math.PI / 2; ground.position.y = id===9 ? -0.7 : 0.10;
     g.add(ground);
+    if(id===14){ground.material.map=null;ground.material.color.setHex(0x4c6252);ground.position.y=-.2;}
+    if(id<=5) {
+      // Large coherent surfaces, not a road texture tiled over an entire world.
+      if(id===2||id===3||id===5)ground.material.map=null;
+      if(id===2)ground.material.color.setHex(0x456443);
+      if(id===3)ground.material.color.setHex(0x6b7858);
+      if(id===5)ground.material.color.setHex(0x26333f);
+      const slab=(w,d,color,x,z)=>{const m=this._mesh(new THREE.PlaneGeometry(w,d),this._mat(color,{polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3}),x,.12,z);m.rotation.x=-Math.PI/2;return m;};
+      if(id===1){slab(72,48,0x8d7453,0,0);for(let z=-36;z<=36;z+=12){this._mesh(new THREE.BoxGeometry(.5,2,.5),this._mat(0xc4a272),-50,1,z);}}
+      if(id===2){slab(138,44,0x283746,12,0);slab(135,.35,0xe8edf2,12,-21);slab(135,.35,0xe8edf2,12,21);for(let x=-48;x<80;x+=12)slab(4,.35,0xe8edf2,x,0);}
+      if(id===3){slab(26,160,0x414b58,8,0);for(let z=-75;z<80;z+=12)slab(.35,5,0xf6df91,8,z);slab(.35,158,0xf4f4f2,-4,0);slab(.35,158,0xf4f4f2,20,0);}
+      if(id===4){slab(90,70,0x857d67,0,0);for(const z of [-30,30])this._mesh(new THREE.BoxGeometry(65,2,.5),this._mat(0x475569),8,1,z);}
+      if(id===5){slab(110,70,0x384454,0,0);for(let z=-23;z<24;z+=9.5)slab(48,.35,0xfbbf24,25,z);for(let i=0;i<3;i++)this._mesh(new THREE.BoxGeometry(8,4,5),this._mat([0x9c6045,0x385a80,0x566b48][i]),52,2,-24+i*12);}
+    }
 
     // ---- 2. skyline ring (one InstancedMesh = one draw call) ------------
     const sk = this._skyline(s);
@@ -261,12 +280,12 @@ export class StageManager {
 
     // ---- 5. stage sign: guarantees two stages never look identical -----
     const st = this._own(signTexture(s));
-    const signMat = this._own(new THREE.MeshBasicMaterial({ map: st, side: THREE.DoubleSide }));
-    const sign = this._mesh(new THREE.PlaneGeometry(18, 5.6), signMat, -30, 7.0, -34);
-    sign.rotation.y = 0.30;
+    const signMat = this._own(new THREE.MeshBasicMaterial({ map: st, side: THREE.FrontSide }));
+    const sign = this._mesh(new THREE.PlaneGeometry(2.5, 1.2), signMat, -30, 2.8, -34);
+    sign.lookAt(0, 2.8, 0);
     const postMat = this._mat(0x2a3444);
-    this._mesh(new THREE.BoxGeometry(0.5, 7, 0.5), postMat, -34, 3.5, -33);
-    this._mesh(new THREE.BoxGeometry(0.5, 7, 0.5), postMat, -26, 3.5, -35);
+    this._mesh(new THREE.BoxGeometry(0.5, 2.2, 0.5), postMat, -30, 1.1, -34);
+
 
     // ---- 6. fog + sky handled by main.js via envFor(id) -----------------
     if (this.scene.fog) { this.scene.fog.density = s.fog; this.scene.fog.color.setHex(s.sky); }
@@ -325,7 +344,7 @@ export class StageManager {
       if (rx || ry || rz) m.rotation.set(rx || 0, ry || 0, rz || 0);
       return m;
     };
-    const P = new THREE.Vector3(48, 0, -38); // landmark position, unique silhouette
+    const P = new THREE.Vector3(s.id===2?105:s.id<=5?60:48, 0, s.id===2?-30:s.id<=5?-8:-38); // landmark position, unique silhouette
     const X = P.x, Z = P.z;
     switch (s.landmark) {
       case 'shed':
@@ -334,15 +353,25 @@ export class StageManager {
         put(new THREE.BoxGeometry(4, 5, 0.3), dark, X, 2.5, Z + 6.1);
         break;
       case 'scoreboard':
-        put(new THREE.BoxGeometry(30, 13, 2), dark, X, 12, Z);
-        put(new THREE.BoxGeometry(27, 9, 0.3), amber, X, 12, Z + 1.2);
-        put(new THREE.BoxGeometry(1.4, 10, 1.4), steel, X - 12, 5, Z);
-        put(new THREE.BoxGeometry(1.4, 10, 1.4), steel, X + 12, 5, Z);
+        put(new THREE.BoxGeometry(2, 13, 26), dark, X, 12, Z);
+        put(new THREE.BoxGeometry(0.3, 9, 23), amber, X-1.2, 12, Z);
+        put(new THREE.BoxGeometry(1.4, 10, 1.4), steel, X, 5, Z-10);
+        put(new THREE.BoxGeometry(1.4, 10, 1.4), steel, X, 5, Z+10);
+        { const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');
+          ctx.fillStyle='#182638';ctx.fillRect(0,0,512,256);ctx.fillStyle='#fbbf24';ctx.textAlign='center';ctx.font='bold 52px sans-serif';ctx.fillText('CONE SCHOOL',256,90);ctx.fillStyle='#ffffff';ctx.font='bold 40px sans-serif';ctx.fillText('6 GATES + PARK',256,168);
+          const t=this._own(new THREE.CanvasTexture(c));t.colorSpace=THREE.SRGBColorSpace;
+          const m=this._mesh(new THREE.PlaneGeometry(23,9),this._own(new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide})),X-1.4,12,Z);m.rotation.y=-Math.PI/2;
+        }
         break;
       case 'roadroller':
         put(new THREE.BoxGeometry(16, 6, 8), amber, X, 4, Z);
         put(new THREE.CylinderGeometry(3.2, 3.2, 9, 16), dark, X - 9, 3.2, Z, Math.PI / 2, 0, 0);
         put(new THREE.CylinderGeometry(2.6, 2.6, 8, 16), dark, X + 8, 2.6, Z, Math.PI / 2, 0, 0);
+        break;
+      case 'weighbridge':
+        put(new THREE.BoxGeometry(26,.8,13),steel,X,.4,Z);
+        for(const z of [-8,8]) {put(new THREE.BoxGeometry(2,8,2),amber,X,4,Z+z);put(new THREE.BoxGeometry(6,4,6),light,X+20,2,Z+z);}
+        put(new THREE.BoxGeometry(3,1,18),steel,X,8,Z);
         break;
       case 'gazebo':
         put(new THREE.CylinderGeometry(9, 9, 0.8, 12), light, X, 0.4, Z);
@@ -409,6 +438,7 @@ export class StageManager {
   }
 
   _props(s) {
+    if(s.props==='cars'){for(let i=0;i<14;i++){const car=createTrafficModel(i,TRAFFIC_COLORS[i%10]);car.position.set(-18+(i%7)*6,0,-38-Math.floor(i/7)*14);this.group.add(car);}return;}
     const n = 26;
     const shapes = {
       fence: () => new THREE.BoxGeometry(3, 1.4, 0.3),

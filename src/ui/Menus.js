@@ -171,16 +171,16 @@ const CSS = `
 .tf-tabs button{flex:1;height:44px;border-radius:9px;font-size:14px;font-weight:900;letter-spacing:.04em;
   background:var(--steel);border:2px solid var(--border);color:var(--ink)}
 .tf-tabs button.on{background:var(--amber);color:#1a1204}
-.tf-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.tf-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:calc(100dvh - 240px);overflow-y:auto;padding:3px}
 .tf-card{min-height:96px;text-align:left;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:3px;position:relative;
   background:var(--steel);border:2px solid var(--border);color:var(--ink)}
 .tf-card.sel{outline:3px solid var(--goal)}
-.tf-card.lock{opacity:.55}
+.tf-card.lock{opacity:1;background:#1c2738}.tf-card.lock .nm{color:#aab8cc}
 .tf-card .n{font-size:14px;color:var(--muted);font-weight:900;letter-spacing:.08em}
 .tf-card .nm{font-size:15px;font-weight:900;line-height:1.15}
 .tf-card .st{font-size:14px;color:var(--goal);letter-spacing:2px}
 .tf-card .tag{position:absolute;top:7px;right:8px;font-size:14px;font-weight:900;color:var(--well);background:var(--muted);border-radius:5px;padding:2px 5px}
-.tf-card .lk{position:absolute;top:8px;right:8px}.tf-card .lk .tf-ic{width:18px;height:18px}
+.tf-card .lk{display:flex;align-items:center;gap:4px;margin-top:auto;font-size:14px;color:#cbd5e1}.tf-card .lk .tf-ic{width:18px;height:18px}
 .tf-pick-foot{margin-top:10px;display:flex;flex-direction:column;gap:8px}
 .tf-pick-foot .desc{font-size:14px;color:#cbd5e1;min-height:20px}
 .tf-pick-foot button{height:52px;border-radius:11px;font-size:16px}
@@ -203,7 +203,12 @@ const CSS = `
 .tf-sw i{width:34px;height:34px;border-radius:50%;border:3px solid var(--border);cursor:pointer}
 .tf-sw i.on{outline:3px solid var(--goal)}
 
+@keyframes nextPulse{50%{box-shadow:0 0 0 4px #f59e0b66}}
+#tf-win .tf-card.newlevel{outline:2px solid #fbbf24;outline-offset:-2px;border-color:#fbbf24;animation:nextPulse 1.5s infinite}
+#tf-win .tf-card.newlevel .tag{background:#fbbf24;color:#1a1204}
 /* result / fail */
+#tf-win [data-a="next"]{white-space:normal;overflow-wrap:anywhere;min-width:0;line-height:1.25;height:auto;min-height:54px;padding:10px 8px}
+#tf-win [data-a="next"] .tf-ic{flex-shrink:0}
 .tf-stars{display:flex;justify-content:center;gap:8px;margin:4px 0 10px}
 .tf-stars .tf-ic{width:44px;height:44px;color:#3a4c68}
 .tf-stars .tf-ic.on{color:var(--goal);fill:var(--goal)}
@@ -393,12 +398,12 @@ export default class Menus {
     this._focusFirst();
     if (kind === 'result' && this.data.coins) this._countCoins(this.data.coins);
   }
-  close() {
+  close(notify = true) {
     const was = this.kind;
     this.win.classList.add('off');
     this.kind = null;
     this.data = null;
-    if (was) this._act('window-close', was);
+    if (was && notify) this._act('window-close', was);
   }
   _countCoins(target) {
     const el = this.win.querySelector('#tf-coin-count');
@@ -461,6 +466,7 @@ export default class Menus {
     const q = d.quality || s.quality || 'high';
     return `<h2 class="tf-h2 tf-title">SETTINGS</h2>
       ${row('master', 'MASTER')}${row('music', 'MUSIC')}${row('effects', 'EFFECTS')}
+      <div class="tf-row"><label>TAP TO ACT</label>${this._tog('tapAct', !!d.tapAct)}</div>
       <div class="tf-row"><label>SOUND</label>${this._tog('mute', !!d.muted)}</div>
       <div class="tf-row"><label>GRAPHICS</label>${this._seg('quality', [
         { v: 'low', t: 'LOW' }, { v: 'medium', t: 'MED' }, { v: 'high', t: 'HIGH' }], q)}</div>
@@ -489,11 +495,11 @@ export default class Menus {
     return `<h2 class="tf-h2 tf-title">LEVELS</h2>
       <div class="tf-tabs">${chapters.map(c =>
         `<button class="tf-sec ${c.id === this.chapter ? 'on' : ''}" data-a="chapter" data-ch="${c.id}">${c.name}</button>`).join('')}</div>
-      <div class="tf-cards">${list.map(j => `<button class="tf-card tf-sec ${j.id === this.selected ? 'sel' : ''} ${j.locked ? 'lock' : ''}"
+      <div class="tf-cards">${list.map(j => `<button class="tf-card tf-sec ${j.id === this.selected ? 'sel' : ''} ${j.locked ? 'lock' : ''} ${j.id === d.nextLevel && !j.locked ? 'newlevel' : ''}"
           data-a="select" data-id="${j.id}" aria-label="Level ${j.id} ${j.name}">
           <span class="n">LEVEL ${j.id}</span><span class="nm">${j.name}</span>
           <span class="st">${stars(j.stars)}</span>
-          ${j.locked ? `<span class="lk">${svg('lock')}</span>` : `<span class="tag">${j.type}</span>`}
+          ${j.locked ? `<span class="lk">${svg('lock')} FINISH LEVEL ${j.id - 1}</span>` : `<span class="tag">${j.id === d.nextLevel ? 'NEW' : j.type}</span>`}
         </button>`).join('')}</div>
       <div class="tf-pick-foot">
         <div class="desc">${sel.locked ? (sel.reason || 'Locked') : (sel.rule || sel.name)}</div>
@@ -521,14 +527,14 @@ export default class Menus {
         `<i class="${i === (d.paint || 0) ? 'on' : ''}" style="background:${c}" data-a="paint" data-i="${i}" aria-label="Paint ${i + 1}"></i>`).join('')}</div>`;
   }
   _result(r) {
-    return `<div class="tf-confirm"><h2 class="tf-h2">JOB COMPLETE</h2>
+    return `<div class="tf-confirm"><h2 class="tf-h2">${r.champion ? 'CHAMPION' : 'JOB COMPLETE'}</h2>
       <div class="tf-stars">${[0, 1, 2].map(i => `<svg class="tf-ic ${i < (r.stars || 0) ? 'on' : ''}" viewBox="0 0 24 24">${ICON.star}</svg>`).join('')}</div>
-      <div class="tf-bigcoin" id="tf-coin-count">+0</div>
-      <div class="tf-mut">${r.bonusGot ? 'BONUS EARNED' : 'COINS'}</div>
+      <div class="tf-bigcoin" id="tf-coin-count">+${Number(r.coins || 0).toLocaleString('en-US')}</div>
+      <div class="tf-mut">${r.bonusGot ? 'BONUS +' + (r.bonusCoins || 0) + ' INCLUDED' : 'COINS EARNED'}</div>
       ${r.ads ? '<button class="tf-reward tf-sec" data-a="reward-coins">'+svg('spark')+' DOUBLE COINS (AD)</button>' : ''}
       <div class="tf-acts">
         <button class="tf-sec" data-a="retry">${svg('restart')} RETRY</button>
-        <button class="tf-amber" data-a="next">${svg('next')} NEXT</button>
+        <button class="tf-amber" data-a="next">${svg('next')} ${r.champion ? 'FREE PLAY' : 'NEXT: ' + (r.nextName || 'NEXT LEVEL').toUpperCase()}</button>
       </div></div>`;
   }
   _fail(r) {

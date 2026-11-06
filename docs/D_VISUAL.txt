@@ -1,0 +1,2 @@
+[RAN] Dig before/after {"before":{"coins":5,"bestAir":0,"air":0,"rings":1,"totalRings":30,"digs":0,"minHeight":0.09000058472156525,"maxHeight":0.20989710092544556,"turnDegrees":1172.4340000000611},"after":{"coins":5,"bestAir":0,"air":0,"rings":1,"totalRings":30,"digs":3,"minHeight":-2.409964084625244,"maxHeight":0.20989710092544556,"turnDegrees":1375.2720000000686}}
+[RAN] PASS dig visual followup; zero own-code errors. No setup shortcuts; portrait is viewport resize.

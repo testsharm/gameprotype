@@ -1,0 +1,58 @@
+[
+  {
+    "id": 9,
+    "phase": "start",
+    "name": "desktop",
+    "file": "c2-l9-start-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 9,
+    "phase": "start",
+    "name": "phone",
+    "file": "c2-l9-start-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 9,
+    "phase": "bridge-reset",
+    "name": "desktop",
+    "file": "c2-l9-bridge-reset-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 9,
+    "phase": "bridge-reset",
+    "name": "phone",
+    "file": "c2-l9-bridge-reset-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 9,
+    "phase": "mid",
+    "name": "desktop",
+    "file": "c2-l9-mid-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 9,
+    "phase": "mid",
+    "name": "phone",
+    "file": "c2-l9-mid-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 9,
+    "phase": "result",
+    "name": "desktop",
+    "file": "c2-l9-result-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 9,
+    "phase": "result",
+    "name": "phone",
+    "file": "c2-l9-result-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  }
+]

@@ -1,0 +1,14 @@
+[RAN] L9 real fall/reset {"resets":1,"penalty":9.999999999999972}
+[RAN] PASS L9 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +856
+      COINS EARNED
+      
+      
+         RETRY
+         NEXT: NIGHT RUSH
+      
+      

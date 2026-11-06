@@ -1,3 +1,32 @@
+# Fix v4 current additions
+
+[READ] src/gameplay/StuntPark.js: independent 200 m Rapier sandbox and deformable terrain.
+[READ] src/core/Vehicles.js: seven code-made traffic types, ten colors; shared merged geometry templates.
+[READ] src/core/SolidWorld.js: stage/yard fixed colliders and contact-driven recoil/thud. Bucket compound collider still missing.
+[READ] scripts/level-walk.mjs, park-walk.mjs, vehicle-walk.mjs: real-input proof; art-inspect.mjs and car-closeups.mjs explicitly use QA setup.
+[READ] scripts/final-smoke.mjs: fresh storage, normal URL L1 completion and NEXT L2, no mutations.
+[READ] docs/SCREENSHOTS.md and V4_REPORT.md: current visual evidence/strict 18/21 score. Old unused files are retained; cleanup criterion fails.
+
+--- Historical map below ---
+
+## V4 continuation map (2026-11-06)
+
+[READ] Vehicle.applyStopAssist runs once after the physics solver batch using frame game time; it snaps slow grounded horizontal motion to zero. Governors use physical speed, not the display cap.
+[READ] CameraManager owns camera clearance and fading. The old main.js keepCameraClear implementation was removed. World and StageManager toggle hidden-city physics alongside visibility; TrafficPhysics follows the same stage state.
+[READ] World.setPileLoads/showPileLabel implement a code-made floating count, sized in screen pixels. GameUI.announce2 accepts a duration for GET READY. Menus picker scopes its amber outline to beat button CSS specificity and scrolls its cards, not the START button.
+[RAN] New browser tests: v4-handling.mjs, v4-camera-actions.mjs, v4-followup.mjs, v4-clock.mjs, v4-phone.mjs. v4-session.mjs was corrected after an idle/paused run; corrected active-session proof still pending.
+[READ] window.__tfObserve is read-only instrumentation for real-input tests. Existing mutation QA shortcuts are not used to claim gameplay completion.
+
+## V4 update (2026-11-06)
+
+[READ] main.js: forward-only resume save, next unfinished start info, silent modal navigation, immediate hold effects, frame-time clock, five-step physics cap, action timing observations.
+[READ] Vehicle.js: direct scoop/dump effects; stronger coast assist; reverse limit stays 14.
+[READ] Levels.js: no pile reset between loads. Stages.js: smaller front-facing signs.
+[READ] Menus.js / GameUI.js: real reward text survives refresh, named NEXT, champion label, NEW level outline, optional tap-to-act, desktop keycap visibility and amber key-down state.
+[READ] CameraManager.js: recursive collision ray, closer pull-in, upright camera, corrected wheel direction.
+[RAN] scripts/newplayer.mjs and scripts/v4-ui.mjs are this pass's real-input browser tests.
+[UNKNOWN] See docs/V4_REPORT.md for strict checklist and outstanding work.
+
 # FILE MAP - TerraForm 3D (depth summary of every file)
 
 ## LATEST - QUALITY PASS v3 (2026-11-05)

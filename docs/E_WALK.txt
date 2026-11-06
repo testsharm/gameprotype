@@ -1,0 +1,8 @@
+[RAN] Fleet 7 shapes, 10 colors, 70 unique pairs
+[RAN] Real W collision {"object":"barrier","position":{"x":1088.00048828125,"y":1.0568737983703613,"z":1817.8206787109375},"velocity":{"x":0.003020788077265024,"y":-0.2748532295227051,"z":-1.0406317710876465},"hits":{"barrier":1}}
+[RAN] Real W collision {"object":"fence","position":{"x":1100.0032958984375,"y":1.0651254653930664,"z":1818.174560546875},"velocity":{"x":-0.002248418517410755,"y":0.3174493610858917,"z":-1.0346264839172363},"hits":{"barrier":1,"fence":1}}
+[RAN] Real W collision {"object":"container","position":{"x":1112,"y":1.086814284324646,"z":1816.3734130859375},"velocity":{"x":-0.003982750233262777,"y":-0.032655078917741776,"z":-0.3183288872241974},"hits":{"barrier":1,"fence":1,"container":1}}
+[RAN] Real W collision {"object":"pile-edge","position":{"x":1124,"y":1.0863368511199951,"z":1813.7034912109375},"velocity":{"x":-9.92112703102066e-8,"y":-0.06116423383355141,"z":3.693427085876465},"hits":{"barrier":1,"fence":1,"container":1,"pile-edge":1}}
+[RAN] Real W collision {"object":"parked-car","position":{"x":1136,"y":1.0871250629425049,"z":1815.673095703125},"velocity":{"x":0.000056014407164184377,"y":-0.04258894920349121,"z":-0.28801023960113525},"hits":{"barrier":1,"fence":1,"container":1,"pile-edge":1,"parked-car":1}}
+[RAN] Earned first load; animated bed angle 0
+[RAN] PASS E; zero own-code browser errors. QA hooks only positioned the vehicle/selected scenes; W collisions and F/G delivery were real input. No injected velocity, goals, coins or timers. Portrait resized same run.

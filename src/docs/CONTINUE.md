@@ -1,3 +1,27 @@
+# Current Fix v4 — 2026-11-06
+
+[RAN] Same branch arena/0ac523ae-gameprotype, same PR #5 to clean-v1. Evidence-backed score 18/21; threshold 17 met. A, B, C1/C2/C3, D and E art/detail published in order.
+[RAN] All fifteen levels have real-input results. Final normal-URL/fresh-storage L1 +242 and NEXT L2 passed after E changes. B ten-minute active-input proof remains in V4_SESSION.txt. No own-code browser errors in final passing runs.
+[SEEN] Every generated screenshot opened; docs/SCREENSHOTS.md contains relative embeds, grades and shortcut disclosures. New phone truck-tip proof has no shortcuts. Art closeups explicitly use QA positioning/inspection camera.
+[READ] Remaining FAILS: 15 bucket/prop clipping (chassis contacts work); 17 rewarded flows unverified; 21 optional settings/dead-file cleanup incomplete. Do not claim 21/21. F cut first.
+[UNKNOWN] Physical iPhone, full park ascent/all rings, complete post-E fifteen-level replay remain unverified. L13 latest cosmetic camera fix not re-captured. Park terrain shading remains subtle.
+[RAN] Current build passes, about 5.4 MB/three application files; standard Vite warnings. Live preview 4173 serves dist.
+
+--- Historical notes below (current block above wins) ---
+
+# Current Fix v4 continuation — 2026-11-06
+
+[RAN] SAME branch arena/0ac523ae-gameprotype; SAME open PR #5. Score 13/21, DO NOT MERGE below 17/21.
+[RAN] A gallery published and B corrected full ten-minute active-input run passed (600.938 wall / 594.013 game seconds / 1354 holds / zero pauses, focus losses or own-code errors).
+[RAN] C1 five completions and C2 five completions use real keys/actions. unlockall only selects initial levels, readonly telemetry guides routes, no gameplay mutation. C2_WALK.txt covers L6–10; C2_BRIDGE_FINAL.txt repeats L9 after deck-water rendering fix. L7 real overspeed drop/recovery passed; L9 real fall adds exactly ten extra seconds. Checklist 10 now passes.
+[SEEN] All C2 screenshots opened. L7 fresh start uses concrete; older blue-grid mid/drop explicitly disclosed. L9 final start/mid/result/reset show a solid visible deck. Night forklift overlap is BAD and remains E work. Contact sheet has ten real starts, five blanks. Gallery has desktop/390x844 start/mid/results plus negatives.
+[UNKNOWN] NEXT: C3 L11–15, then D park, then E art/collisions; optional F last. C3/D/E not yet implemented or verified. Push/report after each group and continue without questions. Failures 8,9,12,13,14,15,17,21.
+[RAN] Build passes, standard Vite warnings only; preview 4173 serves current dist.
+
+--- Historical notes below (current block above wins) ---
+
+--- Historical notes below (new current block above wins) ---
+
 # CONTINUE.md - FULL HANDOFF FOR A NEW AI CHAT (zero context needed)
 
 ## >>> QUALITY PASS v3 UPDATE (2026-11-05) - READ FIRST <<<
@@ -510,5 +534,9 @@ Round 1 (M4f) applied, backup 2026-11-05T07-51-19-422Z-lgp, NOT saved. New HUD v
   STATUS: BUILT, NOT VERIFIED. NEXT: real browser play-test at 1920x1080 / 1280x720 /
   844x390 / 440x956 / 390x844, capture the 15 screenshots, check the console, then merge
   the PR into clean-v1 and submit to CrazyGames. Old notes below are history only.
+
+- 2026-11-06 V4 PARTIAL TIER 1: [RAN] fresh-save normal-URL L1 completed with real driving and holds; NEXT/reload CONTINUE L2 verified. +265 result and 1–2 ms action effect observations. [SEEN] pile progression, phone two-finger controls, desktop keycaps and TIME IS UP. [UNKNOWN] Tier 1 NOT complete, Tier 2 onward NOT started. Checklist 9/21, do not merge. Read docs/V4_REPORT.md first. Old level-walk uses teleport and direct steps, not valid gameplay proof under v4.
+
+- 2026-11-06 V4 CONTINUATION: [RAN] 11/21 strict checklist, docs/V4_REPORT.md. Stop/brake/reverse tests now pass, cancellation/tap and five-frame clock tested, fresh L1/NEXT/reload flow re-passed. [SEEN] Camera above pile/near wall, L3 upright after hidden-physics fix, selected P10 starts, bounded floating label and readable amber picker. [UNKNOWN] Ten-minute active-input claim REJECTED: original test sat paused after minute 3. Corrected v4-session.mjs not run. Tier 1 still awaits real L15 champion and exhaustive path checks; do not advance tiers or merge PR #5 yet.
 
 SESSION LOG END MARKER (do not remove this line)

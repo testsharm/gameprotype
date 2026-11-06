@@ -27,7 +27,7 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/jav
 
 let server = null;
 let browser = null;
-export const PORT = 4179;
+export const PORT = Number(process.env.TF_QA_PORT || 4179);
 
 export async function serve(dir = DIST) {
   if (server) return server;
