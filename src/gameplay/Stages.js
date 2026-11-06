@@ -198,6 +198,7 @@ export class StageManager {
   _hideCity() {
     if (this._cityHidden) return;
     this._cityHidden = true;
+    this.world.setCityPhysicsEnabled(false);
     const keep = new Set([
       this.world.jobSiteBase, this.world.dirtPileGroup, this.world.truckGroup
     ]);
@@ -213,6 +214,7 @@ export class StageManager {
   _showCity() {
     if (!this._cityHidden) return;
     this._cityHidden = false;
+    this.world.setCityPhysicsEnabled(true);
     for (const [root, wasVisible] of this._cityPrev) {
       try { root.visible = wasVisible; } catch (e) {}
     }

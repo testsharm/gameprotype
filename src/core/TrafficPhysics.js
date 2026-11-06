@@ -45,12 +45,14 @@ export default class TrafficPhysics {
     }
   }
 
-  update() {
+  update(enabled = true) {
     for (let i = 0; i < this.trafficCars.length; i++) {
       const car = this.trafficCars[i];
       const body = this.bodies[i];
       if (!body || !car || !car.mesh) continue;
 
+      body.setEnabled(enabled);
+      if (!enabled) continue;
       const p = car.mesh.position;
       const q = car.mesh.quaternion;
 

@@ -1,0 +1,2 @@
+[RAN] session {"seconds":600.237,"loops":1467,"keyHolds":432,"retries":0,"errors":[]}
+[UNKNOWN] NOT ACCEPTED for checklist 18: zero errors over 600 s, but holds stopped after minute 3 because the harness left the pause window open. Only 432 holds were exercised.

@@ -41,6 +41,16 @@ export class CameraManager {
 
         this.raycaster = new THREE.Raycaster();
         this.collidableMeshes = [];
+        this._fadeMats = new Map();
+        this._clearBox = new THREE.Box3();
+        this._nearest = new THREE.Vector3();
+        this._hit = new THREE.Vector3();
+        this._liftEye = new THREE.Vector3();
+        this._liftDir = new THREE.Vector3();
+        this._yawQuat = new THREE.Quaternion();
+        this._forward = new THREE.Vector3();
+        this._worldUp = new THREE.Vector3(0, 1, 0);
+        this.clearanceInfo = { blockers: 0, pulledIn: false, faded: 0, inside: 0 };
         this.minDistance = 3.0;
 
         this.currentLookAt = new THREE.Vector3();
@@ -63,7 +73,21 @@ export class CameraManager {
     }
 
     setCollidables(meshes) {
-        this.collidableMeshes = meshes || [];
+        for (const [mesh, entry] of this._fadeMats) {
+            mesh.material = entry.original;
+            entry.clones.forEach(m => m.dispose());
+        }
+        this._fadeMats.clear();
+        this.collidableMeshes = [];
+        const seen = new Set();
+        for (const root of meshes || []) root?.traverse(mesh => {
+            if (!mesh.isMesh || mesh.isInstancedMesh || seen.has(mesh) || mesh.geometry?.type === 'PlaneGeometry') return;
+            const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+            // Guide rings, glass and light shafts should not stop the camera.
+            if (materials.every(m => m.transparent && m.opacity < 0.9)) return;
+            seen.add(mesh);
+            this.collidableMeshes.push(mesh);
+        });
     }
 
     // TIER C/D: after a level teleport the chase camera used to spend ~4 s
@@ -190,6 +214,8 @@ export class CameraManager {
         }
 
         const vehiclePos = vehicleMesh.position;
+        this._forward.set(0, 0, 1).applyQuaternion(vehicleMesh.quaternion);
+        this._yawQuat.setFromAxisAngle(this._worldUp, Math.atan2(this._forward.x, this._forward.z));
         const headPos = this._headPos.copy(vehiclePos);
         headPos.y += 2;
 
@@ -226,7 +252,7 @@ export class CameraManager {
             const look = headPos.clone().addScaledVector(right, 5.2);
             this.currentLookAt.lerp(look, k(3.2));
             this.camera.up.set(0, 1, 0);
-        this.camera.lookAt(this.currentLookAt);
+            this.camera.lookAt(this.currentLookAt);
             return;
         }
 
@@ -236,16 +262,16 @@ export class CameraManager {
             this.camera.position.lerp(idealPos, k(10));
             this.currentLookAt.lerp(headPos, k(13));
             this.camera.up.set(0, 1, 0);
-        this.camera.lookAt(this.currentLookAt);
+            this.camera.lookAt(this.currentLookAt);
 
         } else if (this.currentMode === 'chase') {
             // Behind + above: see the whole machine and the area ahead of it.
-            offset.copy(CHASE_OFFSET).multiplyScalar(zoom).applyQuaternion(vehicleMesh.quaternion);
+            offset.copy(CHASE_OFFSET).multiplyScalar(zoom).applyQuaternion(this._yawQuat);
             idealPos.copy(vehiclePos).add(offset);
             this.camera.position.lerp(idealPos, k(6.5));
             this.currentLookAt.lerp(headPos, k(10));
             this.camera.up.set(0, 1, 0);
-        this.camera.lookAt(this.currentLookAt);
+            this.camera.lookAt(this.currentLookAt);
 
         } else if (this.currentMode === 'cab') {
             offset.copy(CAB_EYE).applyQuaternion(vehicleMesh.quaternion);
@@ -257,31 +283,85 @@ export class CameraManager {
         } else if (this.currentMode === 'bucket') {
             // Lower and further back than before: the arms no longer cover a tall phone.
             const focus = this._focus.copy(BUCKET_FOCUS).applyQuaternion(vehicleMesh.quaternion).add(vehiclePos);
-            offset.copy(BUCKET_OFFSET).multiplyScalar(zoom).applyQuaternion(vehicleMesh.quaternion);
+            offset.copy(BUCKET_OFFSET).multiplyScalar(zoom).applyQuaternion(this._yawQuat);
             idealPos.copy(focus).add(offset);
             this.camera.position.lerp(idealPos, k(6.5));
             this.currentLookAt.lerp(focus, k(13));
             this.camera.up.set(0, 1, 0);
-        this.camera.lookAt(this.currentLookAt);
+            this.camera.lookAt(this.currentLookAt);
         }
 
-        // building / tree collision (works only if meshes were given with setCollidables)
-        if (!inCab && this.collidableMeshes.length > 0) {
-            const rayDir = this._rayDir.copy(this.camera.position).sub(headPos);
-            const distance = rayDir.length();
-            if (distance > 0.001) {
-                rayDir.normalize();
-                this.raycaster.set(headPos, rayDir);
-                this.raycaster.far = distance;
-                const intersects = this.raycaster.intersectObjects(this.collidableMeshes, true);
-                if (intersects.length > 0) {
-                    const hitDist = intersects[0].distance;
-                    if (hitDist < distance) {
-                        const safeDist = Math.max(0.5, hitDist - 0.8);
-                        this.camera.position.copy(headPos).add(rayDir.multiplyScalar(safeDist));
-                    }
+        if (!inCab) this.resolveClearance(headPos);
+        this.camera.up.set(0, 1, 0);
+        this.camera.lookAt(this.currentLookAt);
+    }
+
+    _visible(mesh) {
+        for (let p = mesh; p; p = p.parent) if (!p.visible) return false;
+        return true;
+    }
+
+    // Sweep a 0.65 m camera volume along the entire target-to-eye segment.
+    // World-space expanded bounds are conservative: safe around corners, too.
+    resolveClearance(target) {
+        const dir = this._rayDir.copy(this.camera.position).sub(target);
+        const length = dir.length();
+        if (length < 0.01) return;
+        dir.divideScalar(length);
+        this.raycaster.ray.set(target, dir);
+        const boxes = [];
+        for (const mesh of this.collidableMeshes) {
+            if (!this._visible(mesh)) continue;
+            const box = new THREE.Box3().setFromObject(mesh);
+            boxes.push({ mesh, box, expanded: box.clone().expandByScalar(0.65) });
+        }
+        const sweep = (direction, distance) => {
+            this.raycaster.ray.set(target, direction);
+            let clear = distance;
+            for (const { expanded } of boxes) {
+                if (expanded.containsPoint(target)) continue;
+                if (this.raycaster.ray.intersectBox(expanded, this._hit)) {
+                    const d = target.distanceTo(this._hit);
+                    if (d < clear) clear = Math.max(0.2, d - 0.15);
                 }
             }
+            return clear;
+        };
+        let clear = sweep(dir, length);
+        const blocked = clear < length;
+        // Never solve a pile collision by shoving the chase eye into the cab.
+        // First try an elevated sight line with enough room for the whole loader.
+        if (clear < 5 && length > 5) {
+            for (let lift = 1.5; lift <= 15; lift += 1.5) {
+                this._liftEye.copy(this.camera.position); this._liftEye.y += lift;
+                this._liftDir.copy(this._liftEye).sub(target);
+                const distance = this._liftDir.length(); this._liftDir.divideScalar(distance);
+                const candidate = sweep(this._liftDir, distance);
+                if (candidate >= 5) { dir.copy(this._liftDir); clear = candidate; break; }
+            }
         }
+        this.camera.position.copy(target).addScaledVector(dir, clear);
+        let faded = 0, inside = 0;
+        const visible = new Set(boxes.map(b => b.mesh));
+        for (const {mesh, box} of boxes) {
+            let opacity = 1;
+            const distance = box.distanceToPoint(this.camera.position);
+            if (distance < 3) { opacity = Math.max(0.15, distance / 3); faded++; }
+            if (box.containsPoint(this.camera.position) && opacity >= 0.9) inside++;
+            let entry = this._fadeMats.get(mesh);
+            if (opacity < 1 && !entry) {
+                const original = mesh.material;
+                const clones = (Array.isArray(original) ? original : [original]).map(m => {
+                    const clone = m.clone(); clone.transparent = true; clone.depthWrite = false; return clone;
+                });
+                entry = { original, clones }; this._fadeMats.set(mesh, entry);
+            }
+            if (entry) {
+                mesh.material = opacity < 1 ? (Array.isArray(entry.original) ? entry.clones : entry.clones[0]) : entry.original;
+                entry.clones.forEach(m => { m.opacity = opacity; });
+            }
+        }
+        for (const [mesh, entry] of this._fadeMats) if (!visible.has(mesh)) mesh.material = entry.original;
+        this.clearanceInfo = { blockers: blocked ? 1 : 0, pulledIn: blocked, faded, inside };
     }
 }

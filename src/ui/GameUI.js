@@ -218,6 +218,16 @@ body.tf-menu #tf-hud{display:none !important}
   #tf-hud.tf-lefty .tf-pause{right:auto;left:calc(10px + ${SAFE_L})}
 }
 
+/* Narrow landscape keeps the timer and every icon out of the mission row. */
+@media (max-width:740px) and (orientation:landscape){
+  #tf-hud .tf-mission{width:220px}
+  #tf-hud .tf-timer{left:auto;right:76px;transform:none}
+  #tf-hud .tf-tools{top:60px;right:10px}
+  #tf-hud .tf-mini{top:120px}
+  #tf-hud #tf-loads{top:114px}
+  #tf-hud .tf-hint{top:158px}
+}
+
 /* --------------------------------------------------------- phone portrait */
 @media (max-width:560px) and (orientation:portrait){
   #tf-hud{font-size:14px}
@@ -652,13 +662,13 @@ export default class GameUI {
     this.el.loads.textContent = 'LOADS LEFT ' + Math.max(0, n | 0);
     this.el.loads.classList.toggle('on', n > 0);
   }
-  announce2(t1, t2) {
+  announce2(t1, t2, duration = 1600) {
     if (!this.el.announce) return;
     this.el.annT1.textContent = t1 || '';
     this.el.annT2.textContent = t2 || '';
     this.el.announce.classList.add('on');
     clearTimeout(this._annT);
-    this._annT = setTimeout(() => this.el.announce.classList.remove('on'), 1600);
+    this._annT = setTimeout(() => this.el.announce.classList.remove('on'), duration);
   }
   setKey(code, on) {
     // TIER 4: a real keyboard press lights the matching on-screen key.

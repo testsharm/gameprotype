@@ -503,7 +503,7 @@ export class Vehicle {
         
         // === Throttle ramp ===
         const throttleRampRate = 1 / 0.35; // 0 -> full in 0.6s
-        const targetThrottle = input.forward ? 1 : (input.backward ? -1 : 0);
+        const targetThrottle = input.brake ? 0 : (input.forward ? 1 : (input.backward ? -1 : 0));
         
         if (targetThrottle !== 0) {
             if (this.throttleState * targetThrottle < 0) this.throttleState = 0;
@@ -511,9 +511,7 @@ export class Vehicle {
             this.throttleState += sign * throttleRampRate * deltaTime;
             if (Math.abs(this.throttleState) > 1) this.throttleState = Math.sign(this.throttleState);
         } else {
-            const decay = 20 * deltaTime;
-            if (Math.abs(this.throttleState) <= decay) this.throttleState = 0;
-            else this.throttleState -= Math.sign(this.throttleState) * decay;
+            this.throttleState = 0;
         }
         
         // === Governor (top speed caps) ===
@@ -526,11 +524,9 @@ export class Vehicle {
         let forceMultiplier = 1;
         
         if (this.throttleState > 0.01) {
-            if (currentFwdSpeed > maxForwardSpeed * 0.95) forceMultiplier = 0;
-            else if (currentFwdSpeed > maxForwardSpeed * 0.85) forceMultiplier = 0.4;
+            if (currentFwdSpeed > maxForwardSpeed) forceMultiplier = 0;
         } else if (this.throttleState < -0.01) {
-            if (currentFwdSpeed < -maxReverseSpeed * 0.95) forceMultiplier = 0;
-            else if (currentFwdSpeed < -maxReverseSpeed * 0.85) forceMultiplier = 0.4;
+            if (currentFwdSpeed < -maxReverseSpeed) forceMultiplier = 0;
         }
         
         const appliedForce = baseEngineForce * this.throttleState * forceMultiplier;
@@ -550,15 +546,6 @@ export class Vehicle {
             for (let i = 0; i < 4; i++) this.vehicleController.setWheelBrake(i, 0);
         }
         
-        // Predictable stop assist, preserving gravity and vertical suspension.
-        if (targetThrottle === 0 || input.brake) {
-            const v = this.chassisBody.linvel();
-            const speed = Math.hypot(v.x, v.z);
-            const decel = input.brake ? 7.5 : 5.5;
-            const next = Math.max(0, speed - decel * deltaTime);
-            const scale = speed < 2 / 3.6 ? 0 : next / Math.max(speed, 0.001);
-            this.chassisBody.setLinvel({ x: v.x * scale, y: v.y, z: v.z * scale }, true);
-        }
         // === Speed-sensitive steering ===
         const speedAbs = Math.abs(currentFwdSpeed);
         const speedFactor = Math.max(0.25, 1 - speedAbs / 12);
@@ -576,6 +563,36 @@ export class Vehicle {
         this.vehicleController.setWheelSteering(3, 0);
         
         this.vehicleController.updateVehicle(deltaTime);
+    }
+
+    // Apply AFTER the solver: otherwise suspension/tyre impulses reintroduce
+    // a small creep immediately after the assist zeroes the chassis velocity.
+    applyStopAssist(input, dt) {
+        const v = this.chassisBody.linvel();
+        const speed = Math.hypot(v.x, v.z);
+        let grounded = false;
+        for (let i = 0; i < 4; i++) grounded ||= this.vehicleController.wheelIsInContact(i);
+        if (!grounded) return;
+        if (input.brake || (!input.forward && !input.backward)) {
+            const next = Math.max(0, speed - (input.brake ? 7.5 : 5.5) * dt);
+            const k = next < 2 / 3.6 ? 0 : next / Math.max(speed, 0.001);
+            this.chassisBody.setLinvel({ x: v.x * k, y: v.y, z: v.z * k }, true);
+            if (k === 0) {
+                this.smoothedSpeed = 0;
+                this.currentSpeed = 0;
+            }
+        } else {
+            const forward = this._tempForward.set(0, 0, 1);
+            const q = this.chassisBody.rotation();
+            this._tempQuat.set(q.x, q.y, q.z, q.w);
+            forward.applyQuaternion(this._tempQuat); forward.y = 0; forward.normalize();
+            const signed = v.x * forward.x + v.z * forward.z;
+            const capped = Math.max(-14 / 3.6, Math.min((32 + (this.engineMultiplier - 1) * 10) / 3.6, signed));
+            if (capped !== signed) this.chassisBody.setLinvel({
+                x: v.x + forward.x * (capped - signed), y: v.y,
+                z: v.z + forward.z * (capped - signed)
+            }, true);
+        }
     }
 
     updateVisuals(audio, dt) {

@@ -171,16 +171,16 @@ const CSS = `
 .tf-tabs button{flex:1;height:44px;border-radius:9px;font-size:14px;font-weight:900;letter-spacing:.04em;
   background:var(--steel);border:2px solid var(--border);color:var(--ink)}
 .tf-tabs button.on{background:var(--amber);color:#1a1204}
-.tf-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.tf-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:calc(100dvh - 240px);overflow-y:auto;padding:3px}
 .tf-card{min-height:96px;text-align:left;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:3px;position:relative;
   background:var(--steel);border:2px solid var(--border);color:var(--ink)}
 .tf-card.sel{outline:3px solid var(--goal)}
-.tf-card.lock{opacity:.55}
+.tf-card.lock{opacity:1;background:#1c2738}.tf-card.lock .nm{color:#aab8cc}
 .tf-card .n{font-size:14px;color:var(--muted);font-weight:900;letter-spacing:.08em}
 .tf-card .nm{font-size:15px;font-weight:900;line-height:1.15}
 .tf-card .st{font-size:14px;color:var(--goal);letter-spacing:2px}
 .tf-card .tag{position:absolute;top:7px;right:8px;font-size:14px;font-weight:900;color:var(--well);background:var(--muted);border-radius:5px;padding:2px 5px}
-.tf-card .lk{position:absolute;top:8px;right:8px}.tf-card .lk .tf-ic{width:18px;height:18px}
+.tf-card .lk{display:flex;align-items:center;gap:4px;margin-top:auto;font-size:14px;color:#cbd5e1}.tf-card .lk .tf-ic{width:18px;height:18px}
 .tf-pick-foot{margin-top:10px;display:flex;flex-direction:column;gap:8px}
 .tf-pick-foot .desc{font-size:14px;color:#cbd5e1;min-height:20px}
 .tf-pick-foot button{height:52px;border-radius:11px;font-size:16px}
@@ -204,7 +204,8 @@ const CSS = `
 .tf-sw i.on{outline:3px solid var(--goal)}
 
 @keyframes nextPulse{50%{box-shadow:0 0 0 4px #f59e0b66}}
-.tf-card.newlevel{outline:2px solid #fbbf24;animation:nextPulse 1.5s infinite}
+#tf-win .tf-card.newlevel{outline:2px solid #fbbf24;outline-offset:-2px;border-color:#fbbf24;animation:nextPulse 1.5s infinite}
+#tf-win .tf-card.newlevel .tag{background:#fbbf24;color:#1a1204}
 /* result / fail */
 .tf-stars{display:flex;justify-content:center;gap:8px;margin:4px 0 10px}
 .tf-stars .tf-ic{width:44px;height:44px;color:#3a4c68}

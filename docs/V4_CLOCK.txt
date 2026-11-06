@@ -1,0 +1,3 @@
+[RAN] PASS clock follows wall time at a five-frame render schedule {"wall":8.018600000000093,"game":8.017200000000187,"drift":0.001399999999906143,"frame":{"dt":0.2005,"steps":5}}
+[RAN] PASS physics never takes more than five steps per frame {"dt":0.2005,"steps":5}
+[RAN] PASS no own-code errors []

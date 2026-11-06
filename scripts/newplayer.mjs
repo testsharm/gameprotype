@@ -21,9 +21,14 @@ try {
    await page.keyboard.down('Space');await page.waitForTimeout(600);await page.keyboard.up('Space');
  }
  async function hold(key) {
+   const before=await page.evaluate(()=>window.__tfObserve().action.last?.holdEnd || 0);
    await page.keyboard.down(key);
-   await page.waitForTimeout(key==='f'?1750:1350);
-   await page.keyboard.up(key);
+   try {
+     await page.waitForFunction(({before,code})=>{
+       const o=window.__tfObserve();
+       return !o.action.holding && o.action.last?.code===code && o.action.last.holdEnd>before;
+     },{before,code:key==='f'?'KeyF':'KeyG'},{timeout:6000});
+   } finally { await page.keyboard.up(key); }
    await page.waitForTimeout(200);
  }
  for(let n=1;n<=3;n++) {
@@ -42,7 +47,10 @@ try {
  check('result shows +265',await page.locator('#tf-coin-count').textContent()==='+265');
  report.push('[RAN] Result text '+await page.locator('#tf-win').textContent());
  await page.locator('[data-a="next"]').click();
- await page.waitForTimeout(2400);
+ await page.waitForTimeout(400);
+ check('GET READY is visible during L2 start',await page.locator('#tf-announce').evaluate(e=>e.classList.contains('on')&&e.textContent.includes('GET READY')));
+ await shoot(page,'v4b-get-ready.png');
+ await page.waitForTimeout(2000);
  report.push('[RAN] NEXT '+JSON.stringify(await page.evaluate(()=>window.__tfState())));
  check('NEXT starts L2 unpaused without a window',await page.evaluate(()=>{const s=window.__tfState();return s.job===2&&!s.uiPaused&&!s.modalOpen&&s.timerRunning&&document.querySelector('#tf-win').classList.contains('off');}));
  await shoot(page,'v4-next.png');

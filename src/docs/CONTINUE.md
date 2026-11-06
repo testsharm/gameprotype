@@ -513,4 +513,6 @@ Round 1 (M4f) applied, backup 2026-11-05T07-51-19-422Z-lgp, NOT saved. New HUD v
 
 - 2026-11-06 V4 PARTIAL TIER 1: [RAN] fresh-save normal-URL L1 completed with real driving and holds; NEXT/reload CONTINUE L2 verified. +265 result and 1–2 ms action effect observations. [SEEN] pile progression, phone two-finger controls, desktop keycaps and TIME IS UP. [UNKNOWN] Tier 1 NOT complete, Tier 2 onward NOT started. Checklist 9/21, do not merge. Read docs/V4_REPORT.md first. Old level-walk uses teleport and direct steps, not valid gameplay proof under v4.
 
+- 2026-11-06 V4 CONTINUATION: [RAN] 11/21 strict checklist, docs/V4_REPORT.md. Stop/brake/reverse tests now pass, cancellation/tap and five-frame clock tested, fresh L1/NEXT/reload flow re-passed. [SEEN] Camera above pile/near wall, L3 upright after hidden-physics fix, selected P10 starts, bounded floating label and readable amber picker. [UNKNOWN] Ten-minute active-input claim REJECTED: original test sat paused after minute 3. Corrected v4-session.mjs not run. Tier 1 still awaits real L15 champion and exhaustive path checks; do not advance tiers or merge PR #5 yet.
+
 SESSION LOG END MARKER (do not remove this line)

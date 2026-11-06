@@ -1,0 +1,4 @@
+[RAN] PASS two simultaneous fingers drive and hold {"gameState":"playing","currentJob":1,"freePlay":false,"uiPaused":false,"modalOpen":false,"paused":false,"physReady":true,"loads":0,"total":3,"hasDirt":false,"scoopCount":0,"coins":0,"speed":0,"fwd":true,"lastAction":null,"actHolding":true,"actCode":"KeyF","actT":0.25,"duration":1.6,"canvas":true}
+[RAN] PASS both touches release ""
+[RAN] PASS phone picker START in viewport {"x":27.203125,"y":676.75,"width":383.59375,"height":52}
+[RAN] PASS no own-code errors []

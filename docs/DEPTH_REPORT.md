@@ -1,3 +1,11 @@
+# Latest V4 continuation — 2026-11-06
+
+[RAN] Strict evidence score **11/21**, not a finished game rebuild. See V4_REPORT.md.
+[SEEN] Stopping, pile/wall camera view, L3 start attitude and picker readability improved with real browser evidence.
+[UNKNOWN] Original ten-minute run had zero errors but insufficient active input; it does NOT pass checklist 18. Tier 1 final-job/complete path sign-off remains pending; later tier rebuilds not claimed.
+
+---
+
 # Latest V4 status — 2026-11-06
 
 [READ] This pass is PARTIAL, not a finished game rebuild. Historical reports below do not establish the new checklist.

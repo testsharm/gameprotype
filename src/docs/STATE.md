@@ -1,3 +1,15 @@
+## LATEST — V4 TIER 1 CONTINUATION (2026-11-06)
+
+[RAN] Strict checklist now 11/21; see docs/V4_REPORT.md. PR #5 stays open, not merged.
+[RAN] Real handling inputs: 20.21 km/h release stops in 0.906 s; 31.55 km/h Space brake stops in 0.877 s; measured reverse 14 km/h. Zero horizontal creep after stopping.
+[SEEN] Camera lifts above the pile instead of entering the cab; near-wall materials fade. L3 now starts upright: hidden city colliders were tipping it. Selected L6/L11/L13/L15 starts inspected.
+[RAN] Real tap-to-act and cancellation-to-rest tested. Five-frame clock: about 1 ms drift over eight seconds. Fresh normal-URL L1 -> +265 -> GET READY/NEXT L2 -> reload CONTINUE L2 passed again.
+[SEEN] Picker amber outline, lock labels and START fixed at phone and landscape sizes. Floating pile label is bounded in screen size.
+[UNKNOWN] Ten-minute zero-error run rejected as active-input proof: it sat paused after minute 3. Corrected harness not re-run. Do not count checklist 18.
+[UNKNOWN] Tier 1 still not fully signed off: real L15 champion flow and full start/path clearance remain unverified. Tiers 2–5 remain blocked/unbuilt. Do not claim all 15 different levels or upgraded Free Play.
+
+---
+
 ## LATEST — V4 PARTIAL TIER 1 (2026-11-06)
 
 [READ] Base 1f091a9 from clean-v1. Session branch arena/0ac523ae-gameprotype is fixed by Arena.

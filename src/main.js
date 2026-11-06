@@ -8,7 +8,6 @@ import JobEffects from './gameplay/JobEffects.js';
 import Guidance from './gameplay/Guidance.js';
 // (SoundFX removed in M2: all sound is in core/Audio.js)
 // (Sfx2 removed in M2)
-import DigAnimator from './vehicle/DigAnimator.js';
 // (DigSound removed in M2)
 import GameUI from './ui/GameUI.js';
 // (Music removed in M2)
@@ -67,20 +66,26 @@ function writeLastJob(id) { try { localStorage.setItem(LAST_JOB_KEY, String(Math
 function readQuality() { try { return localStorage.getItem(QUALITY_KEY); } catch (e) { return null; } }
 function writeQuality(q) { try { localStorage.setItem(QUALITY_KEY, q); } catch (e) {} }
 let level = null;
-const JOB_TITLE = 'Clear the Highway', JOB_OBJ = 'Load the blue truck with dirt';
-let dig = null, digSound = null;
-const dm = { fill: 1, drop: -1, b: 0, k: 0, was: false };
+let armReturn = null;
 function updateDig(dt) {
     if (!vehicle) return;
-    const p = actHolding ? Math.min(1, actT / actionDuration(actCode)) : 0;
-    const scoop = actCode !== 'KeyG';
-    const boom = actHolding ? (scoop ? Math.sin(p * Math.PI) * 0.9 - 0.2 : -0.35) : -0.2;
-    const bucket = actHolding ? (scoop ? -0.5 + p * 1.7 : 1.2 - p * 2.1) : 0.2;
-    const k = actHolding ? 1 : Math.min(1, dt / 0.3);
-    vehicle.boomPivot.rotation.x += (boom - vehicle.boomPivot.rotation.x) * k;
-    vehicle.bucketPivot.rotation.x += (bucket - vehicle.bucketPivot.rotation.x) * k;
-    vehicle.targetBoomAngle = vehicle.boomPivot.rotation.x;
-    vehicle.targetBucketAngle = vehicle.bucketPivot.rotation.x;
+    let boom = -0.2, bucket = 0.2;
+    if (actHolding) {
+        const p = Math.min(1, actT / actionDuration(actCode));
+        const scoop = actCode !== 'KeyG';
+        boom = scoop ? Math.sin(p * Math.PI) * 0.9 - 0.2 : -0.35;
+        bucket = scoop ? -0.5 + p * 1.7 : 1.2 - p * 2.1;
+        armReturn = null;
+    } else {
+        if (!armReturn) armReturn = { t: 0, boom: vehicle.boomPivot.rotation.x, bucket: vehicle.bucketPivot.rotation.x };
+        armReturn.t = Math.min(0.3, armReturn.t + dt);
+        const t = armReturn.t / 0.3;
+        const k = 1 - Math.pow(1 - t, 3);
+        boom = armReturn.boom + (-0.2 - armReturn.boom) * k;
+        bucket = armReturn.bucket + (0.2 - armReturn.bucket) * k;
+    }
+    vehicle.boomPivot.rotation.x = vehicle.targetBoomAngle = boom;
+    vehicle.bucketPivot.rotation.x = vehicle.targetBucketAngle = bucket;
 }
 function initUi() {
     if (ui) return;
@@ -108,7 +113,7 @@ function updateUi(dt) {
     safe(() => {
         if (worldBuilder && vehicle) worldBuilder.setPlayerPos(vehicle.mesh.position);
         if (!trafficPhys && world && RAPIER) { trafficPhys = new TrafficPhysics(world, RAPIER, worldBuilder.trafficCars); trafficPhys.init(); }
-        if (trafficPhys) trafficPhys.update();
+        if (trafficPhys) trafficPhys.update(!stages.current);
         if (ui) {
             ui.setSpeed(vehicle.currentSpeed);
             if (saveData.coins !== lastCoinsShown) { lastCoinsShown = saveData.coins; ui.setCoins(saveData.coins); }
@@ -426,6 +431,7 @@ function updateActionHold(dt) {
             actHolding = false; actFired = true; actT = 0;
             lastAction = { code: actCode, holdEnd: performance.now(), effect: null };
             if (vehicle) { if (actCode === 'KeyG') vehicle.dump(); else vehicle.scoop(); }
+            if (uiSettings.tapAct) actionProgress(0, actCode);
             safe(() => { if (guide && guide.pulseGround) guide.pulseGround(actCode === 'KeyG'); });
         }
     } else if (!actHolding && actT > 0) { actT = 0; actionProgress(0, actCode); }
@@ -574,7 +580,7 @@ function nextFromResult() {
   const id = lastResult && lastResult.nextId ? lastResult.nextId : (ensureJobs().nextId(jobCtx()) || currentJob);
   if (lastResult && lastResult.job.id === 15) { startFreePlay(); return; }
   goJob(id);
-  safe(() => { if (ui) ui.toast('GET READY · ' + jm.current.name, 'info'); });
+  safe(() => { if (ui) ui.announce2('GET READY', jm.current.name, 2000); });
   // TIER 9: midgame ad ONLY on NEXT, never on start, never during driving.
   if (ads.canMidgame()) ads.request('midgame');
 }
@@ -614,6 +620,7 @@ function startFreePlay() {
     });
   }
   park.show(); park.reset();
+  cameraManager.setCollidables([...worldBuilder.buildingMeshes, ...worldBuilder.treeMeshes, park.group]);
   safe(() => setEnv({ id: 'day', sun: 1.05, hemi: 1.0, fog: 0.00055, fogColor: 0xd8e7f5 }, true));
   cameraManager.setShowcase(false);
   cameraManager.setMode('chase');
@@ -627,7 +634,7 @@ function startFreePlay() {
     } catch (e) {}
   }
   safe(() => { if (cameraManager.snapTo && vehicle) { cameraManager.snapTo(vehicle.mesh,
-    { x: PARK_CENTER.x, y: 1.6, z: PARK_CENTER.z + 58 }); camClearT = 1; } });
+    { x: PARK_CENTER.x, y: 1.6, z: PARK_CENTER.z + 58 }); } });
   safe(() => { if (ui) { ui.hideModal(); ui.setScreen('play'); ui.reset(); ui.setTimer(null);
     ui.setJob('Free Play', 'Drive, jump, collect rings', 'No timer · no fail');
     ui.setLoads(0);
@@ -868,7 +875,7 @@ window.restartJob = () => {
         currentStartPose = pose;
         setVehiclePose(pose.x, pose.y, pose.z, pose.quat);
         cameraManager.setMode('chase');
-        safe(() => { if (cameraManager.snapTo) cameraManager.snapTo(vehicle.mesh, { x: pose.x, y: pose.y, z: pose.z }); camClearT = 1; });
+        safe(() => { if (cameraManager.snapTo) cameraManager.snapTo(vehicle.mesh, { x: pose.x, y: pose.y, z: pose.z }); });
         cameraManager.setZoom(Math.max(0.75, Math.min(1.5, pose.cam / 12)));
         safe(() => {
             if (guide && job.tutorial) guide.setChevrons({ x: pose.x, z: pose.z }, { x: site.pile.x, z: site.pile.z });
@@ -984,69 +991,6 @@ function drawMinimap() {
     miniCtx.restore();
 }
 
-// ---- Keep the camera in front of buildings (no more wall blocking the view) ----
-const _camFocus = new THREE.Vector3();
-const _camDir = new THREE.Vector3();
-let camClearT = 1;
-function keepCameraClear(dt) {
-    if (!vehicle || !worldBuilder || !worldBuilder.buildingData) return;
-    if (cameraManager.currentMode === 'cab') { camClearT = 1; return; }
-    _camFocus.copy(vehicle.mesh.position);
-    _camFocus.y += 2.2;
-    _camDir.copy(camera.position).sub(_camFocus);
-    const len = _camDir.length();
-    if (len < 0.5) return;
-    const o = [_camFocus.x, _camFocus.y, _camFocus.z];
-    const d = [_camDir.x, _camDir.y, _camDir.z];
-    const margin = 1.2;   // A5: approx. spherecast radius, not a thin ray
-    let tHit = 1;
-    // A5: buildings AND trees. Spherecast-style fat ray so a tree canopy
-    // cannot fill the screen with a solid green/black slab.
-    // TIER C: during a stage the CITY IS HIDDEN, so its invisible colliders
-    // must not shove the camera into the machine. Only the pile + truck block.
-    let boxes;
-    if (stages && stages.current) {
-      // The whole city is hidden during a stage: no invisible colliders, and
-      // no pile/truck blocker either (it would shove the camera into the
-      // machine when the player parks next to the pile). Normal chase camera.
-      boxes = [];
-    } else {
-      boxes = (worldBuilder.treeData && worldBuilder.treeData.length)
-        ? worldBuilder.buildingData.concat(worldBuilder.treeData) : worldBuilder.buildingData;
-    }
-    for (let i = 0; i < boxes.length; i++) {
-        const b = boxes[i];
-        const c = [b.x, b.y, b.z];
-        const h = [b.w / 2 + margin, b.h / 2 + margin, b.d / 2 + margin];
-        let tmin = 0, tmax = 1, ok = true, inside = true;
-        for (let a = 0; a < 3; a++) {
-            const lo = c[a] - h[a], hi = c[a] + h[a];
-            if (o[a] < lo || o[a] > hi) inside = false;
-            if (Math.abs(d[a]) < 1e-8) {
-                if (o[a] < lo || o[a] > hi) { ok = false; break; }
-            } else {
-                let t1 = (lo - o[a]) / d[a], t2 = (hi - o[a]) / d[a];
-                if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
-                if (t1 > tmin) tmin = t1;
-                if (t2 < tmax) tmax = t2;
-                if (tmin > tmax) { ok = false; break; }
-            }
-        }
-        if (!ok) continue;
-        if (inside) { tHit = Math.min(tHit, 0.42); continue; }
-        if (tmin > 0 && tmin < tHit) tHit = tmin;
-    }
-    const want = tHit < 1 ? Math.max(0.38, tHit - 0.04) : 1;
-    if (want < camClearT) camClearT = want;
-    else camClearT += (want - camClearT) * Math.min(1, dt * 4);
-    if (camClearT < 0.999) {
-        camera.position.copy(_camFocus).addScaledVector(_camDir, camClearT);
-        // A5: re-aim after moving, or the machine slides out of frame.
-        if (cameraManager.currentLookAt) camera.lookAt(cameraManager.currentLookAt);
-        else camera.lookAt(_camFocus);
-    }
-}
-
 // ======================================================================
 // M7a part 2: real jobs, sites per job, weather, shop, result windows
 // ======================================================================
@@ -1098,6 +1042,7 @@ function refreshCard() {
         if (level && level.job) ui.setJob(job.name, level.objective(vehicle && vehicle.hasDirt), level.stepText());
         else ui.setJob(job.name, job.objective || '', (jm.stepText ? jm.stepText() : ''));
         if (ui.setLoads && jm.state) ui.setLoads(Math.max(0, (job.loads || 3) - (jm.state.loads || 0)));
+        worldBuilder.setPileLoads(Math.max(0, (job.loads || 3) - scoopCount));
     });
 }
 function openModalState() {
@@ -1175,7 +1120,7 @@ function placeSite(id) {
             siteGroups.set(id, g);
         }
         if (level) level.start(job, { pile: { x: px, z: pz }, truck: { x: tx, z: tz } });
-        cameraManager.setCollidables([pg, tg, ...(stages.group ? stages.group.children.filter(o => o.isMesh && o.geometry?.type !== 'PlaneGeometry' && o !== stages.group.children[1]) : [])]);
+        cameraManager.setCollidables([pg, tg, level?.group, siteGroups.get(id), ...(stages.group ? stages.group.children.filter(o => o.isMesh && o.geometry?.type !== 'PlaneGeometry' && o !== stages.group.children[1]) : [])]);
     });
 }
 
@@ -1416,7 +1361,7 @@ const clock = new THREE.Clock();
 
 // ---- Fixed 60 Hz physics (same speed on 30, 60, 144, 165, 240 Hz screens) ----
 const FIXED_DT = 1 / 60, MAX_STEPS = 5;
-let physAcc = 0;
+let physAcc = 0, lastFrameDt = 0, lastFrameSteps = 0;
 function advanceAccumulator(acc, frameDt) {
     acc += Math.min(frameDt, 0.25);
     let steps = 0;
@@ -1532,7 +1477,7 @@ window.__tfQA = {
   qaTap: (code) => actionTap(code),
   qaCamera: () => ({ pos: camera.position.toArray().map(v => +v.toFixed(2)),
     look: cameraManager.currentLookAt ? cameraManager.currentLookAt.toArray().map(v => +v.toFixed(2)) : null,
-    clearT: camClearT, mode: cameraManager.currentMode, showcase: cameraManager.showcase }),
+    clearT: cameraManager.clearanceInfo.pulledIn ? 0.5 : 1, mode: cameraManager.currentMode, showcase: cameraManager.showcase }),
   qaSite: () => ({ pile: rawSite && rawSite.pile, truck: rawSite && rawSite.truck,
     vehicle: vehicle ? { x: vehicle.mesh.position.x, y: vehicle.mesh.position.y, z: vehicle.mesh.position.z } : null })
 };
@@ -1620,20 +1565,22 @@ function animate() {
         const dt = Math.min(frameDt, 0.25);
         updateActionHold(dt);
         const adv = advanceAccumulator(physAcc, frameDt);
-        physAcc = adv.acc;
+        physAcc = adv.acc; lastFrameDt = dt; lastFrameSteps = adv.steps;
         const driveInput = (gameState === 'playing' && !uiPaused && !modalOpen && !paused) ? input : ZERO_INPUT;
         for (let s = 0; s < adv.steps; s++) {
             vehicle.updateController(driveInput, FIXED_DT);
             world.step();
             vehicle.capturePhysicsState();
         }
+        vehicle.applyStopAssist(driveInput, dt);
+        vehicle.capturePhysicsState();
         vehicle.renderAlpha = Math.max(0, Math.min(1, physAcc / FIXED_DT));
         debugTick(frameDt, adv.steps);
         // physics now runs in the fixed-step loop above
         // physics step moved to the fixed-step loop above
         vehicle.updateVisuals(audio, dt);
         cameraManager.update(vehicle.mesh, dt, vehicle.currentSpeed);
-        keepCameraClear(dt);
+        // CameraManager owns the final collision-safe eye position.
         if (worldBuilder.sky) worldBuilder.sky.position.copy(camera.position);
         drawMinimap();
 
@@ -1670,6 +1617,7 @@ function animate() {
                 // A8: the pile eases down to a ~15% flat patch after the last load.
                 const total = (jm && jm.current && jm.current.loads) || 3;
                 scoopCount++;
+                worldBuilder.setPileLoads(Math.max(0, total - scoopCount));
                 safe(() => { if (worldBuilder.setPileFraction) worldBuilder.setPileFraction(Math.max(0.15, 1 - 0.85 * scoopCount / total)); });
                 safe(() => { if (fx) fx.onScoop(bucketPos.clone()); if (sfx) sfx.scoop(); if (guide && tutStep === 2) { guide.nextTutorialStep(); tutStep = 3; } }); 
                 audio.playDirtCrunch(); 
@@ -1714,7 +1662,7 @@ function animate() {
         updateSunShadow();
         trackFPS(dt);
         updateFx(dt);
-        safe(() => { if (worldBuilder.updatePile) worldBuilder.updatePile(dt); });
+        safe(() => { if (worldBuilder.updatePile) worldBuilder.updatePile(dt); worldBuilder.showPileLabel(gameState === 'playing' && !freePlay && !jobCompleted, camera); });
         safe(() => { if (level && level.job && !freePlay && gameState === 'playing' && !uiPaused && !modalOpen) level.update(dt, vehicle); });
         vehicle.pilePos = worldBuilder.dirtPileGroup.position;
         if (!vehicle.truckPos) vehicle.truckPos = new THREE.Vector3();
@@ -1753,6 +1701,26 @@ window.__speedInfo = function () {
         reverseCapKmh: 14,
         shownKmh: vehicle ? vehicle.currentSpeed : 0,
         signedKmh: vehicle ? vehicle.signedSpeedKmh : 0 };
+};
+window.__tfObserve = function () {
+    const body = vehicle?.chassisBody;
+    const v = body?.linvel();
+    const q = body?.rotation();
+    return {
+        position: body ? { ...body.translation() } : null,
+        upDot: q ? new THREE.Vector3(0,1,0).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w)).y : 1,
+        yaw: q ? new THREE.Euler().setFromQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w), 'YXZ').y : 0,
+        speedKmh: v ? Math.hypot(v.x, v.z) * 3.6 : 0,
+        velocity: v ? { ...v } : null,
+        elapsed: jm?.state.elapsed || 0, timeLeft: jm?.state.timeLeft || 0,
+        arm: vehicle ? [vehicle.boomPivot.rotation.x, vehicle.bucketPivot.rotation.x] : null,
+        action: { holding: actHolding, progress: actHolding ? actT / actionDuration(actCode) : 0, last: lastAction },
+        hasDirt: !!vehicle?.hasDirt, loads: jm?.state.loads || 0,
+        camera: { position: camera.position.toArray(), up: camera.up.toArray(), ...cameraManager.clearanceInfo },
+        pileScale: worldBuilder.dirtPileGroup.scale.toArray(),
+        frame: { dt: lastFrameDt, steps: lastFrameSteps },
+        playing: canPlay()
+    };
 };
 window.__tfState = function () {
     return { gameState: gameState, uiPaused: uiPaused, modalOpen: modalOpen,

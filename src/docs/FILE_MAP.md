@@ -1,3 +1,11 @@
+## V4 continuation map (2026-11-06)
+
+[READ] Vehicle.applyStopAssist runs once after the physics solver batch using frame game time; it snaps slow grounded horizontal motion to zero. Governors use physical speed, not the display cap.
+[READ] CameraManager owns camera clearance and fading. The old main.js keepCameraClear implementation was removed. World and StageManager toggle hidden-city physics alongside visibility; TrafficPhysics follows the same stage state.
+[READ] World.setPileLoads/showPileLabel implement a code-made floating count, sized in screen pixels. GameUI.announce2 accepts a duration for GET READY. Menus picker scopes its amber outline to beat button CSS specificity and scrolls its cards, not the START button.
+[RAN] New browser tests: v4-handling.mjs, v4-camera-actions.mjs, v4-followup.mjs, v4-clock.mjs, v4-phone.mjs. v4-session.mjs was corrected after an idle/paused run; corrected active-session proof still pending.
+[READ] window.__tfObserve is read-only instrumentation for real-input tests. Existing mutation QA shortcuts are not used to claim gameplay completion.
+
 ## V4 update (2026-11-06)
 
 [READ] main.js: forward-only resume save, next unfinished start info, silent modal navigation, immediate hold effects, frame-time clock, five-step physics cap, action timing observations.

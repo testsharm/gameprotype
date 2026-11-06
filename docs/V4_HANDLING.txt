@@ -1,0 +1,6 @@
+[READ] Setup only: QA teleport to open ground (850,800). All speed is earned with real W; no velocity injection.
+[RAN] PASS 20 km/h release stops within 1.2 s {"start":{"ms":0,"speed":20.210904121398926,"p":{"x":850,"y":1.086336612701416,"z":812.5462646484375}},"stop":{"ms":906.3999999999069,"speed":0,"p":{"x":850,"y":1.08634614944458,"z":814.2909545898438}},"metres":1.74468994140625}
+[RAN] PASS 32 km/h brake stops within 1.5 s {"start":{"ms":0,"speed":31.554440689086913,"p":{"x":850,"y":1.0863368511199951,"z":843.4042358398438}},"stop":{"ms":877,"speed":0,"p":{"x":850,"y":1.0863614082336426,"z":846.1238403320312}}}
+[RAN] PASS zero creep after stop {"position":{"x":850,"y":1.0863471031188965,"z":846.12158203125},"yaw":-4.918461769150984e-9,"speedKmh":0,"velocity":{"x":0,"y":-0.06115993112325668,"z":0},"elapsed":0,"timeLeft":180,"arm":[-0.2,0.2],"action":{"holding":false,"progress":0,"last":null},"hasDirt":false,"loads":0,"camera":{"position":[850.000000054103,5.486347103118769,835.1215820304204],"up":[0,1,0],"blockers":0,"pulledIn":false,"faded":0,"inside":0},"pileScale":[1,1,1],"frame":{"dt":0.13469999999995344,"steps":5},"playing":true}
+[RAN] PASS reverse <=14 km/h 13.999999809265146
+[RAN] PASS no own-code errors []

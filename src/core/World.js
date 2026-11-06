@@ -1739,6 +1739,40 @@ export class World {
   // ---------------------------------------------------------- game functions
 
   // A8: the pile eases down to a small flat patch instead of staying huge.
+  setPileLoads(n) {
+    if (!this._pileLabel) {
+      const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 128;
+      const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
+      const material = new THREE.SpriteMaterial({ map: texture, depthTest: true, transparent: true });
+      this._pileLabel = new THREE.Sprite(material);
+      this._pileLabel.scale.set(7, 1.75, 1);
+      this._pileLabel.name = 'pile-loads-label';
+      this.scene.add(this._pileLabel);
+      this._pileLabelCanvas = canvas;
+    }
+    if (this._pileLabelCount === n) return;
+    this._pileLabelCount = n;
+    const ctx = this._pileLabelCanvas.getContext('2d');
+    ctx.clearRect(0,0,512,128); ctx.fillStyle = '#151d2b'; ctx.fillRect(4,12,504,104);
+    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 6; ctx.strokeRect(4,12,504,104);
+    ctx.fillStyle = '#fde68a'; ctx.font = 'bold 48px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('LOADS LEFT ' + Math.max(0,n),256,81);
+    this._pileLabel.material.map.needsUpdate = true;
+  }
+  showPileLabel(on, camera) {
+    if (!this._pileLabel) return;
+    this._pileLabel.visible = !!on && this.dirtPileGroup.visible;
+    this._pileLabel.position.copy(this.dirtPileGroup.position); this._pileLabel.position.y += 5;
+    if (camera) {
+      camera.updateMatrixWorld(true);
+      if (!this._pileLabelEye) this._pileLabelEye = new THREE.Vector3();
+      const depth = -this._pileLabelEye.copy(this._pileLabel.position).applyMatrix4(camera.matrixWorldInverse).z;
+      const pixels = window.innerWidth < 560 ? 150 : 180;
+      const width = pixels * 2 * Math.tan(camera.fov * Math.PI / 360) * Math.max(0.1, depth) / window.innerHeight;
+      this._pileLabel.scale.set(width, width / 4, 1);
+      this._pileLabel.visible &&= depth > camera.near;
+    }
+  }
   setPileFraction(f) { this._pileTarget = Math.max(0.15, Math.min(1, Number(f) || 1)); }
   updatePile(dt) {
     if (!this.dirtPileGroup) return;
@@ -1785,16 +1819,22 @@ export class World {
     this.truckDirtMeshes.push(dirtMesh);
   }
 
+  setCityPhysicsEnabled(enabled) {
+    this.cityPhysicsEnabled = !!enabled;
+    for (const collider of this._cityColliders || []) collider.setEnabled(!!enabled);
+  }
+
   createPhysicsColliders(world, RAPIER) {
+    this._cityColliders = [];
     const groundBodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0, 0);
     const groundBody = world.createRigidBody(groundBodyDesc);
     const groundColliderDesc = RAPIER.ColliderDesc.cuboid(1000, 0.1, 1000);
     const propBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
     (this.propColliders || []).forEach((p) => {
-      world.createCollider(
+      this._cityColliders.push(world.createCollider(
         RAPIER.ColliderDesc.cuboid(p.w / 2, p.h / 2, p.d / 2).setTranslation(p.x, p.y, p.z).setFriction(0.8).setRestitution(0),
         propBody
-      );
+      ));
     });
     world.createCollider(groundColliderDesc, groundBody);
 
@@ -1802,7 +1842,7 @@ export class World {
       const bodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(data.x, data.y, data.z);
       const body = world.createRigidBody(bodyDesc);
       const colliderDesc = RAPIER.ColliderDesc.cuboid(data.w / 2, data.h / 2, data.d / 2);
-      world.createCollider(colliderDesc, body);
+      this._cityColliders.push(world.createCollider(colliderDesc, body));
     });
   }
 }
