@@ -25,3 +25,5 @@ DIST BYTES
 5340884
 DIST FILES
 3
+
+[RAN] C2 build: npm run build passed; dist 5,350,645 bytes across 3 files (uncompressed). Standard Vite config-format and chunk-size warnings remain.

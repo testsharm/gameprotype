@@ -146,24 +146,24 @@ export const LEVELS = [
     site: S(135, 190, 55, 24), dressing: 'pipes',
     scoopText: 'Pick up a pipe from the rack', dumpText: 'Place the pipe on the pad',
     hints: H('Press F at the pipe rack. The pipe snaps into the bucket.', 'Drive to the amber pad and press F to place it.'),
-    rule: 'Carry 3 pipes. No real physics: they snap into the bucket.'
+    rule: 'Carry three pipes below 12 km/h. Speeding drops your pipe; recover it.'
   },
   {
     id: 8, name: 'Night Shift', chapter: 2, type: 'HAUL', theme: 'Dark city',
-    story: 'The city sleeps. Work lights on, five loads to move before dawn.',
-    steps: [{ kind: 'haul', n: 5 }], loads: 5, time: 250, reward: 560,
+    story: 'Six far loads under floodlights. Follow the glowing work pads before dawn.',
+    steps: [{ kind: 'haul', n: 6 }], loads: 6, time: 480, reward: 560,
     start: { back: 24, side: -10, face: 'pile', cam: 14 },
     needs: { job: 7 }, bonus: { text: 'No missed dumps', coins: 90 }, env: NIGHT,
     site: S(225, 160, 55, 24), dressing: 'night',
     scoopText: 'Scoop dirt in the dark', dumpText: 'Dump it in the truck',
     hints: H('Use the map arrow and the work light to find the pile.', 'The truck has lights. Drive slowly in the dark.'),
-    rule: 'Five loads at night, with work lights.'
+    rule: 'Six far loads at night, with floodlit work pads.'
   },
   {
     id: 9, name: 'Bridge Repair', chapter: 2, type: 'FILL', theme: 'Bridge deck',
     story: 'The bridge approach is cracked. Fill five deck holes with fresh soil.',
-    steps: [{ kind: 'fill', n: 5 }], loads: 5, time: 300, reward: 620,
-    start: { back: 21, side: 8, face: 'pile', cam: 12 },
+    steps: [{ kind: 'fill', n: 5 }], loads: 5, time: 480, reward: 620,
+    start: { back: 21, side: 0, face: 'pile', cam: 12 },
     needs: { job: 8 }, bonus: { text: 'Every load landed in a hole', coins: 100 }, env: DAWN,
     site: S(315, 200, 55, 26), dressing: 'bridge',
     scoopText: 'Scoop soil for the deck', dumpText: 'Tip it into the deck hole',
@@ -173,10 +173,10 @@ export const LEVELS = [
   {
     id: 10, name: 'Night Rush', chapter: 2, type: 'RUSH', theme: 'Chapter boss',
     story: 'Midnight shift. Five trucks, five loads, and crossing traffic on the night lane.',
-    steps: [{ kind: 'rush', n: 5 }], loads: 5, time: 300, reward: 700,
-    start: { back: 17, side: -11, face: 'truck', cam: 13 },
+    steps: [{ kind: 'rush', n: 5 }], loads: 5, time: 420, reward: 700,
+    start: { back: 17, side: -11, face: 'pile', cam: 13 },
     needs: { job: 9 }, bonus: { text: 'No missed truck', coins: 120 }, env: NIGHT,
-    site: S(90, 230, 50, 28), dressing: 'night', rush: true, trucks: 5, truckWait: 42,
+    site: S(90, 230, 50, 28), dressing: 'night', rush: true, trucks: 5, truckWait: 70,
     crossTraffic: true,
     scoopText: 'Scoop dirt from the pile', dumpText: 'Dump in the waiting truck',
     hints: H('Scoop at the pile, then watch the crossing car.', 'Load the glowing night truck before its ring runs out.'),
@@ -347,10 +347,11 @@ export class LevelEngine {
     this._prevSide.clear();
     this._rushLeave = [];
     this.rushTarget = null;
-    this.crossCar = null;this.roadCars=null;this.parkHold=0;
+    this.crossCar = null;this.roadCars=null;this.parkHold=0;this.resets=0;this.drops=0;this.forklifts=null;
     this.materialHeaps={};
     this._buildGoals();
     if(job.id===3) this._buildRoadTraffic();
+    if(job.id>=6&&job.id<=10)this._contractorSite();
     // B2: every goal object exists from the FIRST frame. No lazy creation.
     // B6: the old floating orange cone marker is gone; guidance uses the
     // painted ground ring + chevrons in Guidance.js.
@@ -436,7 +437,7 @@ export class LevelEngine {
           g.mesh = step.kind === 'trench' ? this._buildTrench(g, i + 1, spotCount) : this._buildDebris(g, i + 1, spotCount);
         } else if (step.kind === 'fill') {
           fillN++;
-          const p=this.job.id===3?this._at(d.len,(fillN-2)*17):this.site.truck;
+          const p=this.job.id===3?this._at(d.len,(fillN-2)*17):this.job.id===9?this._at(20+(fillN-1)*14,0):this.site.truck;
           g.x = p.x; g.z = p.z;g.fillIndex=1;
           g.mesh=this._buildHole(g.x,g.z);if(!this.hole)this.hole=g.mesh;
           this._label('HOLE '+fillN,g.x,2.7,g.z,COL.amber);
@@ -760,6 +761,33 @@ export class LevelEngine {
     return '';
   }
   faceLabels(camera){if(this.group)this.group.traverse(o=>{if(o.userData.labelTexture)o.quaternion.copy(camera.quaternion);});}
+  _contractorSite(){
+    const p=this.site.pile,t=this.site.truck;
+    if(this.job.id===6){this._pad(t.x,t.z,7,0x514330,.14);this._ring(t.x,t.z,6,COL.amber,.4);this._label('SPOIL DUMP',t.x,3,t.z);for(const z of [-7,7])this._box(14,.7,.6,COL.steel,t.x,.45,t.z+z);}
+    if(this.job.id===9){
+      this._box(192,.5,12,0x8d959f,(p.x+t.x)/2,-.15,p.z);
+      for(const z of [-6.5,6.5]){this._box(188,.4,.6,COL.steel,(p.x+t.x)/2,1.7,p.z+z);for(let x=-50;x<130;x+=10)this._box(.4,1.8,.5,COL.steel,p.x+x,.9,p.z+z);}
+      this._label('NARROW BRIDGE — FALL +10s',p.x+5,4,p.z+6);
+    }
+    if(this.job.id===8||this.job.id===10){
+      for(const target of [p,t])for(const side of [-1,1]){
+        this._box(.5,9,.5,COL.steel,target.x,4.5,target.z+side*17);
+        this._box(4,1,1,0xffefbd,target.x,9,target.z+side*17);
+        const light=new THREE.PointLight(0xffe9bd,100,90,1.5);light.position.set(target.x,8,target.z+side*17);this.group.add(light);
+      }
+    }
+    if(this.job.id===10){this.forklifts=[];
+      for(let i=0;i<2;i++){
+        const g=new THREE.Group();
+        const box=(w,h,d,c,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),this._mat(c));m.position.set(x,y,z);g.add(m);};
+        box(2.8,1.5,3.5,0xef9b24,0,.9,0);box(.4,4,.4,COL.steel,-1,2,1.8);box(.4,4,.4,COL.steel,1,2,1.8);
+        for(const x of [-.8,.8])box(.3,.3,2.8,COL.steel,x,.3,3);
+        box(2.6,.4,2.5,COL.dark,0,3.2,-.2);
+        for(const x of [-1.3,1.3])for(const z of [-1,1]){const m=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,.35,12),this._mat(COL.dark));m.rotation.z=Math.PI/2;m.position.set(x,.55,z);g.add(m);}
+        this.group.add(g);this.forklifts.push(g);
+      }
+    }
+  }
   _buildRoadTraffic(){
     this.roadCars=[];
     for(let i=0;i<2;i++){
@@ -776,7 +804,7 @@ export class LevelEngine {
     this._pad(px, pz, 8, 0x4b5563, 0.1);
     this._pad(tx, tz, 8, COL.pad, 0.11);
     this._ring(tx, tz, 6, COL.amber, 0.3, 0.22);
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < (job.loads||3); i++) {
       const a = -0.7 + i * 0.35;
       let m;
       if (crate) {
@@ -949,8 +977,10 @@ export class LevelEngine {
       return { ok: true, count: false, msg: g.kind === 'trench' ? 'Trench spoil loaded - go dump it' : 'Debris loaded - go dump it' };
     }
     if (g.kind === 'move') {
+      const recovery=!!g.dropped;
+      if(g.dropped){g.dropped.visible=false;g.dropped=null;g.scoop=null;}
       this._attachCarry(vehicle);
-      if (this.rack.length) {
+      if (!recovery && this.rack.length) {
         const m = this.rack.pop();
         m.visible = false;
       }
@@ -1014,7 +1044,7 @@ export class LevelEngine {
     const ud = g.mesh && g.mesh.userData;
     if (ud && ud.lid) { ud.lid.position.y = -0.55; ud.lid.scale.setScalar(0.94); }
     if (ud && ud.floor) ud.floor.position.y = -0.28;
-    this._spoilAt(g.x + 3.4, g.z + 1.2, 0.9);
+    this._spoilAt(this.site.truck.x + (this.done%2?2:-2), this.site.truck.z + (this.done%3-1)*2, 0.9);
   }
   _clearDebris(g) {
     if (g.mesh) {
@@ -1112,6 +1142,21 @@ export class LevelEngine {
         }
       }
     }
+    if(this.job.id===7 && vehicle?.hasDirt && Math.abs(vehicle.currentSpeed)>12){
+      const g=this.active();this._detachCarry();vehicle.hasDirt=false;vehicle.cargoDropped=true;
+      if(vehicle.bucketDirtGroup)vehicle.bucketDirtGroup.children.forEach(o=>o.visible=false);
+      const pos=vehicle.mesh.position;g.scoop={x:pos.x,z:pos.z};g.dropped=new THREE.Mesh(new THREE.CylinderGeometry(.4,.4,5.5,12),this._mat(COL.steel));g.dropped.rotation.z=Math.PI/2;g.dropped.position.set(pos.x,.5,pos.z);this.group.add(g.dropped);
+      this.siteNow.pile.x=pos.x;this.siteNow.pile.z=pos.z;this.drops++;this.onMiss();
+      if(this.hooks.onToast)this.hooks.onToast('PIPE DROPPED — stay below 12 km/h','warn');
+    }
+    if(this.job.id===9 && vehicle && vehicle.mesh.position.y<-3){
+      vehicle.chassisBody.setTranslation({x:this.site.pile.x-20,y:1.2,z:this.site.pile.z},true);vehicle.chassisBody.setRotation({x:0,y:Math.sin(Math.PI/4),z:0,w:Math.cos(Math.PI/4)},true);vehicle.chassisBody.setLinvel({x:0,y:0,z:0},true);vehicle.chassisBody.setAngvel({x:0,y:0,z:0},true);vehicle.resetInterpolation?.();
+      vehicle.hasDirt=false;vehicle.cargoDropped=true;this.resets++;this.onMiss();if(this.hooks.addTime)this.hooks.addTime(-10);if(this.hooks.onToast)this.hooks.onToast('BRIDGE RESET +10s penalty','warn');
+    }
+    if(this.forklifts)for(let i=0;i<this.forklifts.length;i++){
+      const g=this.forklifts[i];g.position.set(this.site.pile.x+16+i*8,0,this.site.pile.z+Math.sin(this._t*.6+i*Math.PI)*27);
+      if(vehicle&&Math.hypot(g.position.x-vehicle.mesh.position.x,g.position.z-vehicle.mesh.position.z)<3.5){const v=vehicle.chassisBody.linvel();vehicle.chassisBody.setLinvel({x:-v.x*.3,y:v.y,z:-v.z*.3},true);}
+    }
     if(this.roadCars)for(let i=0;i<this.roadCars.length;i++){
       const c=this.roadCars[i];c.position.x=this.site.pile.x+18;
       c.position.z=this.site.pile.z+Math.sin(this._t*.35+i*Math.PI)*48;
@@ -1168,7 +1213,7 @@ export class LevelEngine {
     return {
       id: this.job ? this.job.id : 0, type: this.job ? this.job.type : '',
       goal: this.activeKind(), done: this.done, total: this.goals.length,
-      combo: this.combo, maxCombo: this.maxCombo, coneHits: this.coneHits, misses: this.misses,
+      drops:this.drops||0,resets:this.resets||0, combo: this.combo, maxCombo: this.maxCombo, coneHits: this.coneHits, misses: this.misses,
       coneAngles:this.goals.filter(g=>g.kind==='gate').map(g=>g.mesh?.userData.cones.map(c=>c.rotation.z)),
       rushWait: this.active() && this.active().kind === 'rush' ? Math.ceil(Math.max(0, this.active().wait)) : null
     };

@@ -1,6 +1,6 @@
 # V4 strict evidence report — 2026-11-06
 
-[RAN] Score: **12/21**. This is partial Tier 1 work, not a completed tier.
+[RAN] Score: **13/21**. This is partial Tier 1 work, not a completed tier.
 [READ] Branch: arena/0ac523ae-gameprotype; base 1f091a9 (clean-v1). Arena requires keeping this branch, so fix-v4 was not created.
 [RAN] Initial npm install: zero vulnerabilities. Initial and final npm run build pass. Vite reports large chunk/config-format warnings.
 
@@ -15,9 +15,9 @@
 | 5 | [RAN] PASS — 20.21 km/h to zero in 0.906 s, about 1.74 m; 31.55 km/h brake to zero in 0.877 s | V4_HANDLING.txt; V4_HANDLING_SAMPLES.json; screenshots/v4b-coast-stop.png |
 | 6 | [SEEN] PASS — pile becomes a small patch | screenshots/v4-pile-1.png, v4-pile-2.png, v4-pile-3.png |
 | 7 | [SEEN] PASS in the requested pile/orbit/wall scenarios — camera lifts rather than enters the cab; near surfaces fade | V4_CAMERA_ACTIONS.txt; V4_FOLLOWUP.txt; screenshots/v4b-camera-pile-approach.png, v4b-camera-past-pile.png, v4b-camera-wall.png |
-| 8 | [UNKNOWN] NOT PASSED — partial contact sheet: L1–5 rebuilt, L6–15 blank | V4_WORST.md |
-| 9 | [UNKNOWN] NOT PASSED — five real-input completions now run; ten remain | existing scripts/level-walk.mjs uses teleport and direct steps; do not use its PASS |
-| 10 | [UNKNOWN] NOT PASSED — L2 cone contact and L4 WRONG TRUCK proven; L7 drop and L9 reset remain | V4_NEWPLAYER.txt covers only L1/L2 start |
+| 8 | [UNKNOWN] NOT PASSED — L1–10 contact sheet; L11–15 still blank | screenshots/levels-contact-sheet.png |
+| 9 | [UNKNOWN] NOT PASSED — ten real-input completions; L11–15 remain | C1_RETRY.txt, C1_CONE.txt, C2_WALK.txt, C2_BRIDGE_FINAL.txt; current level-walk uses real keys only |
+| 10 | [RAN] PASS — L2 settled cone, L4 WRONG TRUCK, L7 speed drop/recovery, L9 real fall plus ten-second penalty | C1_CONE.txt, C1_RETRY.txt, C2_WALK.txt, C2_BRIDGE_FINAL.txt |
 | 11 | [SEEN] PASS — waited for actual L1 expiry | V4_UI.txt; screenshots/v4-time-up.png |
 | 12 | [UNKNOWN] NOT PASSED — Free Play rebuild not reached | V4_WORST.md |
 | 13 | [UNKNOWN] NOT PASSED — traffic shapes not rebuilt | V4_WORST.md |
@@ -59,7 +59,7 @@
 [RAN] Initial timeout test ran two WebGL pages together and timed out; a context-close attempt then crashed the single-process Chromium harness. Final test navigated the unused phone page away, focused the desktop page, and reached TIME IS UP by waiting. No timer was set through QA.
 [UNKNOWN] No performance score or honest new Free Play score can be given: that tier was not tested.
 
-[READ] PR must stay open: 12/21 is below the requested 17/21 merge threshold.
+[READ] PR must stay open: 13/21 is below the requested 17/21 merge threshold.
 
 ## Continuation validation and honest exclusions
 
@@ -81,3 +81,9 @@
 [RAN] C1_WALK.txt retains the original L4 approach-angle and L5 queue-expiry failures. C1_RETRY.txt passes L3/L4/L5 and retains the first cone-test failure. C1_CONE.txt passes spatial cone contact and L2 completion. The old plane-only cone test missed contacts after a gate had already advanced; detection now checks every cone spatially.
 [SEEN] The contact sheet has five new starts and ten explicit NOT REBUILT placeholders. It does not pass the fifteen-level visual criterion. Material labels now face the camera; NaN material-truck countdowns are hidden; portrait hints and NEXT wrap. The displayed L4 mid frame still shows the legacy park hint; its funnel has been corrected afterward, not yet re-captured.
 [READ] C1 timings: L4 now allows 360 seconds for four matched loads; L5 trucks wait 60 seconds. Only the active rush truck countdown runs. Each job has a separate remote position and a real ground collider. Vehicle and environment art are still basic.
+
+## C2 current evidence (supersedes earlier partial-level notes)
+
+[RAN] L6–10 all reached real-input results, no own-code browser errors. Payouts +695, +700, +744, +904, +1047 in the first complete C2 run. Final independent bridge retest +856 after the same real fall/ten-second penalty. Rank-dependent payouts differ across fresh and carried progression contexts.
+[SEEN] Opened every generated C2 screenshot, including failed attempts. Fresh L7 concrete and L9 deck corrected the visibly bad old ground. L7 older mid/drop shots remain explicitly disclosed. Forklift overlap and simplistic vehicle art remain unpassed E work.
+[UNKNOWN] Strict failures remain 8,9,12,13,14,15,17,21. C3, D, E and optional F are not yet verified.

@@ -41,21 +41,21 @@ export const STAGE_TABLE = [
     sound: 'site', yaw: -0.60, soundBed: 'TRENCH',
     coach: ['Stop on the trench plate', 'Hold SCOOP to dig', 'Dump spoil, then find the next'] },
   { id: 7, name: 'Pipe Layer', verbs: ['GRAB', 'PLACE'], chapter: 'Contractor',
-    ground: 0x2f6f86, ground2: 0x1e4a5c, pattern: 'grid', skyline: 'industrial', landmark: 'crane',
+    ground: 0x7f8c8d, ground2: 0x64727e, pattern: 'concrete', skyline: 'industrial', landmark: 'crane',
     props: 'piperack', sky: 0xd8e7f5, fog: 0.0032, sun: 1.05, hemi: 1.00, accent: 0x22d3ee,
     sound: 'site', yaw: 0.22, soundBed: 'PIPE YARD',
-    coach: ['Pick up the pipe rack', 'Carry it slowly', 'Place it on the amber pad'] },
+    coach: ['Grab one pipe from the rack', 'Stay below 12 km/h or it drops', 'Recover dropped pipes before placing'] },
   { id: 8, name: 'Night Shift', verbs: ['SCOOP', 'DUMP'], chapter: 'Contractor',
     ground: 0x1b2530, ground2: 0x111a25, pattern: 'soil', skyline: 'night', landmark: 'floodlight',
     props: 'lamps', sky: 0x0a1020, fog: 0.0070, sun: 0.16, hemi: 0.32, accent: 0xfbbf24,
     sound: 'night', yaw: -0.30, soundBed: 'NIGHT', night: true,
     coach: ['Use your work lights', 'Follow the map arrow', 'Drive slowly in the dark'] },
-  { id: 9, name: 'Bridge Repair', verbs: ['PLACE', 'PUSH'], chapter: 'Contractor',
+  { id: 9, name: 'Bridge Repair', verbs: ['SCOOP', 'FILL'], chapter: 'Contractor',
     ground: 0x3878a8, ground2: 0x24567a, pattern: 'water', skyline: 'bridge', landmark: 'bridge',
     props: 'barriers', sky: 0xf0d9bd, fog: 0.0040, sun: 0.85, hemi: 0.90, accent: 0x22d3ee,
     sound: 'wind', yaw: 0.48, soundBed: 'BRIDGE',
-    coach: ['Scoop, then cross the barrier', 'Keep the load level', 'Dump on the bridge deck'] },
-  { id: 10, name: 'Night Rush', verbs: ['TIME TRIAL', 'DUMP'], chapter: 'Contractor',
+    coach: ['Five holes along the narrow bridge', 'Stay inside the steel rails', 'Falling resets you and costs ten seconds'] },
+  { id: 10, name: 'Night Rush', verbs: ['SCOOP', 'DUMP'], chapter: 'Contractor',
     ground: 0x232a33, ground2: 0x151c24, pattern: 'asphalt', skyline: 'neon', landmark: 'neonarch',
     props: 'cars', sky: 0x090d1c, fog: 0.0068, sun: 0.16, hemi: 0.32, accent: 0xef4444,
     sound: 'night', yaw: -0.52, soundBed: 'NIGHT CITY', night: true,
@@ -248,7 +248,7 @@ export class StageManager {
     const ground = new THREE.Mesh(this._own(new THREE.PlaneGeometry(520, 520)),
       this._own(new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 1,
         polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })));
-    ground.rotation.x = -Math.PI / 2; ground.position.y = 0.10;
+    ground.rotation.x = -Math.PI / 2; ground.position.y = id===9 ? -0.7 : 0.10;
     g.add(ground);
     if(id<=5) {
       // Large coherent surfaces, not a road texture tiled over an entire world.

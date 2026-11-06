@@ -308,3 +308,157 @@
 [SEEN] OK — WRONG TRUCK keeps the sand in the bucket and awards zero loads, phone. Shortcut: unlockall only to select the starting level; all contact/driving/actions are real input.
 
 ![L4 wrong-truck phone](screenshots/c1-l4-wrong-truck-phone.png)
+
+## C group 2 — Contractor levels 6–10
+
+[RAN] Five real-input results; see [C2_WALK.txt](C2_WALK.txt) and [final bridge retest](C2_BRIDGE_FINAL.txt). Pipe drop kept loads at zero; recovery and all three placements followed. A real drive off the bridge reset once and deducted exactly ten extra seconds. Selection used unlockall; no position, velocity, progress, clock or saves were injected. Phone images are 390×844 viewport captures, not physical-iPhone verification.
+
+[SEEN] Fixed the blue pipe-yard wallpaper and water drawn over the bridge deck after opening the first captures. L6/L7 starts were recaptured; L9 start/mid/result/reset were all retested and recaptured. L6 mid/result and L7 mid/result/drop predate those cosmetic changes. No current-art claim is made for those older frames. Forklift solid collisions remain E work.
+
+### Level 6 — Four marked trench digs, then spoil dumping
+
+[SEEN] OK — Desktop start: Four marked trench digs, then spoil dumping. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L6 start desktop](screenshots/c2-l6-start-desktop.png)
+
+[SEEN] OK — Phone start: Four marked trench digs, then spoil dumping. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L6 start phone](screenshots/c2-l6-start-phone.png)
+
+[SEEN] OK — Desktop mid: Four marked trench digs, then spoil dumping. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L6 mid desktop](screenshots/c2-l6-mid-desktop.png)
+
+[SEEN] OK — Phone mid: Four marked trench digs, then spoil dumping. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L6 mid phone](screenshots/c2-l6-mid-phone.png)
+
+[SEEN] GOOD — Desktop result: Four marked trench digs, then spoil dumping. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L6 result desktop](screenshots/c2-l6-result-desktop.png)
+
+[SEEN] GOOD — Phone result: Four marked trench digs, then spoil dumping. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L6 result phone](screenshots/c2-l6-result-phone.png)
+
+### Level 7 — Three pipes with slow carrying and recovery
+
+[SEEN] OK — Desktop start: Three pipes with slow carrying and recovery. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L7 start desktop](screenshots/c2-l7-start-desktop.png)
+
+[SEEN] OK — Phone start: Three pipes with slow carrying and recovery. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L7 start phone](screenshots/c2-l7-start-phone.png)
+
+[SEEN] BAD — Desktop mid: Old blue grid ground looked like wallpaper; current start above shows the corrected concrete. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L7 mid desktop](screenshots/c2-l7-mid-desktop.png)
+
+[SEEN] BAD — Phone mid: Old blue grid ground looked like wallpaper; current start above shows the corrected concrete. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L7 mid phone](screenshots/c2-l7-mid-phone.png)
+
+[SEEN] GOOD — Desktop result: Three pipes with slow carrying and recovery. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L7 result desktop](screenshots/c2-l7-result-desktop.png)
+
+[SEEN] GOOD — Phone result: Three pipes with slow carrying and recovery. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L7 result phone](screenshots/c2-l7-result-phone.png)
+
+### Level 8 — Six long hauls under work lights
+
+[SEEN] OK — Desktop start: Six long hauls under work lights. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L8 start desktop](screenshots/c2-l8-start-desktop.png)
+
+[SEEN] OK — Phone start: Six long hauls under work lights. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L8 start phone](screenshots/c2-l8-start-phone.png)
+
+[SEEN] OK — Desktop mid: Six long hauls under work lights. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L8 mid desktop](screenshots/c2-l8-mid-desktop.png)
+
+[SEEN] OK — Phone mid: Six long hauls under work lights. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L8 mid phone](screenshots/c2-l8-mid-phone.png)
+
+[SEEN] GOOD — Desktop result: Six long hauls under work lights. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L8 result desktop](screenshots/c2-l8-result-desktop.png)
+
+[SEEN] GOOD — Phone result: Six long hauls under work lights. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L8 result phone](screenshots/c2-l8-result-phone.png)
+
+### Level 9 — Five deck repairs on a railed narrow bridge
+
+[SEEN] OK — Desktop start: Five deck repairs on a railed narrow bridge. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L9 start desktop](screenshots/c2-l9-start-desktop.png)
+
+[SEEN] OK — Phone start: Five deck repairs on a railed narrow bridge. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L9 start phone](screenshots/c2-l9-start-phone.png)
+
+[SEEN] OK — Desktop mid: Five deck repairs on a railed narrow bridge. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L9 mid desktop](screenshots/c2-l9-mid-desktop.png)
+
+[SEEN] OK — Phone mid: Five deck repairs on a railed narrow bridge. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L9 mid phone](screenshots/c2-l9-mid-phone.png)
+
+[SEEN] GOOD — Desktop result: Five deck repairs on a railed narrow bridge. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L9 result desktop](screenshots/c2-l9-result-desktop.png)
+
+[SEEN] GOOD — Phone result: Five deck repairs on a railed narrow bridge. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L9 result phone](screenshots/c2-l9-result-phone.png)
+
+### Level 10 — Five timed night trucks and moving forklifts
+
+[SEEN] OK — Desktop start: Five timed night trucks and moving forklifts. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L10 start desktop](screenshots/c2-l10-start-desktop.png)
+
+[SEEN] OK — Phone start: Five timed night trucks and moving forklifts. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L10 start phone](screenshots/c2-l10-start-phone.png)
+
+[SEEN] BAD — Desktop mid: Forklift detail is visible, but it can overlap the machine; E solid collisions still required. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L10 mid desktop](screenshots/c2-l10-mid-desktop.png)
+
+[SEEN] BAD — Phone mid: Forklift detail is visible, but it can overlap the machine; E solid collisions still required. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L10 mid phone](screenshots/c2-l10-mid-phone.png)
+
+[SEEN] GOOD — Desktop result: Five timed night trucks and moving forklifts. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L10 result desktop](screenshots/c2-l10-result-desktop.png)
+
+[SEEN] GOOD — Phone result: Five timed night trucks and moving forklifts. Shortcut: unlockall for selection only; real driving/actions; viewport changed for phone.
+
+![L10 result phone](screenshots/c2-l10-result-phone.png)
+
+### Contractor special-rule proof
+
+[SEEN] OK — Desktop: Overspeed dropped the carried pipe with zero load credit; this older frame predates concrete-ground touchup. Shortcut: unlockall only for initial selection; real driving/actions; viewport changed for phone.
+
+![L7 pipe-drop desktop](screenshots/c2-l7-pipe-drop-desktop.png)
+
+[SEEN] OK — Phone: Overspeed dropped the carried pipe with zero load credit; this older frame predates concrete-ground touchup. Shortcut: unlockall only for initial selection; real driving/actions; viewport changed for phone.
+
+![L7 pipe-drop phone](screenshots/c2-l7-pipe-drop-phone.png)
+
+[SEEN] OK — Desktop: Real fall reset to the source; telemetry proves the extra ten-second deduction. Shortcut: unlockall only for initial selection; real driving/actions; viewport changed for phone.
+
+![L9 bridge-reset desktop](screenshots/c2-l9-bridge-reset-desktop.png)
+
+[SEEN] OK — Phone: Real fall reset to the source; telemetry proves the extra ten-second deduction. Shortcut: unlockall only for initial selection; real driving/actions; viewport changed for phone.
+
+![L9 bridge-reset phone](screenshots/c2-l9-bridge-reset-phone.png)

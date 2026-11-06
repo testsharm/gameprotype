@@ -1118,7 +1118,8 @@ function placeSite(id) {
         // a different far offset for many levels. No lazy goal spawns.
         if (stageFloor) world.removeRigidBody(stageFloor);
         stageFloor = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation((px+tx)/2, -.2, (pz+tz)/2));
-        world.createCollider(RAPIER.ColliderDesc.cuboid(260,.3,260).setFriction(1),stageFloor);
+        world.createCollider(RAPIER.ColliderDesc.cuboid(id===9?96:260,.3,id===9?6:260).setFriction(1),stageFloor);
+        if(id===9)for(const z of [-6.5,6.5])world.createCollider(RAPIER.ColliderDesc.cuboid(94,.8,.3).setTranslation(0,1,z),stageFloor);
         const stg = stages.enter(id, { x: (px + tx) / 2, z: (pz + tz) / 2 });
         setEnv(stages.envFor(id), true);          // own sky, fog, sun - snap on stage swap
         safe(() => { if (hub.setSoundBed) hub.setSoundBed(stg.sound); });
@@ -1127,7 +1128,7 @@ function placeSite(id) {
         syncTruckCollider(moved, tx, tz);
         if (worldBuilder.jobSiteBase) worldBuilder.jobSiteBase.position.set(px, 0, pz);
         siteGroups.forEach((g, k) => { g.visible = (k === id); });
-        if (id > 5 && !job.site.keep && !siteGroups.has(id)) {
+        if (id > 10 && !job.site.keep && !siteGroups.has(id)) {
             const g = buildSiteDressing(THREE, id, { x: px, z: pz }, { x: tx, z: tz });
             scene.add(g);
             siteGroups.set(id, g);
@@ -1627,7 +1628,7 @@ function animate() {
                 hasScoopedDirt = true;
                 if (lastAction && lastAction.code === 'KeyF') lastAction.effect = performance.now();
                 const statusVal = document.getElementById('job-status-val'); if(statusVal) statusVal.textContent = 'DUMP IN TRUCK';
-                if(!jm.current.materials)worldBuilder.shrinkDirtPile(); safe(onScooped);
+                if(worldBuilder.dirtPileGroup.visible && !jm.current.materials)worldBuilder.shrinkDirtPile(); safe(onScooped);
                 // A8: the pile eases down to a ~15% flat patch after the last load.
                 const total = (jm && jm.current && jm.current.loads) || 3;
                 scoopCount++;
@@ -1637,6 +1638,7 @@ function animate() {
                 audio.playDirtCrunch(); 
             }
 
+            if(vehicle.cargoDropped){vehicle.cargoDropped=false;hasScoopedDirt=false;jm.setPhase('scoop');refreshCard();}
             if (hasScoopedDirt && !vehicle.hasDirt) {
                 const truckBedPos = new THREE.Vector3(siteNow.truck.x, 2, siteNow.truck.z);
                 const near = bucketPos.distanceTo(truckBedPos) < 10;

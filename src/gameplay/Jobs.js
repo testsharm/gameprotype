@@ -363,8 +363,8 @@ export class JobSystem {
   }
   siteFor(id) {
     // Independent job sites: no shared street/building/pile coordinates.
-    if (id <= 5) { const x = id * 1100, z = 1800;
-      return {ok:true, keep:false, pile:{x,z}, truck:{x:x+(id===2?80:30),z}};
+    if (id <= 10) { const x = id * 1100, z = 1800;
+      return {ok:true, keep:false, pile:{x,z}, truck:{x:x+(id===2?80:id===8?70:id===9?80:30),z}};
     }
     return (this._layout && this._layout.get(id)) || { ok: false };
   }
