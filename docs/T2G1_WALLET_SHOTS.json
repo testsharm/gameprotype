@@ -1,0 +1,58 @@
+[
+  {
+    "id": 2,
+    "phase": "start",
+    "name": "desktop",
+    "file": "t2g1-wallet-l2-start-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone; graphics low explicitly selected through Settings"
+  },
+  {
+    "id": 2,
+    "phase": "start",
+    "name": "phone",
+    "file": "t2g1-wallet-l2-start-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone; graphics low explicitly selected through Settings"
+  },
+  {
+    "id": 2,
+    "phase": "cone-tumble",
+    "name": "desktop",
+    "file": "t2g1-wallet-l2-cone-tumble-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone; graphics low explicitly selected through Settings"
+  },
+  {
+    "id": 2,
+    "phase": "cone-tumble",
+    "name": "phone",
+    "file": "t2g1-wallet-l2-cone-tumble-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone; graphics low explicitly selected through Settings"
+  },
+  {
+    "id": 2,
+    "phase": "mid",
+    "name": "desktop",
+    "file": "t2g1-wallet-l2-mid-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone; graphics low explicitly selected through Settings"
+  },
+  {
+    "id": 2,
+    "phase": "mid",
+    "name": "phone",
+    "file": "t2g1-wallet-l2-mid-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone; graphics low explicitly selected through Settings"
+  },
+  {
+    "id": 2,
+    "phase": "result",
+    "name": "desktop",
+    "file": "t2g1-wallet-l2-result-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone; graphics low explicitly selected through Settings"
+  },
+  {
+    "id": 2,
+    "phase": "result",
+    "name": "phone",
+    "file": "t2g1-wallet-l2-result-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone; graphics low explicitly selected through Settings"
+  }
+]

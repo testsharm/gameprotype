@@ -160,6 +160,251 @@
 
 ---
 
+# Tier 2 group 1 — potholes and real-input results
+
+[READ] This section follows the published A2 checkpoint above. L1–L5 have genuine explicit-LOW results; L2 was then replayed after the tip-accounting fix with a wallet assertion. This is not default AUTO performance acceptance. Group 2 is not yet replayed at this checkpoint. Scene comparisons use qadebug/unlockall initial level selection; the L3 closeup additionally uses QA inspection camera. These are not level-completion evidence. Phone scene views use viewport resize plus actual CDP touch to activate the touch HUD, not physical handset testing.
+
+[SEEN] OK — L1 is a dirt-loading yard; L2 is a pile/truck-free cone course; L3 has a separate asphalt repair strip. The skyline is still repetitive. The distant L3 depressions remain much clearer up close than in the first frame.
+
+![Tier 2 group 1 contact sheet](screenshots/t2g1-contact.png)
+
+[SEEN] OK — Level 1 starting desktop view. Setup: QA level selection, no completion mutation; phone uses CDP touch/viewport as disclosed above. L3 holes are visible but distant; this is not proof of filling them.
+
+![L1 desktop](screenshots/t2g1-l1-start-desktop.png)
+
+[SEEN] OK — Level 1 starting phone view. Setup: QA level selection, no completion mutation; phone uses CDP touch/viewport as disclosed above. L3 holes are visible but distant; this is not proof of filling them.
+
+![L1 phone](screenshots/t2g1-l1-start-phone.png)
+
+[SEEN] OK — Level 2 starting desktop view. Setup: QA level selection, no completion mutation; phone uses CDP touch/viewport as disclosed above. L3 holes are visible but distant; this is not proof of filling them.
+
+![L2 desktop](screenshots/t2g1-l2-start-desktop.png)
+
+[SEEN] OK — Level 2 starting phone view. Setup: QA level selection, no completion mutation; phone uses CDP touch/viewport as disclosed above. L3 holes are visible but distant; this is not proof of filling them.
+
+![L2 phone](screenshots/t2g1-l2-start-phone.png)
+
+[SEEN] OK — Level 3 starting desktop view. Setup: QA level selection, no completion mutation; phone uses CDP touch/viewport as disclosed above. L3 holes are visible but distant; this is not proof of filling them.
+
+![L3 desktop](screenshots/t2g1-l3-start-desktop.png)
+
+[SEEN] OK — Level 3 starting phone view. Setup: QA level selection, no completion mutation; phone uses CDP touch/viewport as disclosed above. L3 holes are visible but distant; this is not proof of filling them.
+
+![L3 phone](screenshots/t2g1-l3-start-phone.png)
+
+[SEEN] GOOD for visual depth — L3 asphalt has cut openings, sloped cavity walls and a dark bottom rather than an occluded flat disc. Setup: QA level selection and inspection camera. The driving collider intentionally remains flat for this repair tutorial; this is NOT evidence of physical wheel descent into the hole.
+
+![Visible pothole depth](screenshots/t2g1-l3-hole-closeup.png)
+
+[SEEN] BAD — retained first attempt: the grass polygon offset hid the new asphalt. Setup: same QA level and closeup camera. Corrected scene shown above; these images are retained, not used as acceptance.
+
+![Hidden road initial attempt](screenshots/t2g1-l3-road-hidden-desktop.png)
+![Hidden road closeup initial attempt](screenshots/t2g1-l3-road-hidden-closeup.png)
+
+## First replay attempt — retained failure
+
+[RAN] AUTO/software-rendered replay made one genuine L1 delivery, then exceeded the driver's 65-second route deadline on the second trip. It is NOT a level completion and NOT a default-performance pass. This attempt was stopped after failure. LOW retry explicitly selects LOW using real Settings clicks; it cannot establish default AUTO performance. Replay uses unlockall ONLY for starting-level selection, readonly telemetry and real keys/holds, with no teleport/goal/save mutation. Phone replay images resize the desktop context and are not touch-control tests.
+
+[SEEN] OK — first AUTO replay L1 start, desktop. Failed/incomplete replay, not acceptance. Shortcuts: unlockall for selection only; real driving/actions, desktop viewport.
+
+![AUTO L1 start desktop](screenshots/t2g1-replay-l1-start-desktop.png)
+
+[SEEN] OK — first AUTO replay L1 start, phone. Failed/incomplete replay, not acceptance. Shortcuts: unlockall for selection only; real driving/actions, phone viewport.
+
+![AUTO L1 start phone](screenshots/t2g1-replay-l1-start-phone.png)
+
+[SEEN] OK — first AUTO replay L1 mid, desktop. One earned delivery only, not completion. Shortcuts: unlockall for selection only; real driving/actions, desktop viewport.
+
+![AUTO L1 mid desktop](screenshots/t2g1-replay-l1-mid-desktop.png)
+
+[SEEN] OK — first AUTO replay L1 mid, phone. One earned delivery only, not completion. Shortcuts: unlockall for selection only; real driving/actions, phone viewport.
+
+![AUTO L1 mid phone](screenshots/t2g1-replay-l1-mid-phone.png)
+
+[SEEN] BAD — first AUTO replay L1 failed, desktop. Failed/incomplete replay, not acceptance. Shortcuts: unlockall for selection only; real driving/actions, desktop viewport.
+
+![AUTO L1 failed desktop](screenshots/t2g1-replay-l1-failed-desktop.png)
+
+[SEEN] BAD — first AUTO replay L1 failed, phone. Failed/incomplete replay, not acceptance. Shortcuts: unlockall for selection only; real driving/actions, phone viewport.
+
+![AUTO L1 failed phone](screenshots/t2g1-replay-l1-failed-phone.png)
+
+---
+
+## Explicit-LOW replay — Levels 1–5 real results
+
+[RAN] `T2G1_LOW.txt` records genuine results for L1–L5, plus L4 wrong-truck rejection (zero progress, cargo retained). LOW was explicitly selected through real Settings clicks in each run. Unlockall selects only the starting level; all travel and F/G holds are real input, with readonly route telemetry and no teleports, completed-goal injection or staged save. Phone images resize the desktop context, NOT touch-control tests. These passes do not establish default AUTO performance.
+
+[READ] These five replays predate the zero-tip accounting correction. L2's displayed result incorrectly included 70 coins of phantom gate tips; its image is retained as BAD accounting evidence. A separate real L2 replay reconciles the corrected result with the wallet. Other displayed result amounts below are observations, not claims about rewarded-ad flows.
+
+[SEEN] OK — L1 start, desktop. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L1 start desktop](screenshots/t2g1-low-l1-start-desktop.png)
+
+[SEEN] OK — L1 start, phone. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L1 start phone](screenshots/t2g1-low-l1-start-phone.png)
+
+[SEEN] OK — L1 mid, desktop. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L1 mid desktop](screenshots/t2g1-low-l1-mid-desktop.png)
+
+[SEEN] OK — L1 mid, phone. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L1 mid phone](screenshots/t2g1-low-l1-mid-phone.png)
+
+[SEEN] OK — L1 result, desktop. Real result, not a staged modal. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L1 result desktop](screenshots/t2g1-low-l1-result-desktop.png)
+
+[SEEN] OK — L1 result, phone. Real result, not a staged modal. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L1 result phone](screenshots/t2g1-low-l1-result-phone.png)
+
+[SEEN] OK — L2 start, desktop. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L2 start desktop](screenshots/t2g1-low-l2-start-desktop.png)
+
+[SEEN] OK — L2 start, phone. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L2 start phone](screenshots/t2g1-low-l2-start-phone.png)
+
+[SEEN] OK — L2 mid, desktop. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L2 mid desktop](screenshots/t2g1-low-l2-mid-desktop.png)
+
+[SEEN] OK — L2 mid, phone. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L2 mid phone](screenshots/t2g1-low-l2-mid-phone.png)
+
+[SEEN] BAD — L2 result, desktop. Incorrect pre-fix amount; completion is genuine, but this is not accounting acceptance. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L2 result desktop](screenshots/t2g1-low-l2-result-desktop.png)
+
+[SEEN] BAD — L2 result, phone. Incorrect pre-fix amount; completion is genuine, but this is not accounting acceptance. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L2 result phone](screenshots/t2g1-low-l2-result-phone.png)
+
+[SEEN] OK — L3 start, desktop. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L3 start desktop](screenshots/t2g1-low-l3-start-desktop.png)
+
+[SEEN] OK — L3 start, phone. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L3 start phone](screenshots/t2g1-low-l3-start-phone.png)
+
+[SEEN] OK — L3 mid, desktop. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L3 mid desktop](screenshots/t2g1-low-l3-mid-desktop.png)
+
+[SEEN] OK — L3 mid, phone. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L3 mid phone](screenshots/t2g1-low-l3-mid-phone.png)
+
+[SEEN] OK — L3 result, desktop. Real result, not a staged modal. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L3 result desktop](screenshots/t2g1-low-l3-result-desktop.png)
+
+[SEEN] OK — L3 result, phone. Real result, not a staged modal. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L3 result phone](screenshots/t2g1-low-l3-result-phone.png)
+
+[SEEN] OK — L4 start, desktop. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L4 start desktop](screenshots/t2g1-low-l4-start-desktop.png)
+
+[SEEN] OK — L4 start, phone. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L4 start phone](screenshots/t2g1-low-l4-start-phone.png)
+
+[SEEN] OK — L4 wrong-truck, desktop. Real wrong-truck rejection with cargo retained and no progress. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L4 wrong-truck desktop](screenshots/t2g1-low-l4-wrong-truck-desktop.png)
+
+[SEEN] OK — L4 wrong-truck, phone. Real wrong-truck rejection with cargo retained and no progress. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L4 wrong-truck phone](screenshots/t2g1-low-l4-wrong-truck-phone.png)
+
+[SEEN] OK — L4 mid, desktop. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L4 mid desktop](screenshots/t2g1-low-l4-mid-desktop.png)
+
+[SEEN] OK — L4 mid, phone. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L4 mid phone](screenshots/t2g1-low-l4-mid-phone.png)
+
+[SEEN] OK — L4 result, desktop. Real result, not a staged modal. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L4 result desktop](screenshots/t2g1-low-l4-result-desktop.png)
+
+[SEEN] OK — L4 result, phone. Real result, not a staged modal. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L4 result phone](screenshots/t2g1-low-l4-result-phone.png)
+
+[SEEN] OK — L5 start, desktop. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L5 start desktop](screenshots/t2g1-low-l5-start-desktop.png)
+
+[SEEN] OK — L5 start, phone. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L5 start phone](screenshots/t2g1-low-l5-start-phone.png)
+
+[SEEN] OK — L5 mid, desktop. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L5 mid desktop](screenshots/t2g1-low-l5-mid-desktop.png)
+
+[SEEN] OK — L5 mid, phone. Starting scene or earned first progress, not a completion shortcut. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L5 mid phone](screenshots/t2g1-low-l5-mid-phone.png)
+
+[SEEN] OK — L5 result, desktop. Real result, not a staged modal. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L5 result desktop](screenshots/t2g1-low-l5-result-desktop.png)
+
+[SEEN] OK — L5 result, phone. Real result, not a staged modal. Setup: unlockall for selection only, explicit LOW via Settings, real inputs; phone is viewport resize only.
+
+![LOW L5 result phone](screenshots/t2g1-low-l5-result-phone.png)
+
+---
+
+## Corrected gate tips — cone contact and wallet check
+
+[RAN] `T2G1_WALLET.txt`: real cone contact recorded one hit and a tipped angle of −1.42 radians, followed by a genuine L2 result. Wallet began at 0 and ended at 220; result displayed 220. Zero-tip gate/parking goals no longer inflate the displayed reward. LOW was selected through real Settings clicks; unlockall only selected L2. Real keys, brake/action holds and mouse camera orbit were used; no QA teleport/goal/save injection. Phone is a viewport resize, not touch-control proof. The lower one-star result reflects this separate cone-hit run, not the earlier clean run.
+
+[SEEN] OK — corrected L2 start, desktop. Real starting scene or gate progress. Setup: unlockall for selection only; explicit LOW; actual input; phone viewport resize only.
+
+![Wallet regression start desktop](screenshots/t2g1-wallet-l2-start-desktop.png)
+
+[SEEN] OK — corrected L2 start, phone. Real starting scene or gate progress. Setup: unlockall for selection only; explicit LOW; actual input; phone viewport resize only.
+
+![Wallet regression start phone](screenshots/t2g1-wallet-l2-start-phone.png)
+
+[SEEN] GOOD — corrected L2 cone-tumble, desktop. Real driving contact and mouse camera orbit show the cone response. Setup: unlockall for selection only; explicit LOW; actual input; phone viewport resize only.
+
+![Wallet regression cone-tumble desktop](screenshots/t2g1-wallet-l2-cone-tumble-desktop.png)
+
+[SEEN] GOOD — corrected L2 cone-tumble, phone. Real driving contact and mouse camera orbit show the cone response. Setup: unlockall for selection only; explicit LOW; actual input; phone viewport resize only.
+
+![Wallet regression cone-tumble phone](screenshots/t2g1-wallet-l2-cone-tumble-phone.png)
+
+[SEEN] OK — corrected L2 mid, desktop. Real starting scene or gate progress. Setup: unlockall for selection only; explicit LOW; actual input; phone viewport resize only.
+
+![Wallet regression mid desktop](screenshots/t2g1-wallet-l2-mid-desktop.png)
+
+[SEEN] OK — corrected L2 mid, phone. Real starting scene or gate progress. Setup: unlockall for selection only; explicit LOW; actual input; phone viewport resize only.
+
+![Wallet regression mid phone](screenshots/t2g1-wallet-l2-mid-phone.png)
+
+[SEEN] GOOD — corrected L2 result, desktop. Result 220 equals the verified wallet increase. Setup: unlockall for selection only; explicit LOW; actual input; phone viewport resize only.
+
+![Wallet regression result desktop](screenshots/t2g1-wallet-l2-result-desktop.png)
+
+[SEEN] GOOD — corrected L2 result, phone. Result 220 equals the verified wallet increase. Setup: unlockall for selection only; explicit LOW; actual input; phone viewport resize only.
+
+![Wallet regression result phone](screenshots/t2g1-wallet-l2-result-phone.png)
+
+---
+
 # Historical real game screenshots — Fix v4
 
 [SEEN] Historical phone proof: fresh-player truck tipping below. Full gallery retains earlier failures and discloses all setup shortcuts.

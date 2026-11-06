@@ -281,12 +281,13 @@ export class JobSystem {
     return (s.phase === 'dump' ? 'Dump in truck ' : 'Scoop dirt ') + s.loads + '/' + this.current.loads;
   }
 
-  addLoad(ctx) {
+  addLoad(ctx, tipOverride) {
     const s = this.state;
     if (!s.running || s.done) return null;
     s.loads++;
     s.phase = 'scoop';
-    const tip = tipFor((ctx || {}).bucketLevel);
+    // Gates/parking explicitly award zero; totals must match wallet credits.
+    const tip = Number.isFinite(tipOverride) ? Math.max(0, tipOverride) : tipFor((ctx || {}).bucketLevel);
     s.tips += tip;
     this.save.stats.loads++;
     return { loads: s.loads, total: this.current.loads, tip, complete: s.loads >= this.current.loads };

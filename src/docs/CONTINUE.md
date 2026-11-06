@@ -1,3 +1,14 @@
+# Current Tier 2 group 1 checkpoint — 2026-11-06
+
+[RAN] Same active branch arena/06e604a9-gameprotype. A2 is pushed as 638d056 with gallery link posted to already-merged PR #5. Group 1 now has five real L1–L5 results under LOW explicitly selected through Settings; NOT default AUTO performance acceptance.
+[SEEN] New L3 road/cavity closeup and L1/L2/L3 contact sheet opened, along with every replay/diagnostic image. Initial grass-over-asphalt failure retained. L3 has visual depressions, but flat tutorial driving collider; distant first-frame readability and stray lines remain weak.
+[RAN] L4 wrong-truck rejection retains cargo and gives zero progress. Found/fixed zero-tip gate/parking reward overstatement in Jobs.addLoad/deliverLoad. Post-fix real L2 cone-hit replay: wallet 0 to 220, displayed result 220, assertion passes; cone hit angle −1.42 rad.
+[RAN] Build passes. docs/T2G1_LOW.txt = five completions; T2G1_WALLET.txt = cone/wallet regression; T2G1_REPLAY.txt = retained AUTO L1 route timeout after one delivery. docs/T2G1_REPORT.md and SCREENSHOTS.md disclose all shortcuts/limits.
+[UNKNOWN] AUTO/default performance, physical iPhone, existing bucket clipping, SDK rewards and current L6–L15/D/E/F replays remain unverified. Historical 18/21 is not current acceptance.
+[READ] Next: push/link group 1, then group 2 L6–L10 with actual Settings LOW choice disclosed if used, group 3, D, E, optional F. No questions.
+
+--- Historical notes below ---
+
 # Current A2 refresh — 2026-11-06
 
 [RAN] Active branch is `arena/06e604a9-gameprotype`, based on merged PR #5 (`5ac28a7`). PR #5 is MERGED; do not claim new commits are part of its merged diff or create/switch branches.

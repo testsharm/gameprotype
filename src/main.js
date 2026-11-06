@@ -1114,7 +1114,9 @@ function placeSite(id) {
             scene.add(g);
             siteGroups.set(id, g);
         }
-        if (level) level.start(job, { pile: { x: px, z: pz }, truck: { x: tx, z: tz } });solidWorld?.rebuild(stages.group,level,rawSite);
+        if (level) level.start(job, { pile: { x: px, z: pz }, truck: { x: tx, z: tz } });
+        if(id===3 && level) stages.cutRepairHoles(level.goals);
+        solidWorld?.rebuild(stages.group,level,rawSite);
         cameraManager.setCollidables([pg, tg, level?.group, siteGroups.get(id), ...(stages.group ? stages.group.children.filter(o => o.isMesh && o.geometry?.type !== 'PlaneGeometry' && o !== stages.group.children[1]) : [])]);
     });
 }
@@ -1260,9 +1262,9 @@ function onScooped() {
 }
 function deliverLoad(tipOverride) {
     ensureJobs();
-    const r = jm.addLoad(jobCtx());
+    const r = jm.addLoad(jobCtx(), tipOverride);
     if (!r) return false;
-    const tip = (typeof tipOverride === 'number') ? tipOverride : r.tip;
+    const tip = r.tip;
     saveData.coins += tip;
     writeSave();
     safe(() => {

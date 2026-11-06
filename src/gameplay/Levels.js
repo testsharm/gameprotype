@@ -352,7 +352,7 @@ export class LevelEngine {
     this._buildGoals();
     if(job.id===1){for(let i=9;i<=19;i+=5){const c=document.createElement('canvas');c.width=128;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle='#f4c845';ctx.beginPath();ctx.moveTo(110,64);ctx.lineTo(68,20);ctx.lineTo(68,45);ctx.lineTo(15,45);ctx.lineTo(15,83);ctx.lineTo(68,83);ctx.lineTo(68,108);ctx.closePath();ctx.fill();const tex=new THREE.CanvasTexture(c);const arrow=new THREE.Mesh(new THREE.PlaneGeometry(2.4,2.4),new THREE.MeshBasicMaterial({map:tex,transparent:true,polygonOffset:true,polygonOffsetFactor:-1,depthWrite:false}));arrow.rotation.x=-Math.PI/2;arrow.position.set(site.pile.x-i,.14,site.pile.z);this.group.add(arrow);}}
 
-    if(job.id===3) this._buildRoadTraffic();
+    if(job.id===3) { this._buildRepairRoad(); this._buildRoadTraffic(); }
     if(job.id>=6&&job.id<=10)this._contractorSite();
     if(job.id>=11)this._bossSite();
     // B2: every goal object exists from the FIRST frame. No lazy creation.
@@ -732,18 +732,40 @@ export class LevelEngine {
     return grp;
   }
 
+  _buildRepairRoad() {
+    // Align asphalt to the real targets. Cut openings instead of hiding dark
+    // discs underneath an unbroken plane. This is visual repair geometry;
+    // the existing driving collider remains flat for the repair tutorial.
+    const d=this._dir(), road=new THREE.Group();
+    road.name='repair-road'; road.position.set(this.site.truck.x,0,this.site.truck.z);
+    road.rotation.y=-Math.atan2(d.uz,d.ux); this.group.add(road);
+    const shape=new THREE.Shape();shape.moveTo(-12,-42);shape.lineTo(12,-42);
+    shape.lineTo(12,42);shape.lineTo(-12,42);shape.closePath();
+    for(const goal of this.goals.filter(g=>g.kind==='fill')) {
+      const dx=goal.x-this.site.truck.x,dz=goal.z-this.site.truck.z;
+      const hole=new THREE.Path();hole.absarc(dx*d.ux+dz*d.uz,-(dx*d.vx+dz*d.vz),4.3,0,Math.PI*2,true);shape.holes.push(hole);
+    }
+    const asphalt=new THREE.Mesh(new THREE.ShapeGeometry(shape,48),this._mat(0x3a3f47,{polygonOffset:true,polygonOffsetFactor:-.02,polygonOffsetUnits:-.02}));
+    asphalt.rotation.x=-Math.PI/2;asphalt.position.y=.13;asphalt.receiveShadow=true;road.add(asphalt);
+    const stripe=(x,z,w,len,color)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,len),this._mat(color,{polygonOffset:true,polygonOffsetFactor:-.02,polygonOffsetUnits:-.02}));m.rotation.x=-Math.PI/2;m.position.set(x,.15,z);road.add(m);};
+    for(const x of [-11.3,11.3])stripe(x,0,.35,82,0xf4f4f2);
+    for(const z of [-36,-27,-8,8,27,36])stripe(0,z,.35,3,0xf6df91);
+  }
+
   _buildHole(x, z) {
     const grp = new THREE.Group();
     grp.position.set(x, 0, z);
     this.group.add(grp);
-    const dark = new THREE.Mesh(new THREE.CylinderGeometry(4.3, 4.3, 0.36, 32), this._mat(0x1c120b));
-    dark.position.y = 0.1;
-    grp.add(dark);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(4.5, 0.3, 8, 40),
-      this._mat(COL.amber, { emissive: COL.amberDark, emissiveIntensity: 0.5 }));
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.y = 0.32;
-    grp.add(ring);
+    const repair = this.job.id===3;
+    const dark = new THREE.Mesh(new THREE.CylinderGeometry(repair?4.3:4.3,repair?2.8:4.3,repair?1.3:.36,48,1,repair), this._mat(repair?0x45362d:0x1c120b,{side:THREE.DoubleSide}));
+    dark.position.y = repair?-.52:.1;grp.add(dark);
+    if(repair){
+      const floor=new THREE.Mesh(new THREE.CircleGeometry(2.8,48),this._mat(0x191d23));floor.rotation.x=-Math.PI/2;floor.position.y=-1.17;grp.add(floor);
+      const rim=new THREE.Mesh(new THREE.TorusGeometry(4.4,.3,8,48),this._mat(0x59616b));rim.rotation.x=-Math.PI/2;rim.position.y=.12;grp.add(rim);
+    }
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(repair?5.1:4.5,repair?.18:.3,8,48),
+      this._mat(COL.amber,{emissive:COL.amberDark,emissiveIntensity:.5}));
+    ring.rotation.x=-Math.PI/2;ring.position.y=.34;grp.add(ring);
     const mound = new THREE.Mesh(new THREE.ConeGeometry(3.4, 0.6, 24), this._mat(COL.soil));
     mound.position.y = 0.3;
     mound.scale.setScalar(0.02);

@@ -25,7 +25,7 @@ export const STAGE_TABLE = [
     ground: 0x5b6068, ground2: 0x3f444b, pattern: 'cracks', skyline: 'roadworks', landmark: 'roadroller',
     props: 'barriers', sky: 0xcfe2f3, fog: 0.0036, sun: 1.00, hemi: 1.00, accent: 0xfbbf24,
     sound: 'traffic', yaw: 0.35, soundBed: 'ROAD',
-    coach: ['Three holes need one load each', 'Watch the crossing traffic', 'Fill the amber hole, then the next'] },
+    coach: ['Fill three potholes', 'Watch the crossing traffic', 'Fill the amber hole, then the next'] },
   { id: 4, name: 'Material Match', verbs: ['SCOOP', 'DUMP'], chapter: 'Rookie Yard',
     ground: 0xb7a084, ground2: 0x857c6b, pattern: 'concrete', skyline: 'industrial', landmark: 'weighbridge',
     props: 'trees', sky: 0xd8e7f5, fog: 0.0042, sun: 1.05, hemi: 1.00, accent: 0x34d399,
@@ -229,6 +229,23 @@ export class StageManager {
     for (const o of this._owned) { try { o.dispose && o.dispose(); } catch (e) {} }
     this._owned.length = 0;
   }
+  cutRepairHoles(goals) {
+    if (this.current !== 3 || !this.group) return;
+    const ground = this.group.getObjectByName('stage-ground');
+    if (!ground) return;
+    this.group.updateWorldMatrix(true, true);
+    const shape = new THREE.Shape();
+    shape.moveTo(-260,-260); shape.lineTo(260,-260);
+    shape.lineTo(260,260); shape.lineTo(-260,260); shape.closePath();
+    for (const goal of goals.filter(g => g.kind === 'fill')) {
+      const p = ground.worldToLocal(new THREE.Vector3(goal.x,.1,goal.z));
+      const hole = new THREE.Path(); hole.absarc(p.x,p.y,4.3,0,Math.PI*2,true);
+      shape.holes.push(hole);
+    }
+    const geometry = this._own(new THREE.ShapeGeometry(shape,48));
+    ground.geometry = geometry;
+  }
+
   leave() { this.dispose(); this._showCity(); this.current = null; }
 
   enter(id, center) {
@@ -252,6 +269,7 @@ export class StageManager {
     const ground = new THREE.Mesh(this._own(groundGeo),
       this._own(new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 1,
         polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })));
+    ground.name='stage-ground';
     ground.rotation.x = -Math.PI / 2; ground.position.y = id===9 ? -0.7 : 0.10;
     g.add(ground);
     if(id===14){ground.material.map=null;ground.material.color.setHex(0x4c6252);ground.position.y=-.2;}
@@ -259,12 +277,12 @@ export class StageManager {
       // Large coherent surfaces, not a road texture tiled over an entire world.
       if(id===2||id===3||id===5)ground.material.map=null;
       if(id===2)ground.material.color.setHex(0x456443);
-      if(id===3)ground.material.color.setHex(0x6b7858);
+      if(id===3){ground.material.color.setHex(0x6b7858);ground.material.polygonOffset=false;}
       if(id===5)ground.material.color.setHex(0x26333f);
       const slab=(w,d,color,x,z)=>{const m=this._mesh(new THREE.PlaneGeometry(w,d),this._mat(color,{polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3}),x,.12,z);m.rotation.x=-Math.PI/2;return m;};
       if(id===1){slab(72,48,0x8d7453,0,0);for(let z=-36;z<=36;z+=12){this._mesh(new THREE.BoxGeometry(.5,2,.5),this._mat(0xc4a272),-50,1,z);}}
       if(id===2){slab(138,44,0x283746,12,0);slab(135,.35,0xe8edf2,12,-21);slab(135,.35,0xe8edf2,12,21);for(let x=-48;x<80;x+=12)slab(4,.35,0xe8edf2,x,0);}
-      if(id===3){slab(26,160,0x414b58,8,0);for(let z=-75;z<80;z+=12)slab(.35,5,0xf6df91,8,z);slab(.35,158,0xf4f4f2,-4,0);slab(.35,158,0xf4f4f2,20,0);}
+      // L3's road is aligned to its actual goals by LevelEngine, not a fixed offset.
       if(id===4){slab(90,70,0x857d67,0,0);for(const z of [-30,30])this._mesh(new THREE.BoxGeometry(65,2,.5),this._mat(0x475569),8,1,z);}
       if(id===5){slab(110,70,0x384454,0,0);for(let z=-23;z<24;z+=9.5)slab(48,.35,0xfbbf24,25,z);for(let i=0;i<3;i++)this._mesh(new THREE.BoxGeometry(8,4,5),this._mat([0x9c6045,0x385a80,0x566b48][i]),52,2,-24+i*12);}
     }
