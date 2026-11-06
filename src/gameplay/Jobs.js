@@ -1,6 +1,6 @@
 // TerraForm 3D - real jobs, levels, economy, ranks, daily bonus (M7a part 1).
-// Pure logic plus its own small window system (briefing, result, fail, job picker).
-// No THREE needed. main.js connects to it in M7a part 2.
+// Economy and progression, plus code-made site dressing.
+import * as THREE from 'three';
 // Coins stay in main.js (saveData.coins). This file only tells main.js how many to add.
 // Round 2: the 15 real levels live in Levels.js; this file keeps economy, save and windows.
 import { LEVELS, chapterOf } from './Levels.js';
@@ -25,23 +25,23 @@ export const RANKS = [
   { name: 'Legend', xp: 2200 }
 ];
 
+// TIER E: ONE source of truth for the SIX garage upgrades, four paid steps
+// (100 / 250 / 500 / 900). main.js GARAGE mirrors this table exactly.
 export const UPGRADES = {
-  engine: {
-    name: 'Engine Power',
-    prices: [100, 250, 500],
-    lines: ['Top speed 32 km/h', 'Top speed 37 km/h', 'Top speed 42 km/h', 'Top speed 47 km/h']
-  },
-  hydraulic: {
-    name: 'Hydraulics',
-    prices: [100, 250, 500],
-    lines: ['Arm speed 100%', 'Arm speed 160%', 'Arm speed 220%', 'Arm speed 280%']
-  },
-  bucket: {
-    name: 'Big Bucket',
-    prices: [150, 300, 600],
-    lines: ['Tip 10 coins per load', 'Tip 16 coins per load', 'Tip 24 coins per load', 'Tip 34 coins per load']
-  }
+  engine:    { name: 'Engine Power', prices: [100, 250, 500, 900],
+    lines: ['32 km/h', '37 km/h', '42 km/h', '47 km/h', '52 km/h'] },
+  hydraulic: { name: 'Hydraulics', prices: [100, 250, 500, 900],
+    lines: ['Arm speed 100%', 'Arm speed 160%', 'Arm speed 220%', 'Arm speed 280%', 'Arm speed 340%'] },
+  bucket:    { name: 'Big Bucket', prices: [100, 250, 500, 900],
+    lines: ['Tip 10 coins', 'Tip 16 coins', 'Tip 24 coins', 'Tip 34 coins', 'Tip 44 coins'] },
+  tyres:     { name: 'Tyres', prices: [100, 250, 500, 900],
+    lines: ['Grip 100%', 'Grip 115%', 'Grip 130%', 'Grip 145%', 'Grip 160%'] },
+  light:     { name: 'Work Light', prices: [100, 250, 500, 900],
+    lines: ['Night light 100%', 'Night light 125%', 'Night light 150%', 'Night light 175%', 'Night light 200%'] },
+  beacon:    { name: 'Beacon', prices: [100, 250, 500, 900],
+    lines: ['Coin bonus +0%', 'Coin bonus +3%', 'Coin bonus +6%', 'Coin bonus +10%', 'Coin bonus +15%'] }
 };
+export const UPGRADE_KEYS = Object.keys(UPGRADES);
 
 // bearing: 0 = north (-z), 90 = east. dist = metres from the garage. gap = pile to truck distance.
 // LEVELS (Levels.js) is the single source of truth for all 15 jobs: goals, rules, mood and site.
@@ -220,8 +220,7 @@ export class JobSystem {
     if (!j) return 'Unknown job';
     try { if (/[?&]unlockall/.test(location.search)) return ''; } catch (e) { /* ignore */ }
     const n = j.needs || {};
-    if (n.job && !this.isDone(n.job)) return 'Finish job ' + n.job + ' first';
-    if (n.engine && (ctx.engineLevel || 1) < n.engine) return 'Needs Engine level ' + n.engine;
+    if (n.job && !this.isDone(n.job)) return 'FINISH LEVEL ' + n.job;
     return '';
   }
   isUnlocked(id, ctx) { return this.lockReason(id, ctx) === ''; }
@@ -230,6 +229,16 @@ export class JobSystem {
     return this.get(n) && this.isUnlocked(n, ctx) ? n : null;
   }
   lastPlayed() { return this.get(this.save.last) ? this.save.last : 1; }
+
+  // Show a level on the start screen WITHOUT starting its clock.
+  // freshState() leaves running=false, so addLoad()/update() cannot advance it.
+  prepare(id) {
+    const j = this.get(id) || JOBS[0];
+    this.current = j;
+    this.state = freshState(j);
+    this._sec = -1;
+    return j;
+  }
 
   start(id) {
     const j = this.get(id) || JOBS[0];
@@ -352,314 +361,18 @@ export class JobSystem {
     }
     return this._layout;
   }
-  siteFor(id) { return (this._layout && this._layout.get(id)) || { ok: false }; }
-}
-
-// ---------- windows ----------
-const STAR_PTS = '12,2 15.1,8.6 22.3,9.5 17,14.5 18.4,21.7 12,18.2 5.6,21.7 7,14.5 1.7,9.5 8.9,8.6';
-function starSvg(on, size, delay) {
-  const anim = delay >= 0 ? ' tf-jb-star' : '';
-  const st = delay >= 0 ? ' style="animation-delay:' + delay + 's"' : '';
-  return '<svg class="' + anim.trim() + '"' + st + ' width="' + size + '" height="' + size + '" viewBox="0 0 24 24"><polygon points="' + STAR_PTS + '" fill="' + (on ? '#fbbf24' : '#1b2535') + '" stroke="' + (on ? '#92400e' : '#0a0f18') + '" stroke-width="1.6" stroke-linejoin="round"/></svg>';
-}
-const LOCK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px"><rect x="5" y="11" width="14" height="10" rx="2" fill="#fbbf24"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="#fbbf24" stroke-width="2.4"/></svg>';
-
-const CSS = `
-#tf-jb-root{position:fixed;inset:0;z-index:500;pointer-events:none;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#eef3fb;user-select:none}
-.tf-jb-veil{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:10px;box-sizing:border-box;background:rgba(4,8,15,.66);pointer-events:auto;overflow:auto;animation:tf-jb-fade .18s ease-out}
-.tf-jb-card{position:relative;width:min(540px,100%);max-height:100%;overflow:auto;box-sizing:border-box;padding:18px 20px 20px;border-radius:16px;background:linear-gradient(180deg,#2b384e,#18212f);border:2px solid #0a0f18;box-shadow:0 5px 0 #0a0f18,0 22px 44px rgba(0,0,0,.55),inset 0 2px 0 rgba(255,255,255,.12);animation:tf-jb-rise .22s ease-out}
-.tf-jb-card.wide{width:min(900px,100%)}
-.tf-jb-tag{display:inline-block;font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#0a0f18;background:#fbbf24;border-radius:6px;padding:3px 9px}
-.tf-jb-h{margin:8px 0 2px;font-size:28px;line-height:1.1;font-weight:900;color:#fff;text-shadow:0 2px 0 #0a0f18}
-.tf-jb-sub{margin:0 0 12px;font-size:16px;line-height:1.35;color:#c4cfdf}
-.tf-jb-stars{display:flex;gap:8px;justify-content:center;margin:6px 0 12px}
-.tf-jb-stars.sm{justify-content:flex-start;gap:3px;margin:8px 0 0}
-.tf-jb-star{animation:tf-jb-pop .45s cubic-bezier(.2,1.6,.4,1) both}
-.tf-jb-rows{border-radius:12px;background:#0f1622;border:2px solid #0a0f18;padding:6px 12px;margin:0 0 12px;box-shadow:inset 0 2px 6px rgba(0,0,0,.5)}
-.tf-jb-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:16px;border-bottom:1px solid rgba(255,255,255,.07)}
-.tf-jb-row:last-child{border-bottom:0}
-.tf-jb-row b{font-variant-numeric:tabular-nums}
-.tf-jb-row.total{font-size:21px;font-weight:900;color:#fbbf24}
-.tf-jb-row.dim{color:#8fa0b8}
-.tf-jb-row.good{color:#6ee7a7;font-weight:800}
-.tf-jb-xp{height:12px;border-radius:7px;background:#0a0f18;overflow:hidden;border:1px solid #05080e;margin:4px 0}
-.tf-jb-xp i{display:block;height:100%;width:0;background:linear-gradient(90deg,#34d399,#fbbf24);border-radius:7px;transition:width .9s ease-out}
-.tf-jb-note{font-size:15px;color:#9fb0c8;margin:0 0 10px}
-.tf-jb-up{color:#6ee7a7;font-weight:800;font-size:16px;margin:0 0 8px}
-.tf-jb-btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
-.tf-jb-btn{flex:1 1 130px;min-height:46px;padding:10px 14px;border-radius:12px;border:2px solid #0a0f18;font:800 17px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;cursor:pointer;color:#0a0f18;background:linear-gradient(180deg,#fcd34d,#f59e0b);box-shadow:0 4px 0 #0a0f18,inset 0 2px 0 rgba(255,255,255,.45)}
-.tf-jb-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #0a0f18}
-.tf-jb-btn.alt{color:#eef3fb;background:linear-gradient(180deg,#42536e,#2a384d);box-shadow:0 4px 0 #0a0f18,inset 0 2px 0 rgba(255,255,255,.18)}
-.tf-jb-btn[disabled]{opacity:.45;cursor:not-allowed}
-.tf-jb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:10px 0 12px}
-.tf-jb-job{position:relative;text-align:left;padding:12px;border-radius:12px;border:2px solid #0a0f18;background:linear-gradient(180deg,#34445f,#212d40);color:#eef3fb;font:inherit;cursor:pointer;box-shadow:0 4px 0 #0a0f18,inset 0 2px 0 rgba(255,255,255,.12)}
-.tf-jb-job:hover{filter:brightness(1.12)}
-.tf-jb-job.cur{outline:3px solid #fbbf24}
-.tf-jb-job.lock{cursor:not-allowed;filter:grayscale(.6) brightness(.72)}
-.tf-jb-job h3{margin:7px 0 3px;font-size:19px;line-height:1.15;color:#fff}
-.tf-jb-job p{margin:0 0 8px;font-size:15px;line-height:1.3;color:#c4cfdf}
-.tf-jb-meta{display:flex;gap:6px;flex-wrap:wrap}
-.tf-jb-chip{font-size:14px;font-weight:700;padding:2px 8px;border-radius:7px;background:#0f1622;border:1px solid #05080e;color:#fcd34d}
-.tf-jb-bar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:#0f1622;border:2px solid #0a0f18;margin:8px 0;font-size:16px;box-shadow:inset 0 2px 6px rgba(0,0,0,.5)}
-.tf-jb-bar b{color:#fbbf24}
-.tf-jb-bar .tf-jb-btn{flex:0 0 auto;min-height:40px;padding:6px 16px;font-size:16px}
-.tf-jb-brief{position:absolute;left:50%;top:26%;transform:translateX(-50%) translateY(-10px);width:min(520px,calc(100% - 24px));box-sizing:border-box;padding:10px 16px 12px;border-radius:14px;background:linear-gradient(180deg,rgba(43,56,78,.96),rgba(24,33,47,.96));border:2px solid #0a0f18;box-shadow:0 4px 0 #0a0f18,0 14px 30px rgba(0,0,0,.45);text-align:center;opacity:0;transition:opacity .35s,transform .35s;pointer-events:none}
-.tf-jb-brief.on{opacity:1;transform:translateX(-50%) translateY(0)}
-.tf-jb-brief .tf-jb-h{font-size:24px;margin:6px 0 2px}
-.tf-jb-brief .tf-jb-sub{margin:0;font-size:16px}
-@keyframes tf-jb-fade{from{opacity:0}to{opacity:1}}
-@keyframes tf-jb-rise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
-@keyframes tf-jb-pop{from{opacity:0;transform:scale(.2) rotate(-25deg)}to{opacity:1;transform:none}}
-@media (max-height:520px),(max-width:560px){
-  .tf-jb-card{padding:12px 14px 14px}
-  .tf-jb-h{font-size:22px}
-  .tf-jb-brief .tf-jb-h{font-size:20px}
-  .tf-jb-sub{font-size:15px;margin-bottom:8px}
-  .tf-jb-row{padding:4px 0;font-size:15px}
-  .tf-jb-row.total{font-size:18px}
-  .tf-jb-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
-  .tf-jb-btn{min-height:42px;font-size:16px}
-  .tf-jb-brief{top:17%}
-}
-`;
-
-export class JobPanels {
-  constructor() {
-    this.root = null;
-    this.veil = null;
-    this.brief = null;
-    this._briefTimer = 0;
-  }
-
-  _ensure() {
-    if (this.root) return;
-    if (!document.getElementById('tf-jb-css')) {
-      const st = document.createElement('style');
-      st.id = 'tf-jb-css';
-      st.textContent = CSS;
-      document.head.appendChild(st);
+  siteFor(id) {
+    // Independent job sites: no shared street/building/pile coordinates.
+    if (id <= 15) { const x = id * 1100, z = 1800;
+      return {ok:true, keep:false, pile:{x,z}, truck:{x:x+(id===2?80:id===8?70:id===9?80:30),z}};
     }
-    this.root = document.createElement('div');
-    this.root.id = 'tf-jb-root';
-    document.body.appendChild(this.root);
-  }
-
-  isOpen() { return !!this.veil; }
-
-  hide() {
-    if (this.veil) { this.veil.remove(); this.veil = null; }
-  }
-
-  _open(html, wide, onClick) {
-    this._ensure();
-    this.hide();
-    const veil = document.createElement('div');
-    veil.className = 'tf-jb-veil';
-    veil.innerHTML = '<div class="tf-jb-card' + (wide ? ' wide' : '') + '">' + html + '</div>';
-    veil.addEventListener('click', (e) => {
-      const t = e.target.closest ? e.target.closest('[data-act],[data-id]') : null;
-      if (!t) return;
-      if (t.blur) t.blur();
-      onClick(t);
-    });
-    this.root.appendChild(veil);
-    this.veil = veil;
-    return veil;
-  }
-
-  // short banner at the start of a job
-  briefing(job, ms) {
-    this._ensure();
-    if (this.brief) this.brief.remove();
-    clearTimeout(this._briefTimer);
-    const el = document.createElement('div');
-    el.className = 'tf-jb-brief';
-    el.innerHTML = '<span class="tf-jb-tag">Level ' + job.id + ' - ' + chapterOf(job.id).name + ' - ' + job.type + '</span><div class="tf-jb-h">' + job.name + '</div><p class="tf-jb-sub">' + job.story + '</p><p class="tf-jb-sub">' + (job.rule || '') + '</p>';
-    this.root.appendChild(el);
-    this.brief = el;
-    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
-    this._briefTimer = setTimeout(() => {
-      el.classList.remove('on');
-      setTimeout(() => { if (el.parentNode) el.remove(); }, 400);
-    }, ms || 5000);
-  }
-
-  showResult(r, h) {
-    h = h || {};
-    const rows = [];
-    rows.push(['Level reward' + (r.firstClear ? '' : ' (repeat 40%)'), '+' + r.base, '']);
-    if (r.starBonus) rows.push([r.stars + '-star bonus', '+' + r.starBonus, '']);
-    if (r.rankBonus) rows.push(['Rank bonus (' + r.rankBefore.name + ')', '+' + r.rankBonus, '']);
-    if (r.bonus) rows.push([r.bonus.got ? 'Bonus: ' + r.bonus.text : 'Bonus missed: ' + r.bonus.text,
-      r.bonus.got ? '+' + r.bonus.coins : '+0', r.bonus.got ? 'good' : 'dim']);
-    rows.push(['Load tips (already paid)', '+' + r.tips, 'dim']);
-    rows.push(['Time used', fmtTime(r.timeUsed) + (r.newBest ? '  NEW BEST' : ''), r.newBest ? 'good' : 'dim']);
-    rows.push(['Total reward', '+' + r.coins + ' coins', 'total']);
-    const rowHtml = rows.map(x => '<div class="tf-jb-row ' + x[2] + '"><span>' + x[0] + '</span><b>' + x[1] + '</b></div>').join('');
-    const stars = [1, 2, 3].map(n => starSvg(r.stars >= n, 46, 0.15 + n * 0.22)).join('');
-    const after = r.rankAfter;
-    const startPct = r.rankUp ? 0 : Math.round(r.rankBefore.pct * 100);
-    const endPct = Math.round(after.pct * 100);
-    const unlock = r.newlyUnlocked.length ? '<p class="tf-jb-up">New job unlocked: ' + r.newlyUnlocked.map(j => j.name).join(', ') + '</p>' : '';
-    const rankTxt = (r.rankUp ? '<span class="tf-jb-up">RANK UP! </span>' : '') + after.name + (after.next ? ' - ' + after.into + '/' + after.need + ' XP to ' + after.next : ' - top rank') + ' (+' + r.xpGain + ' XP)';
-    const html =
-      '<span class="tf-jb-tag">Level ' + r.job.id + ' complete</span>' +
-      '<div class="tf-jb-h">' + r.job.name + '</div>' +
-      '<div class="tf-jb-stars">' + stars + '</div>' +
-      '<div class="tf-jb-rows">' + rowHtml + '</div>' +
-      unlock +
-      '<p class="tf-jb-note">' + rankTxt + '</p>' +
-      '<div class="tf-jb-xp"><i style="width:' + startPct + '%"></i></div>' +
-      '<div class="tf-jb-btns">' +
-      (r.nextId ? '<button class="tf-jb-btn" data-act="next">Next job</button>' : '') +
-      '<button class="tf-jb-btn alt" data-act="replay">Replay</button>' +
-      '<button class="tf-jb-btn alt" data-act="jobs">All jobs</button>' +
-      '</div>';
-    const veil = this._open(html, false, (t) => {
-      const a = t.getAttribute('data-act');
-      if (a === 'next' && h.onNext) h.onNext(r.nextId);
-      else if (a === 'replay' && h.onReplay) h.onReplay();
-      else if (a === 'jobs' && h.onJobs) h.onJobs();
-    });
-    const bar = veil.querySelector('.tf-jb-xp i');
-    requestAnimationFrame(() => requestAnimationFrame(() => { if (bar) bar.style.width = endPct + '%'; }));
-  }
-
-  showFail(job, loads, h) {
-    h = h || {};
-    const html =
-      '<span class="tf-jb-tag">Level ' + job.id + '</span>' +
-      '<div class="tf-jb-h">Time is up</div>' +
-      '<p class="tf-jb-sub">You delivered ' + loads + ' of ' + job.loads + ' loads. Try again, you can do it.</p>' +
-      '<div class="tf-jb-btns">' +
-      '<button class="tf-jb-btn" data-act="retry">Try again</button>' +
-      (h.onAd ? '<button class="tf-jb-btn alt" data-act="ad">+60 seconds (watch ad)</button>' : '') +
-      '<button class="tf-jb-btn alt" data-act="jobs">All jobs</button>' +
-      '</div>';
-    this._open(html, false, (t) => {
-      const a = t.getAttribute('data-act');
-      if (a === 'retry' && h.onRetry) h.onRetry();
-      else if (a === 'ad' && h.onAd) h.onAd();
-      else if (a === 'jobs' && h.onJobs) h.onJobs();
-    });
-  }
-
-  showPicker(sys, ctx, h) {
-    h = h || {};
-    const rank = sys.rankInfo();
-    const d = sys.dailyStatus();
-    let cards = '';
-    for (const j of sys.list()) {
-      const why = sys.lockReason(j.id, ctx);
-      const rec = sys.record(j.id);
-      const stars = [1, 2, 3].map(n => starSvg(rec.stars >= n, 18, -1)).join('');
-      const cur = sys.current.id === j.id;
-      const chapter = chapterOf(j.id);
-      cards +=
-        '<button type="button" class="tf-jb-job' + (why ? ' lock' : '') + (cur ? ' cur' : '') + '" data-id="' + j.id + '">' +
-        '<span class="tf-jb-tag">Level ' + j.id + ' - ' + chapter.name + '</span>' +
-        '<h3>' + j.name + '</h3>' +
-        '<p>' + (why ? LOCK_SVG + ' ' + why : (j.rule || j.story)) + '</p>' +
-        '<span class="tf-jb-meta"><span class="tf-jb-chip">' + j.type + '</span><span class="tf-jb-chip">' + j.loads + ' goals</span><span class="tf-jb-chip">' + fmtTime(j.time) + '</span><span class="tf-jb-chip">+' + j.reward + '</span></span>' +
-        '<span class="tf-jb-stars sm">' + stars + '</span>' +
-        '</button>';
-    }
-    const daily = d.canClaim
-      ? '<div class="tf-jb-bar"><span>Daily bonus - day <b>' + d.day + '</b> of 7: <b>+' + d.amount + ' coins</b></span><button class="tf-jb-btn" data-act="daily">Claim</button></div>'
-      : '<div class="tf-jb-bar"><span>Daily bonus taken. Tomorrow, day <b>' + d.nextDay + '</b>: <b>+' + d.nextAmount + ' coins</b></span></div>';
-    const rankBar = '<div class="tf-jb-bar"><span>Rank: <b>' + rank.name + '</b>' + (rank.next ? ' - ' + rank.into + '/' + rank.need + ' XP to ' + rank.next : ' - top rank') + '</span><span>Coin bonus <b>+' + Math.round(rank.bonus * 100) + '%</b></span></div>';
-    const html =
-      '<span class="tf-jb-tag">City Rescue</span>' +
-      '<div class="tf-jb-h">Choose a job</div>' +
-      '<p class="tf-jb-sub">15 levels in 3 chapters. Each level has its own goal. More stars, more coins.</p>' +
-      rankBar + daily +
-      '<div class="tf-jb-grid">' + cards + '</div>' +
-      '<div class="tf-jb-btns"><button class="tf-jb-btn alt" data-act="close">Back to game</button></div>';
-    this._open(html, true, (t) => {
-      const id = t.getAttribute('data-id');
-      const a = t.getAttribute('data-act');
-      if (id) {
-        const n = parseInt(id, 10);
-        if (sys.lockReason(n, ctx)) return;
-        if (h.onPick) h.onPick(n);
-      } else if (a === 'daily') {
-        const amt = sys.claimDaily(1);
-        if (amt && h.onCoins) h.onCoins(amt, 'daily');
-        this.showPicker(sys, ctx, h);
-      } else if (a === 'close') {
-        this.hide();
-        if (h.onClose) h.onClose();
-      }
-    });
+    return (this._layout && this._layout.get(id)) || { ok: false };
   }
 }
 
-// ---------- shop window with level dots ----------
-const ICONS = {
-  engine: '<svg width="34" height="34" viewBox="0 0 24 24"><rect x="4" y="9" width="14" height="9" rx="2" fill="#fbbf24" stroke="#92400e" stroke-width="1.2"/><rect x="8" y="5" width="6" height="4" fill="#fbbf24"/><rect x="18" y="11" width="3" height="5" fill="#fbbf24"/><rect x="1.5" y="11" width="2.5" height="5" fill="#fbbf24"/></svg>',
-  hydraulic: '<svg width="34" height="34" viewBox="0 0 24 24"><rect x="2" y="8.5" width="12" height="7" rx="1.8" fill="#fbbf24" stroke="#92400e" stroke-width="1.2"/><rect x="14" y="11" width="8" height="2.6" fill="#e5e7eb"/><circle cx="3.6" cy="12" r="1.5" fill="#0a0f18"/></svg>',
-  bucket: '<svg width="34" height="34" viewBox="0 0 24 24"><path d="M3 7h13l5 7-3 5H6z" fill="#fbbf24" stroke="#92400e" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 19v2M12 19v2M16 19v2" stroke="#e5e7eb" stroke-width="2"/></svg>'
-};
-const CSS2 = `
-.tf-up{display:flex;flex-direction:column;gap:7px;padding:12px;border-radius:12px;border:2px solid #0a0f18;background:linear-gradient(180deg,#34445f,#212d40);box-shadow:0 4px 0 #0a0f18,inset 0 2px 0 rgba(255,255,255,.12)}
-.tf-up-top{display:flex;align-items:center;gap:10px}
-.tf-up-top h3{margin:0;font-size:19px;color:#fff}
-.tf-up-ico{flex:0 0 auto;width:46px;height:46px;border-radius:12px;background:#0f1622;border:2px solid #0a0f18;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 2px 6px rgba(0,0,0,.5)}
-.tf-up p{margin:0;font-size:15px;line-height:1.3;color:#c4cfdf}
-.tf-up p b{color:#6ee7a7}
-.tf-sp{display:inline-block;width:30px;height:13px;border-radius:4px;background:#0a0f18;border:1px solid #05080e;margin-right:5px;box-shadow:inset 0 2px 3px rgba(0,0,0,.6)}
-.tf-sp.on{background:linear-gradient(180deg,#fde68a,#f59e0b);box-shadow:0 0 8px rgba(251,191,36,.6),inset 0 1px 0 rgba(255,255,255,.6)}
-`;
-
-JobPanels.prototype.showShop = function (getCtx, h, again) {
-  h = h || {};
-  this._ensure();
-  if (!document.getElementById('tf-jb-css2')) {
-    const st = document.createElement('style');
-    st.id = 'tf-jb-css2';
-    st.textContent = CSS2;
-    document.head.appendChild(st);
-  }
-  const c = getCtx();
-  let cards = '';
-  for (const kind of ['engine', 'hydraulic', 'bucket']) {
-    const u = UPGRADES[kind];
-    const lv = Math.min(Math.max((c.levels && c.levels[kind]) || 1, 1), MAX_LEVEL);
-    const cost = upgradeCost(kind, lv, 0);
-    const pips = [1, 2, 3, 4].map(n => '<i class="tf-sp' + (n <= lv ? ' on' : '') + '"></i>').join('');
-    let btn;
-    if (cost === null) btn = '<button class="tf-jb-btn alt" disabled>MAX LEVEL</button>';
-    else if (c.coins < cost) btn = '<button class="tf-jb-btn" disabled>' + cost + ' coins (need ' + (cost - c.coins) + ' more)</button>';
-    else btn = '<button class="tf-jb-btn" data-act="buy" data-kind="' + kind + '">Buy - ' + cost + ' coins</button>';
-    cards +=
-      '<div class="tf-up"><div class="tf-up-top"><span class="tf-up-ico">' + ICONS[kind] + '</span><h3>' + u.name + '</h3></div>' +
-      '<div>' + pips + '</div>' +
-      '<p>Now: ' + u.lines[lv - 1] + '</p>' +
-      '<p>' + (cost === null ? 'Fully upgraded' : 'Next: <b>' + u.lines[lv] + '</b>') + '</p>' +
-      btn + '</div>';
-  }
-  const html =
-    '<span class="tf-jb-tag">Workshop</span>' +
-    '<div class="tf-jb-h">Upgrades</div>' +
-    '<p class="tf-jb-sub">Better machine, faster jobs, more coins.</p>' +
-    '<div class="tf-jb-bar"><span>Your coins: <b>' + c.coins + '</b></span><span>Faster machine = faster levels</span></div>' +
-    '<div class="tf-jb-grid">' + cards + '</div>' +
-    '<div class="tf-jb-btns"><button class="tf-jb-btn alt" data-act="close">Back to game</button></div>';
-  const veil = this._open(html, true, (t) => {
-    const a = t.getAttribute('data-act');
-    if (a === 'buy') {
-      if (h.onBuy) h.onBuy(t.getAttribute('data-kind'));
-      this.showShop(getCtx, h, true);
-    } else if (a === 'close') {
-      this.hide();
-      if (h.onClose) h.onClose();
-    }
-  });
-  if (again && veil) {
-    veil.style.animation = 'none';
-    if (veil.firstChild) veil.firstChild.style.animation = 'none';
-  }
-};
+// TIER 3: the old JobPanels window system (briefing / result / fail / picker /
+// shop) was removed. All windows now live in src/ui/Menus.js with one steel
+// look, a round red X and no long sentences. Nothing here creates DOM.
 
 // ---------- site dressing: visual only, built once per job site ----------
 export function buildSiteDressing(THREE, id, pile, truck) {
@@ -720,7 +433,7 @@ export function buildSiteDressing(THREE, id, pile, truck) {
   };
   const lamp = (x, z, h, power) => {
     cyl(0.28, 0.4, h, x, h / 2, z, 0x5b6573);
-    box(2.4, 1.0, 0.8, x, h + 0.3, z, 0xfff4c9, yawU, { emissive: 0xffe9a8, emissiveIntensity: 3, roughness: 0.4 });
+    box(1.8, 0.7, 0.6, x, h + 0.3, z, 0xfff4c9, yawU, { emissive: 0xffe9a8, emissiveIntensity: 0.75, roughness: 0.4 });
     if (power) {
       const L = new THREE.PointLight(0xfff0c8, power, 70, 2);
       L.position.set(x, h - 0.5, z);
@@ -748,11 +461,11 @@ export function buildSiteDressing(THREE, id, pile, truck) {
     const len = Math.hypot(pile.x, pile.z) || 1;
     const nx = -pile.x / len, nz = -pile.z / len;
     const ry = Math.atan2(nx, nz);
-    const cx = pile.x + nx * 10 + nz * 6, cz = pile.z + nz * 10 - nx * 6;
-    cyl(0.2, 0.2, 3.4, cx - nz * 3, 1.7, cz + nx * 3, 0x5b6573);
-    cyl(0.2, 0.2, 3.4, cx + nz * 3, 1.7, cz - nx * 3, 0x5b6573);
-    box(7.4, 2.4, 0.4, cx, 3.5, cz, 0x1b2535, ry);
-    const face = new THREE.Mesh(new THREE.PlaneGeometry(7, 2.2), new THREE.MeshBasicMaterial({ map: tex }));
+    const cx = pile.x + nx * 50 + nz * 30, cz = pile.z + nz * 50 - nx * 30;
+    cyl(0.2, 0.2, 3.4, cx - nz, 1.7, cz + nx, 0x5b6573);
+    cyl(0.2, 0.2, 3.4, cx + nz, 1.7, cz - nx, 0x5b6573);
+    box(2.5, 1.2, 0.4, cx, 3.5, cz, 0x1b2535, ry);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(2.46, 1.16), new THREE.MeshBasicMaterial({ map: tex }));
     face.position.set(cx + nx * 0.23, 3.5, cz + nz * 0.23);
     face.rotation.y = ry;
     g.add(face);
@@ -836,7 +549,7 @@ export function buildSiteDressing(THREE, id, pile, truck) {
     }
     for (let row = 0; row < 2; row++) for (let i = 0; i < 6; i++) { const p = P(dl - 7 + row * 0.8, -4 + i * 1.3, pile); box(1.2, 0.5, 0.8, p.x, 0.3 + row * 0.5, p.z, 0xb6a27a, yawU + Math.PI / 2); }
   } else if (dress === 'crane' || dress === 'mega' || dress === 'pipes') { // tower crane / final site / pipe yard
-    const base = P(-2, 11);
+    const base = P(12, 35);
     box(3.4, 1.0, 3.4, base.x, 0.5, base.z, 0x6b7280);
     box(1.2, 26, 1.2, base.x, 13.5, base.z, 0xf5b301);
     box(24, 0.9, 0.9, base.x + ux * 8, 26.6, base.z + uz * 8, 0xf5b301, Math.atan2(uz, -ux) + Math.PI / 2 * 0 + 0, {});

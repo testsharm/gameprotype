@@ -1,4 +1,145 @@
+# Current Fix v4 — 2026-11-06
+
+[RAN] Same branch arena/0ac523ae-gameprotype, same PR #5 to clean-v1. Evidence-backed score 18/21; threshold 17 met. A, B, C1/C2/C3, D and E art/detail published in order.
+[RAN] All fifteen levels have real-input results. Final normal-URL/fresh-storage L1 +242 and NEXT L2 passed after E changes. B ten-minute active-input proof remains in V4_SESSION.txt. No own-code browser errors in final passing runs.
+[SEEN] Every generated screenshot opened; docs/SCREENSHOTS.md contains relative embeds, grades and shortcut disclosures. New phone truck-tip proof has no shortcuts. Art closeups explicitly use QA positioning/inspection camera.
+[READ] Remaining FAILS: 15 bucket/prop clipping (chassis contacts work); 17 rewarded flows unverified; 21 optional settings/dead-file cleanup incomplete. Do not claim 21/21. F cut first.
+[UNKNOWN] Physical iPhone, full park ascent/all rings, complete post-E fifteen-level replay remain unverified. L13 latest cosmetic camera fix not re-captured. Park terrain shading remains subtle.
+[RAN] Current build passes, about 5.4 MB/three application files; standard Vite warnings. Live preview 4173 serves dist.
+
+--- Historical notes below (current block above wins) ---
+
+# Current Fix v4 continuation — 2026-11-06
+
+[RAN] SAME branch arena/0ac523ae-gameprotype; SAME open PR #5. Score 13/21, DO NOT MERGE below 17/21.
+[RAN] A gallery published and B corrected full ten-minute active-input run passed (600.938 wall / 594.013 game seconds / 1354 holds / zero pauses, focus losses or own-code errors).
+[RAN] C1 five completions and C2 five completions use real keys/actions. unlockall only selects initial levels, readonly telemetry guides routes, no gameplay mutation. C2_WALK.txt covers L6–10; C2_BRIDGE_FINAL.txt repeats L9 after deck-water rendering fix. L7 real overspeed drop/recovery passed; L9 real fall adds exactly ten extra seconds. Checklist 10 now passes.
+[SEEN] All C2 screenshots opened. L7 fresh start uses concrete; older blue-grid mid/drop explicitly disclosed. L9 final start/mid/result/reset show a solid visible deck. Night forklift overlap is BAD and remains E work. Contact sheet has ten real starts, five blanks. Gallery has desktop/390x844 start/mid/results plus negatives.
+[UNKNOWN] NEXT: C3 L11–15, then D park, then E art/collisions; optional F last. C3/D/E not yet implemented or verified. Push/report after each group and continue without questions. Failures 8,9,12,13,14,15,17,21.
+[RAN] Build passes, standard Vite warnings only; preview 4173 serves current dist.
+
+--- Historical notes below (current block above wins) ---
+
+--- Historical notes below (new current block above wins) ---
+
+## LATEST — V4 TIER 1 CONTINUATION (2026-11-06)
+
+[RAN] Strict checklist now 11/21; see docs/V4_REPORT.md. PR #5 stays open, not merged.
+[RAN] Real handling inputs: 20.21 km/h release stops in 0.906 s; 31.55 km/h Space brake stops in 0.877 s; measured reverse 14 km/h. Zero horizontal creep after stopping.
+[SEEN] Camera lifts above the pile instead of entering the cab; near-wall materials fade. L3 now starts upright: hidden city colliders were tipping it. Selected L6/L11/L13/L15 starts inspected.
+[RAN] Real tap-to-act and cancellation-to-rest tested. Five-frame clock: about 1 ms drift over eight seconds. Fresh normal-URL L1 -> +265 -> GET READY/NEXT L2 -> reload CONTINUE L2 passed again.
+[SEEN] Picker amber outline, lock labels and START fixed at phone and landscape sizes. Floating pile label is bounded in screen size.
+[UNKNOWN] Ten-minute zero-error run rejected as active-input proof: it sat paused after minute 3. Corrected harness not re-run. Do not count checklist 18.
+[UNKNOWN] Tier 1 still not fully signed off: real L15 champion flow and full start/path clearance remain unverified. Tiers 2–5 remain blocked/unbuilt. Do not claim all 15 different levels or upgraded Free Play.
+
+---
+
+## LATEST — V4 PARTIAL TIER 1 (2026-11-06)
+
+[READ] Base 1f091a9 from clean-v1. Session branch arena/0ac523ae-gameprotype is fixed by Arena.
+[RAN] npm install and npm run build pass. No new packages.
+[RAN] scripts/newplayer.mjs: normal URL, empty storage, only real W/S/Space/F/G holds and button clicks; L1 finished, +265 result, NEXT into unpaused L2, reload CONTINUE into L2. Read-only QA observations only; no teleports, unlocks, or completion shortcuts.
+[SEEN] docs/screenshots/v4-*.png were opened and inspected. Real phone-sized two-touch input and real timeout screen captured separately.
+[RAN] Checklist 9/21. See docs/V4_REPORT.md and raw V4_NEWPLAYER.txt / V4_UI.txt.
+[UNKNOWN] Tier 1 remains INCOMPLETE. Do not advance Tier 2 or 3 yet. No claim of 15 level completion, improved Free Play, or 10-minute error-free session.
+[READ] Old scripts/level-walk.mjs uses QA teleport and direct goal steps: its historical PASS is NOT evidence for the new requested standard.
+
+---
+
 # STATE - TerraForm 3D (live status)
+
+## LATEST - QUALITY PASS v3 (2026-11-05) - REAL BROWSER VERIFIED
+
+> **Read `docs/DEPTH_REPORT.md` first.** It is the current, honest report. The
+> "FINAL PRODUCT PUSH - BUILT, NOT VERIFIED" section below is HISTORICAL and its
+> claim that no browser/screenshots were available is FALSE for this session.
+
+- Active branch `arena/154f02b1-gameprotype`, base `clean-v1` merge `1793af7`.
+  `main` untouched. Commits: `d83a47a` Tier A, `26cd886` Tier B, `0428c15`
+  Tier C, `6da2fb1` Tier D (plus the final docs/QA commit).
+- Tooling: `@sparticuz/chromium@153.0.0`, `playwright-core@1.64.1`, `pngjs@7.0.0`.
+  Real Chromium 153.0.8010.0 serves built `dist/` at `127.0.0.1:4179`.
+- `docs/QA_EVIDENCE.txt`: contrast 0 failures; layout PASS at 5 sizes;
+  button-check 20/20 (52 clicks); level-walk **29/29** (15 levels, L1 exactly
+  3 held-F scoops + 3 held-G dumps, L4 wrong-truck / L7 pipe-drop / L9 fall-off
+  negatives); perf PASS; sdk-check 0 × `CrazySDK is not initialized yet`;
+  all 6 Node static harnesses PASS.
+- `docs/QA_PERF.txt`: start 65.5 fps/246 draws, L1 53.8/253, L11 57.5/355,
+  L15 53.6/305, Free Play 52.0/158 (<200). A11 reverse beeper `beeps 0→6`.
+  Draw-call counter fixed with `renderer.info.autoReset=false` + explicit reset.
+- `docs/QA_SESSION_LOG.txt`: 602 s real session, 108 clicks / 323 key holds /
+  16 level changes / 0 crashes / 0 red errors. Honest caveat: software WebGL
+  decays to ~5-8 fps over 10 min (avg 7.4); 60 fps on real hardware is NOT
+  verified.
+- `docs/screenshots/`: 18 named PNGs + 15 `level-XX.png` + 15 `-30s.png` +
+  `levels-contact-sheet.png`. Every one was opened and inspected.
+- 5 worst-looking things listed and **all 5 fixed**, including the Free Play
+  timer HUD (`#tf-hud .tf-timer.off{display:none}` — the `.off` class had no
+  CSS rule at all). See DEPTH_REPORT §2.
+- `src/gameplay/Stages.js` is NEW: 15 distinct grounds/skies/fog/skylines/
+  landmarks/yaws/verbs/3-line coaches/sound beds. `src/core/CameraManager.js`
+  gained `snapTo()`. `Jobs.js` now has six 4-step upgrades (was 3).
+- `README.md` at repo root is now a real project README.
+
+---
+
+
+
+## LATEST - FINAL PRODUCT PUSH (2026-11-05) - BUILT, NOT VERIFIED
+
+- Branch `arena/66b14966-gameprotype`, based on `clean-v1` HEAD `8c57ed6` (PR #2 merge).
+  `main` was NOT touched. No force push, no reset, no discarded work.
+- Note on workflow: the master prompt asked for ONE new branch from `clean-v1`. Arena
+  fixes the session to this one active branch, so work stayed here. It was fast-forwarded
+  to `8c57ed6` before any code, which makes it equivalent to a branch from `clean-v1`.
+- TIER 1 (`199dad0`, `bcb7c98`): no auto-complete; goal objects visible from frame 0;
+  3rd load has dirt; debug box off unless `?debug` / backquote; light smoke; cab view;
+  real `hub.setVolumes(master,music,effects)`; RUSH expiry is a MISS, not free progress;
+  scoop and dump are ALWAYS a 3-second HOLD with a visible progress ring.
+- TIER 2 (`76cd59a`): new `src/ui/GameUI.js`, portrait first-class (440x956, 390x844),
+  landscape 844x390, desktop 1920x1080 / 1280x720. Left icon stack, right Drive, left
+  Action, big buttons, left-handed swap. No rotate-lock / rotate overlay.
+- TIER 3 (`899108c`): new `src/ui/Menus.js` - start screen before driving, PLAY 64 px,
+  4 icon tiles, 2x3 pause grid, 44x44 red X on every window, 3 real volume sliders,
+  graphics / big / lefty / guide toggles, 4-page HELP, level picker with 3 tabs,
+  result / time-up with star + coin count-up, 6-card garage. Old `JobPanels` windows
+  (296 dead lines in `Jobs.js`) deleted. `index.html` old pause overlay removed.
+- TIER 4 (`d7ab7cb`): real pointer holds (mouse + touch, pointerId, capture, release on
+  all 5 paths), no fake KeyboardEvent, real keyboard light-up (`scale(.94)`), zoom +/-
+  buttons + Equal/NumpadAdd/Minus/NumpadSubtract + wheel, 2 px press on every button.
+- TIER 5 (`72e64ad`): 15-level walk table (`scripts/level-walk.mjs`) - 15/15 walked,
+  8 types, 7 skies, 15 distinct starts. Per-verb visuals (FILL mound, TRENCH deepening
+  + spoil, MOVE snap/drop, CLEAR into bins, CONE penalties, RUSH 3/5 trucks + boss truck).
+  Glowing ring + soft beam fading near + bobbing chevron + amber minimap target.
+  Mission card = name + ONE goal line + 3 dots. Guide forced on for L1 until first dump.
+- TIER 6: 6 upgrades x 4 paid steps (100/250/500/900), 5 pips, one stat, green/grey
+  price button, small MAX badge, 6 paint swatches that really change machine colour,
+  save migration from old 3-upgrade saves. `scripts/garage-check.mjs` PASS.
+- TIER 7: new `src/gameplay/StuntPark.js` - 160x160 m park at (0,620), 6 ramps with
+  physics colliders, hill, 360 turntable, 22-clod dig field, 12-cone slalom, 8 coin
+  rings, pond, 3 jump pads, no timer/fail, capped 300 coin reward, best air time.
+  32 meshes / draw calls (<150). `scripts/park-check.mjs` PASS.
+- TIER 8: visual-only suspension body roll, wheel dust only above 18 km/h, dig dust
+  only on scoop, traffic cars slow/stop for the machine, half-size car colliders,
+  internal `jcb` names renamed to `backhoe`.
+- TIER 9: one `src/core/Ads.js` using the documented `SDK.ad.requestAd` with
+  `adStarted/adFinished/adError`; no-op without SDK; `?fakeads` 3 s overlay; mute+pause
+  and restore; rewarded x2 coins / +60 s; midgame ONLY on NEXT after 120 s and 180 s
+  cooldown; never during driving or on PLAY. `scripts/ads-check.mjs` PASS.
+- TIER 10: full-screen big map with rounded roads, park / water blocks, player arrow,
+  goal markers, landmark, compass, scale bar, X close and automatic pause.
+- Docs: `src/docs/RESEARCH_UI.md`, `src/docs/UI_SPEC.md`, `docs/DEPTH_REPORT.md`.
+  `docs/screenshots/` intentionally has NO PNGs - no browser exists here.
+- EVIDENCE (all Node / static, NOT a browser): `npx vite build` OK; `ui-audit` PASS;
+  `ui-runtime-check` 84 controls / 0 failures / 0 runtime errors; `layout-check` 5 sizes
+  0 overlaps / 0 off-screen / 0 targets <48 px; `tier1-check` PASS; `level-walk` 15/15;
+  `garage-check`, `park-check`, `ads-check` PASS.
+- STATUS: **BUILT, NOT VERIFIED**. No real click/touch, no F12 console, no phone, no
+  screenshot, no fps, no CrazyGames portal test. Do NOT claim "fixed" or "done".
+- NEXT: real browser play-test at the 5 sizes, capture 15 screenshots, check console,
+  then merge the PR into `clean-v1` and submit to CrazyGames.
+
+---
 
 Updated 2026-11-05 (end of a very long chat; a new chat must continue from here).
 Read order for a new AI: CONTINUE.md, then this file, then FILE_MAP.md, then HANDOFF.md.
@@ -13,6 +154,59 @@ Read order for a new AI: CONTINUE.md, then this file, then FILE_MAP.md, then HAN
 - Rounds 2-4 DONE (built + headless QA): NEW src/gameplay/Levels.js holds all 15 levels in 3 chapters and a real LevelEngine with 8 goal kinds (haul, fill, move, gate, trench, debris, rush combos, mix phases). Jobs.js now imports LEVELS as JOBS; main.js starts the engine, drives the mission card, counts non-dump goals, adds an optional bonus row to the result window, and moves the old Job 1 dirt patch + 16 cones with the site (they used to stay at 0,-120 forever).
 - Level evidence: all 15 levels load with the right name, type, goal count, timer and objective; every goal chain walks to 100 percent and opens the result window with a bonus row; 0 page errors. 15/15 site finder results ok (distinct free ground). Level group mesh counts: HAUL 2, FILL 5, MOVE 11, CONE 32-53, TRENCH 26-38, CLEAR 50, RUSH 26-32, MIX 23. `npx vite build` OK (main 907 kB, rapier 4.34 MB). 5-size HUD re-check: 0 overlaps, 0 clipped zones, 0 old HUD ids, 0 small touch targets on phone sizes.
 - QA helpers (guarded by ?qadebug): window.__levelInfo(), window.__qaLevel.info()/site()/step()/objects()/gateTest()/teleport(); ?job=N starts any level.
+
+## UX milestone (2026-11-05, current work) - built, awaiting real play-test
+- Scope fixed by the user: start screen, honest clickable controls, visible camera/sound/zoom,
+  landscape-first phone HUD, per-level starts, Rush Hour Lite mismatch, garage-yard depth.
+  The DEPTH PACK parts A-H remain LOCKED DESIGN for later rounds; all 15 levels were NOT rebuilt here.
+- NEW: first load opens a TerraForm 3D start screen over a showcase view of the backhoe in the
+  garage yard. Buttons: Play/Continue, Contracts, Garage/Upgrades, Settings, Controls/How to Play.
+  No job timer starts until Play. `gameState` ('menu' | 'playing') gates jm.update/level.update/
+  goal detection; `uiPaused` gates all in-game menus. JobSystem.prepare(id) shows a level without
+  starting its clock. Last selected job is saved in terraform_last_job_v1 (try/catch).
+- NEW: GameUI v6 owns a 7-button in-game menu (Resume, Contracts, Garage, Settings, Controls,
+  Restart + confirm, Main Menu + confirm) and a shared modal window (Settings/Controls/Confirm).
+  All are semantic <button>s with labels, tooltips and :focus-visible outlines.
+- NEW: real input API in main.js (actionHold/actionTap). PC W/A/S/D/F/C/Space are clickable/holdable
+  buttons; touch steering, F, BRK, camera, sound and zoom all call the SAME API. No fake KeyboardEvent
+  dispatch remains. Pointer capture + pointerup/pointercancel/lostpointercapture/blur/hidden release.
+  Multi-touch works (each pointerId is tracked separately). Keyboard still uses event.code.
+- NEW: Camera/Sound/Zoom+/Zoom- are persistent HUD tools (never inside the hamburger), show the
+  current camera mode and mute state, and disable with an explanation in Cab view. Chase is the
+  default (was Bucket). Chase/Bucket cameras sit BEHIND the machine; portrait windows get a longer
+  distance. CameraManager has zoomBy/setZoom/canZoom/setShowcase, smooth transitions, safe limits.
+- NEW: 844x390 is the primary phone layout. Portrait (440x956, 360x800) stays usable; no orientation
+  lock and no "rotate your phone" overlay. Safe-area insets used. Page scroll/selection is locked only
+  while playing or while a control is held. Minimap no longer touches the mission card on portrait
+  (card moved to top 220px). All touch targets >= 48 CSS px.
+- NEW: all 15 levels have explicit `start: {back,side,face,cam}` data; levelStartPose() computes a
+  safe absolute pose facing the first task. Node check: 15/15 distinct positions, 0 starts inside
+  their own pile/truck. Ground chevrons on Level 1 fade after the first load; the weak floating
+  screen arrow was removed. Level 1 hint now says "Drive to the highlighted dirt pile".
+- FIXED: "Rush Hour Lite" is no longer "Gates 0/8". L5 is 3 waiting trucks in 3 lanes, each with a
+  12-segment countdown ring + floating seconds; a truck drives away when its timer expires and the
+  bonus is "No missed truck". L10 is 5 night trucks with crossing traffic and a red danger strip.
+  New goal kind 'rush'; the blue truck is hidden but moved to the active lane so dump checks work.
+- FIXED: speedometer shows the signed forward speed clamped to the current cap (base 32 km/h forward,
+  14 reverse; only Engine Power changes it), so a physics overshoot cannot show 35 at level 1.
+  hub.setEngine() now receives a signed speed so the reverse beeper can trigger. __speedInfo() added.
+- FIXED: garage yard depth. All walls <= 1.2 m (no camera blocking). Painted service bays, hazard
+  band, tyre arcs, oil stains, cracks and puddles in textures; low wall with posts; small lit office,
+  wash bay, tool rack, 2 parked machines, cones, barrels/tyres/cones as InstancedMesh, lamp posts,
+  flag. Central driving lane stays clear. No outside art/assets.
+- SDK: src/core/Portal.js is now wired. Official v3 APIs used: SDK.init(), game.gameplayStart(),
+  game.gameplayStop(), game.happytime(), game.settings.muteAudio, addSettingsChangeListener.
+  gameplayStart fires only when the player first reaches playable state (menus excluded). Everything
+  is wrapped in try/catch; all menus/controls work when the SDK is absent.
+- Evidence this round: node --check OK on all 9 changed JS files; npx vite build OK
+  (dist/index.html 5.60 kB, main 947.49 kB gzip 257.72 kB, rapier 4,335.49 kB, dist 5.1 MB).
+  Node-only world check: sitesOk = 15/15, 486 building boxes, 947 prop colliders, 662 mesh/instanced
+  objects, 15/15 distinct start poses, 0 unsafe starts, L5 rush 3/3, L10 rush 5/5.
+  Static wiring audit: 33 HUD ids + 10 start/modal ids, 0 duplicate ids, 0 unbound start buttons,
+  0 missing id references, no fake KeyboardEvent, all 5 pointer-release paths present.
+- NOT VERIFIED: no Chromium/Playwright/jsdom binary is installed in this workspace and the user
+  forbade installing new packages for screenshots, so NO browser screenshots, NO real click/touch
+  test and NO measured DOM geometry were produced this round. Real Brave/F12 play-test is required.
 
 ## Known problems right now
 1. (Round 1b, BUILT, awaiting visual test) Old HUD pieces should be gone: root index.html replaced, stray src/index.html deleted, JS creators disabled. If any old piece still shows, ask the user for one screenshot and inspect F12 Elements.

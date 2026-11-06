@@ -1,0 +1,7 @@
+[READ] Wall test setup only: placed the stationary loader outside the stage shed. The real C key selects orbit; no camera pose is injected.
+[RAN] PASS shed wall pulls camera in and fades near surfaces {"position":[55.89042357942796,4.749415520094702,-150.58425072152588],"up":[0,1,0],"blockers":1,"pulledIn":true,"faded":3,"inside":0}
+[RAN] PASS next unfinished card has NEW badge ""
+[RAN] PASS locked L2 explains finish L1 ""
+[RAN] PASS result X opens pause, not picker ""
+[RAN] PASS resume closes pause ""
+[RAN] PASS no own-code errors []

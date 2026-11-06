@@ -1,0 +1,67 @@
+[RAN] PASS L6 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +695
+      BONUS +70 INCLUDED
+      
+      
+         RETRY
+         NEXT: PIPE LAYER
+      
+      
+[RAN] L7 speed drop {"drops":1,"loads":0,"hasDirt":false}
+[RAN] PASS L7 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +700
+      COINS EARNED
+      
+      
+         RETRY
+         NEXT: NIGHT SHIFT
+      
+      
+[RAN] PASS L8 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +744
+      BONUS +90 INCLUDED
+      
+      
+         RETRY
+         NEXT: BRIDGE REPAIR
+      
+      
+[RAN] L9 real fall/reset {"resets":1,"penalty":10.00000000000005}
+[RAN] PASS L9 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +904
+      COINS EARNED
+      
+      
+         RETRY
+         NEXT: NIGHT RUSH
+      
+      
+[RAN] PASS L10 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +1,047
+      BONUS +120 INCLUDED
+      
+      
+         RETRY
+         NEXT: STORM CLEAN-UP
+      
+      

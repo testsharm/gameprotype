@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { createTrafficModel, TRAFFIC_COLORS } from './Vehicles.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // World: city, roads, sky, props, job site.
 // Rules used here (anti-flicker): road markings live inside ONE texture,
@@ -534,7 +536,9 @@ export class World {
       intervals.forEach((zInt) => {
         if (Math.abs(xInt.center) < 1 && Math.abs(zInt.center) < 1) return;
         if (Math.abs(xInt.center) < 1 && Math.abs(zInt.center + 120) < 1) return;
-        blocks.push({ x: xInt.center, z: zInt.center, w: xInt.size, d: zInt.size, park: R() < 0.14 });
+        const water = R() < 0.10;
+        blocks.push({ x: xInt.center, z: zInt.center, w: xInt.size, d: zInt.size,
+          park: !water && R() < 0.16, water: water });
       });
     });
     this.blocks = blocks;
@@ -721,145 +725,298 @@ export class World {
   createCentralGarageHub() {
     const R = this.rand;
     const hubGroup = new THREE.Group();
+    const WH = 1.2;                 // every wall is <= 1.2 m: no camera is ever blocked
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xc9ced6, roughness: 0.92 });
+    const darkMetal = new THREE.MeshStandardMaterial({ color: 0x454c58, roughness: 0.62, metalness: 0.45 });
+    const yellowMat = new THREE.MeshStandardMaterial({ color: 0xffc21a, roughness: 0.55 });
+    const amberMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.6 });
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x9ad7ff, emissive: 0x4aa8ff, emissiveIntensity: 0.85, roughness: 0.3 });
+    const tyreMat = new THREE.MeshStandardMaterial({ color: 0x171b21, roughness: 0.96 });
+    const blueMat = new THREE.MeshStandardMaterial({ color: 0x2f6fdb, roughness: 0.6, metalness: 0.2 });
+    const redMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.6 });
 
-    // paved yard (flat, 0.03 above the ground)
+    const put = (parent, geo, mat, x, y, z, ry) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z);
+      if (ry) m.rotation.y = ry;
+      m.castShadow = true; m.receiveShadow = true;
+      parent.add(m);
+      return m;
+    };
+    const box = (parent, w, h, d, mat, x, y, z, ry) => put(parent, new THREE.BoxGeometry(w, h, d), mat, x, y, z, ry);
+
+    // ---------------------------------------------------------------- yard floor
+    // Concrete noise, slab seams, cracks, oil stains, tyre arcs and puddles are
+    // PAINTED into one texture. Nothing here is a thin flickering strip of geometry.
     const pv = makeCanvas(512, 512);
-    const pctx = pv.getContext('2d');
-    pctx.fillStyle = '#9a9a96';
-    pctx.fillRect(0, 0, 512, 512);
-    for (let i = 0; i < 9000; i++) {
-      const g = 110 + Math.floor(R() * 80);
-      pctx.fillStyle = 'rgba(' + g + ',' + g + ',' + g + ',0.4)';
-      pctx.fillRect(R() * 512, R() * 512, 2, 2);
+    const c = pv.getContext('2d');
+    c.fillStyle = '#9a9d99'; c.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 11000; i++) {
+      const g = 112 + Math.floor(R() * 78);
+      c.fillStyle = 'rgba(' + g + ',' + g + ',' + (g - 4) + ',0.42)';
+      c.fillRect(R() * 512, R() * 512, 2, 2);
     }
-    pctx.fillStyle = 'rgba(0,0,0,0.22)';
-    for (let k = 0; k < 4; k++) {
-      pctx.fillRect(k * 128 - 1, 0, 3, 512);
-      pctx.fillRect(0, k * 128 - 1, 512, 3);
+    c.strokeStyle = 'rgba(15,20,26,0.35)'; c.lineWidth = 2;
+    for (let k = 0; k <= 4; k++) {
+      c.beginPath(); c.moveTo(k * 128, 0); c.lineTo(k * 128, 512); c.stroke();
+      c.beginPath(); c.moveTo(0, k * 128); c.lineTo(512, k * 128); c.stroke();
+    }
+    // hairline cracks
+    c.strokeStyle = 'rgba(35,40,46,0.30)'; c.lineWidth = 1.4;
+    for (let i = 0; i < 14; i++) {
+      let x = R() * 512, y = R() * 512;
+      c.beginPath(); c.moveTo(x, y);
+      for (let j = 0; j < 5; j++) { x += (R() - 0.5) * 34; y += (R() - 0.5) * 34; c.lineTo(x, y); }
+      c.stroke();
+    }
+    // oil / dirt patches and shallow puddles
+    for (let i = 0; i < 22; i++) {
+      const x = R() * 512, y = R() * 512, r = 9 + R() * 34;
+      const g = c.createRadialGradient(x, y, 2, x, y, r);
+      const dark = R() < 0.65;
+      g.addColorStop(0, dark ? 'rgba(28,30,34,0.42)' : 'rgba(70,110,140,0.34)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+    }
+    // tyre arcs
+    c.strokeStyle = 'rgba(24,26,30,0.24)'; c.lineWidth = 7;
+    for (let i = 0; i < 6; i++) {
+      c.beginPath();
+      c.arc(R() * 512, R() * 512, 25 + R() * 55, R() * 6.28, R() * 6.28 + 1.4 + R());
+      c.stroke();
     }
     const yardTex = finishTexture(pv, 100 / 16, 100 / 16);
-    const yardMat = new THREE.MeshStandardMaterial({
-      map: yardTex, roughness: 0.95,
-      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2
-    });
-    const yard = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), yardMat);
-    yard.rotation.x = -Math.PI / 2;
-    yard.position.set(0, 0.03, 0);
-    yard.receiveShadow = true;
-    hubGroup.add(yard);
+    const yard = new THREE.Mesh(new THREE.PlaneGeometry(100, 100),
+      new THREE.MeshStandardMaterial({ map: yardTex, roughness: 0.95,
+        polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    yard.rotation.x = -Math.PI / 2; yard.position.set(0, 0.03, 0);
+    yard.receiveShadow = true; hubGroup.add(yard);
 
     const driveTex = finishTexture(pv, 24 / 16, 50 / 16);
     const driveway = new THREE.Mesh(new THREE.PlaneGeometry(24, 50),
-      new THREE.MeshStandardMaterial({
-        map: driveTex, roughness: 0.95,
-        polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2
-      }));
-    driveway.rotation.x = -Math.PI / 2;
-    driveway.position.set(0, 0.03, -75);
-    driveway.receiveShadow = true;
-    hubGroup.add(driveway);
+      new THREE.MeshStandardMaterial({ map: driveTex, roughness: 0.95,
+        polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    driveway.rotation.x = -Math.PI / 2; driveway.position.set(0, 0.03, -75);
+    driveway.receiveShadow = true; hubGroup.add(driveway);
 
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0xe2e5ea, roughness: 0.85 });
-    const darkMetal = new THREE.MeshStandardMaterial({ color: 0x4a4f57, roughness: 0.6, metalness: 0.5 });
-    const yellowMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.5 });
+    // ---------------------------------------------------------------- painted markings (ONE plane)
+    const mk = makeCanvas(1024, 1024);
+    const m = mk.getContext('2d');
+    const PX = x => (x / 100 + 0.5) * 1024;
+    const PZ = z => (0.5 - z / 100) * 1024;
+    const rect = (x0, z0, w, d, color) => { m.fillStyle = color; m.fillRect(PX(x0), PZ(z0 + d), (w / 100) * 1024, (d / 100) * 1024); };
+    // three service bays on the left, two on the right (the middle lane is left clear)
+    for (let i = 0; i < 3; i++) {
+      const x = -34 + i * 8.5;
+      rect(x, -12, 7.2, 15, 'rgba(255,255,255,0.30)');
+      m.strokeStyle = '#fde68a'; m.lineWidth = 5;
+      m.strokeRect(PX(x), PZ(3), (7.2 / 100) * 1024, (15 / 100) * 1024);
+      m.fillStyle = '#fde68a'; m.font = 'bold 54px system-ui, sans-serif'; m.textAlign = 'center';
+      m.fillText(String(i + 1), PX(x + 3.6), PZ(-6));
+    }
+    for (let i = 0; i < 2; i++) {
+      const x = 16 + i * 8.5;
+      rect(x, -12, 7.2, 15, 'rgba(255,255,255,0.22)');
+      m.strokeStyle = '#fde68a'; m.lineWidth = 5;
+      m.strokeRect(PX(x), PZ(3), (7.2 / 100) * 1024, (15 / 100) * 1024);
+    }
+    // hazard chevrons at the wash-bay entrance
+    for (let i = 0; i < 7; i++) {
+      m.fillStyle = i % 2 ? '#fbbf24' : '#1b2535';
+      m.beginPath();
+      const x0 = PX(14 + i * 1.5), y0 = PZ(17);
+      m.moveTo(x0, y0); m.lineTo(x0 + 15, y0 - 22); m.lineTo(x0 + 30, y0); m.lineTo(x0 + 15, y0 + 6);
+      m.fill();
+    }
+    // amber dashed centre line on the driving lane (painted, not geometry)
+    m.strokeStyle = 'rgba(251,191,36,0.55)'; m.lineWidth = 5; m.setLineDash([28, 24]);
+    m.beginPath(); m.moveTo(PX(0), PZ(24)); m.lineTo(PX(0), PZ(-38)); m.stroke();
+    m.setLineDash([]);
+    // "KEEP CLEAR" stencil
+    m.fillStyle = 'rgba(255,255,255,0.42)'; m.font = 'bold 40px system-ui, sans-serif'; m.textAlign = 'center';
+    m.fillText('KEEP CLEAR', PX(0), PZ(-20));
+    const mkTex = new THREE.CanvasTexture(mk);
+    mkTex.colorSpace = THREE.SRGBColorSpace;
+    mkTex.wrapS = mkTex.wrapT = THREE.ClampToEdgeWrapping;
+    mkTex.minFilter = THREE.LinearMipmapLinearFilter;
+    mkTex.magFilter = THREE.LinearFilter;
+    mkTex.generateMipmaps = true; mkTex.anisotropy = ANISO;
+    const markings = new THREE.Mesh(new THREE.PlaneGeometry(100, 100),
+      new THREE.MeshBasicMaterial({ map: mkTex, transparent: true, depthWrite: false,
+        polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 }));
+    markings.rotation.x = -Math.PI / 2; markings.position.set(0, 0.07, 0);
+    markings.renderOrder = 2; hubGroup.add(markings);
 
-    const garage = new THREE.Group();
-    const WH = 5;
+    // ---------------------------------------------------------------- low detailed walls
+    // A low block wall with a painted hazard band and posts replaces the plain 5 m wall.
+    const hazard = makeCanvas(512, 128);
+    const h = hazard.getContext('2d');
+    h.fillStyle = '#c9ced6'; h.fillRect(0, 0, 512, 128);
+    for (let y = 0; y < 128; y += 32) {
+      h.strokeStyle = 'rgba(90,98,110,0.45)'; h.lineWidth = 2;
+      h.beginPath(); h.moveTo(0, y); h.lineTo(512, y); h.stroke();
+      for (let x = (y / 32) % 2 ? 0 : 32; x < 512; x += 64) {
+        h.beginPath(); h.moveTo(x, y); h.lineTo(x, y + 32); h.stroke();
+      }
+    }
+    h.fillStyle = '#fbbf24'; h.fillRect(0, 100, 512, 20);
+    h.fillStyle = '#1b2535';
+    for (let x = -20; x < 512; x += 40) {
+      h.beginPath(); h.moveTo(x, 100); h.lineTo(x + 20, 100); h.lineTo(x + 8, 120); h.lineTo(x - 12, 120); h.fill();
+    }
+    const hzTex = finishTexture(hazard, 8, 1);
+    const hzMat = new THREE.MeshStandardMaterial({ map: hzTex, roughness: 0.9 });
 
-    const backWall = new THREE.Mesh(new THREE.BoxGeometry(40, WH, 1), wallMat);
-    backWall.position.set(0, WH / 2, 20);
-    backWall.castShadow = true; backWall.receiveShadow = true;
-    garage.add(backWall);
-    this.buildingData.push({ x: 0, y: WH / 2, z: 20, w: 40, h: WH, d: 1 });
+    const wall = (w, d, x, z, rot) => {
+      const g = new THREE.Group();
+      g.position.set(x, 0, z); g.rotation.y = rot || 0;
+      box(g, w, 1.0, d, hzMat, 0, 0.5, 0);
+      box(g, w, 0.2, d + 0.08, yellowMat, 0, 1.1, 0);
+      const posts = Math.max(2, Math.round(w / 4));
+      for (let i = 0; i <= posts; i++) {
+        const px = -w / 2 + (i * w) / posts;
+        box(g, 0.36, WH, 0.36, darkMetal, px, WH / 2, 0);
+      }
+      hubGroup.add(g);
+      const rotated = Math.abs(Math.sin(rot || 0)) > 0.5;
+      this.buildingData.push({ x: x, y: WH / 2, z: z, h: WH,
+        w: rotated ? d + 0.4 : w + 0.4,
+        d: rotated ? w + 0.4 : d + 0.4 });
+      return g;
+    };
+    wall(40, 1, 0, 20);                   // back
+    wall(40, 1, -20, 0, Math.PI / 2);     // left side
+    wall(40, 1, 20, 0, Math.PI / 2);      // right side
 
-    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1, WH, 40), wallMat);
-    leftWall.position.set(-20, WH / 2, 0);
-    leftWall.castShadow = true; leftWall.receiveShadow = true;
-    garage.add(leftWall);
-    this.buildingData.push({ x: -20, y: WH / 2, z: 0, w: 1, h: WH, d: 40 });
-
-    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(1, WH, 40), wallMat);
-    rightWall.position.set(20, WH / 2, 0);
-    rightWall.castShadow = true; rightWall.receiveShadow = true;
-    garage.add(rightWall);
-    this.buildingData.push({ x: 20, y: WH / 2, z: 0, w: 1, h: WH, d: 40 });
-
-    // sign gantry at the front (no roof)
+    // ---------------------------------------------------------------- sign gantry (no roof)
     const postGeo = new THREE.BoxGeometry(0.8, 6, 0.8);
-    [-16, 16].forEach((px) => {
-      const p = new THREE.Mesh(postGeo, yellowMat);
-      p.position.set(px, 3, -20);
-      p.castShadow = true;
-      garage.add(p);
+    [-16, 16].forEach(px => {
+      put(hubGroup, postGeo, yellowMat, px, 3, -20);
       this.buildingData.push({ x: px, y: 3, z: -20, w: 0.8, h: 6, d: 0.8 });
     });
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(32.8, 0.8, 0.8), yellowMat);
-    beam.position.set(0, 6.1, -20);
-    beam.castShadow = true;
-    garage.add(beam);
-
+    box(hubGroup, 32.8, 0.8, 0.8, yellowMat, 0, 6.1, -20);
     const signCanvas = makeCanvas(512, 128);
     const sctx = signCanvas.getContext('2d');
-    sctx.fillStyle = '#ffcc00';
-    sctx.fillRect(0, 0, 512, 128);
-    sctx.fillStyle = '#111111';
-    sctx.font = 'bold 84px Arial, sans-serif';
-    sctx.textAlign = 'center';
-    sctx.textBaseline = 'middle';
+    sctx.fillStyle = '#ffcc00'; sctx.fillRect(0, 0, 512, 128);
+    sctx.fillStyle = '#111111'; sctx.font = 'bold 84px system-ui, sans-serif';
+    sctx.textAlign = 'center'; sctx.textBaseline = 'middle';
     sctx.fillText('GARAGE', 256, 66);
-    const signTex = finishTexture(signCanvas);
-    signTex.wrapS = THREE.ClampToEdgeWrapping;
-    signTex.wrapT = THREE.ClampToEdgeWrapping;
+    const signTex = new THREE.CanvasTexture(signCanvas);
+    signTex.colorSpace = THREE.SRGBColorSpace;
+    signTex.wrapS = signTex.wrapT = THREE.ClampToEdgeWrapping;
+    signTex.minFilter = THREE.LinearMipmapLinearFilter; signTex.generateMipmaps = true;
+    signTex.anisotropy = ANISO;
     const signMat = new THREE.MeshBasicMaterial({ map: signTex });
-    const signFront = new THREE.Mesh(new THREE.PlaneGeometry(14, 3.5), signMat);
-    signFront.position.set(0, 4.2, -20.5);
-    signFront.rotation.y = Math.PI;
-    garage.add(signFront);
-    const signBack = new THREE.Mesh(new THREE.PlaneGeometry(14, 3.5), signMat);
-    signBack.position.set(0, 4.2, -19.5);
-    garage.add(signBack);
+    const sf = put(hubGroup, new THREE.PlaneGeometry(14, 3.5), signMat, 0, 4.2, -20.5, Math.PI);
+    const sb = put(hubGroup, new THREE.PlaneGeometry(14, 3.5), signMat, 0, 4.2, -19.5);
+    sf.castShadow = sb.castShadow = false;
 
-    // workshop props
-    const rack = new THREE.Mesh(new THREE.BoxGeometry(12, 2.5, 0.5), darkMetal);
-    rack.position.set(-8, 1.25, 18.5);
-    rack.castShadow = true;
-    garage.add(rack);
-    const toolMat = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, metalness: 0.7, roughness: 0.4 });
-    for (let i = 0; i < 6; i++) {
-      const tool = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.2 + R() * 0.6, 0.3), toolMat);
-      tool.position.set(-13 + i * 1.8, 2.4, 18.1);
-      garage.add(tool);
+    // ---------------------------------------------------------------- small site office (lit windows)
+    const office = new THREE.Group();
+    office.position.set(-32, 0, 17);
+    box(office, 9, WH, 5.5, wallMat, 0, WH / 2, 0);
+    box(office, 9.3, 0.16, 5.8, darkMetal, 0, WH + 0.08, 0);
+    for (let i = 0; i < 3; i++) {
+      const w = put(office, new THREE.PlaneGeometry(1.7, 0.65), glassMat, -3 + i * 3, 0.72, -2.78, Math.PI);
+      w.castShadow = false;
     }
-    const barrelGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.4, 12);
-    const barrelMat = new THREE.MeshStandardMaterial({ color: 0x2a6aa8, roughness: 0.7, metalness: 0.3 });
-    [[8, 0.7, 16], [10, 0.7, 15], [9, 0.7, 17.5], [12, 0.7, 17]].forEach((p) => {
-      const b = new THREE.Mesh(barrelGeo, barrelMat);
-      b.position.set(p[0], p[1], p[2]);
-      b.castShadow = true;
-      garage.add(b);
-    });
-    const tireGeo = new THREE.TorusGeometry(0.5, 0.25, 8, 16);
-    const tireMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.95 });
-    [[14, 0, 12], [14, 0, 13.2], [15.5, 0, 12.5]].forEach((s) => {
-      for (let i = 0; i < 4; i++) {
-        const t = new THREE.Mesh(tireGeo, tireMat);
-        t.rotation.x = Math.PI / 2;
-        t.position.set(s[0], 0.25 + i * 0.4, s[2]);
-        t.castShadow = true;
-        garage.add(t);
-      }
-    });
-    const pumpBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.2, 0.8), yellowMat);
-    pumpBody.position.set(-14, 1.1, -12);
-    pumpBody.castShadow = true;
-    garage.add(pumpBody);
-    const pumpScreen = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 0.3),
-      new THREE.MeshStandardMaterial({ color: 0x223344, emissive: 0x2a5a8a, emissiveIntensity: 0.7 }));
-    pumpScreen.position.set(-14, 1.6, -11.5);
-    garage.add(pumpScreen);
+    box(office, 1.5, 0.95, 0.12, darkMetal, 3.2, 0.48, -2.8);
+    put(office, new THREE.BoxGeometry(3.4, 0.5, 0.16), yellowMat, 0, 1.05, -2.84);
+    // low roof mast with a lit beacon (no tall wall)
+    box(office, 0.4, 1.6, 0.4, darkMetal, 3.9, WH + 0.9, 1.8);
+    put(office, new THREE.SphereGeometry(0.22, 10, 8), redMat, 3.9, WH + 1.8, 1.8);
+    hubGroup.add(office);
+    this.buildingData.push({ x: -32, y: WH / 2, z: 17, w: 9, h: WH, d: 5.5 });
 
-    hubGroup.add(garage);
+    // ---------------------------------------------------------------- wash bay (low frame + puddle)
+    const wash = new THREE.Group();
+    wash.position.set(20, 0, 18);
+    for (const sx of [-3.2, 3.2]) box(wash, 0.34, WH, 0.34, darkMetal, sx, WH / 2, 0);
+    box(wash, 6.8, 0.34, 0.34, darkMetal, 0, WH, 0);
+    const puddle = put(wash, new THREE.CircleGeometry(2.7, 32),
+      new THREE.MeshStandardMaterial({ color: 0x3b6f92, roughness: 0.2, metalness: 0.35,
+        polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 }), 0, 0.09, 0);
+    puddle.rotation.x = -Math.PI / 2; puddle.castShadow = false;
+    hubGroup.add(wash);
+
+    // ---------------------------------------------------------------- tool rack, barrels, tyres (instanced)
+    const rack = new THREE.Group(); rack.position.set(-8, 0, 18.4);
+    box(rack, 12, 0.24, 0.6, darkMetal, 0, 1.1, 0);
+    box(rack, 12, 2.0, 0.4, darkMetal, 0, 1.0, 0.25);
+    for (let i = 0; i < 7; i++) {
+      box(rack, 0.34, 1.0 + R() * 0.7, 0.3, amberMat, -5.4 + i * 1.8, 1.75, -0.05);
+    }
+    hubGroup.add(rack);
+
+    const barrelGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.4, 14);
+    const barrels = new THREE.InstancedMesh(barrelGeo, blueMat, 9);
+    const dummy = new THREE.Object3D();
+    const bpos = [[7, 15], [9, 15.2], [8, 17], [11, 16.4], [-37, 5], [-35, 6.2], [-37.5, 7.5], [31, -6], [33, -4.6]];
+    bpos.forEach((b, i) => { dummy.position.set(b[0], 0.7, b[1]); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); barrels.setMatrixAt(i, dummy.matrix); });
+    barrels.instanceMatrix.needsUpdate = true; barrels.castShadow = true;
+    hubGroup.add(barrels);
+
+    const tyreGeo = new THREE.TorusGeometry(0.62, 0.26, 8, 16);
+    const tyres = new THREE.InstancedMesh(tyreGeo, tyreMat, 16);
+    let ti = 0;
+    for (const s of [[13, 12], [15.5, 12.7], [-16, 8], [-30, -8]]) {
+      for (let j = 0; j < 4; j++) {
+        dummy.position.set(s[0], 0.28 + j * 0.42, s[1]);
+        dummy.rotation.set(Math.PI / 2, 0, 0);
+        dummy.updateMatrix(); tyres.setMatrixAt(ti++, dummy.matrix);
+      }
+    }
+    tyres.instanceMatrix.needsUpdate = true; tyres.castShadow = true;
+    hubGroup.add(tyres);
+
+    // ---------------------------------------------------------------- two parked construction machines
+    const parked = (x, z, col, kind) => {
+      const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = R() * 0.8 - 0.4;
+      const body = new THREE.MeshStandardMaterial({ color: col, roughness: 0.65, metalness: 0.2 });
+      box(g, 3.2, 1.1, 2.0, body, 0, 1.0, 0);
+      box(g, 1.6, 1.2, 1.5, darkMetal, -0.6, 2.0, 0);
+      put(g, new THREE.PlaneGeometry(1.1, 0.7), glassMat, -0.6, 2.0, -0.77);
+      if (kind === 'roller') {
+        const cyl = new THREE.CylinderGeometry(0.85, 0.85, 2.4, 16);
+        const w1 = put(g, cyl, tyreMat, 1.9, 0.85, 0); w1.rotation.x = Math.PI / 2;
+      } else {
+        box(g, 0.36, 2.6, 0.36, body, 1.5, 2.2, 0);
+        box(g, 2.4, 0.32, 0.32, body, 2.4, 3.4, 0);
+        box(g, 0.9, 0.8, 0.9, darkMetal, 3.4, 2.9, 0);
+      }
+      for (const sx of [-1.1, 1.1]) for (const sz of [-0.9, 0.9]) {
+        const w = put(g, new THREE.CylinderGeometry(0.5, 0.5, 0.3, 12), tyreMat, sx, 0.5, sz);
+        w.rotation.z = Math.PI / 2;
+      }
+      hubGroup.add(g);
+    };
+    parked(-27, -16, 0xf5b700, 'roller');
+    parked(29, -14, 0x2f6fdb, 'digger');
+
+    // ---------------------------------------------------------------- cones, lamp posts, flag
+    const coneGeo = new THREE.ConeGeometry(0.42, 1.3, 10);
+    const cones = new THREE.InstancedMesh(coneGeo, new THREE.MeshStandardMaterial({ color: 0xff6a1a, roughness: 0.7 }), 10);
+    const cpos = [[-11, -17], [-9, -19], [11, -18], [13, -20], [-12, 9], [12, 9], [-24, 2], [24, 2], [-38, -2], [38, -2]];
+    cpos.forEach((q, i) => { dummy.position.set(q[0], 0.68, q[1]); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); cones.setMatrixAt(i, dummy.matrix); });
+    cones.instanceMatrix.needsUpdate = true; cones.castShadow = true;
+    hubGroup.add(cones);
+
+    for (const lp of [[-13, 14], [13, 14]]) {
+      box(hubGroup, 0.34, 4.6, 0.34, darkMetal, lp[0], 2.3, lp[1]);
+      box(hubGroup, 1.2, 0.34, 0.6, yellowMat, lp[0], 4.7, lp[1]);
+      put(hubGroup, new THREE.BoxGeometry(0.9, 0.12, 0.4), glassMat, lp[0], 4.5, lp[1]);
+    }
+    box(hubGroup, 0.34, 5.2, 0.34, darkMetal, 35, 2.6, 20);
+    const flag = put(hubGroup, new THREE.PlaneGeometry(2.0, 1.2), amberMat, 36, 4.6, 20, Math.PI);
+    flag.castShadow = false;
+
+    // fuel pump (kept from the old yard)
+    box(hubGroup, 1.2, 2.2, 0.8, yellowMat, -14, 1.1, -12);
+    box(hubGroup, 0.7, 0.5, 0.3,
+      new THREE.MeshStandardMaterial({ color: 0x223344, emissive: 0x2a5a8a, emissiveIntensity: 0.7 }), -14, 1.6, -11.5);
+
     this.scene.add(hubGroup);
+    this.garageGroup = hubGroup;
   }
 
   // ----------------------------------------------------------------- job site
@@ -942,10 +1099,12 @@ export class World {
       this.truckGroup.add(m);
       return m;
     };
+    this.truckBed=new THREE.Group();this.truckBed.position.set(0,1.4,-4);this.truckGroup.add(this.truckBed);
     [[4.2, 0.4, 6, 0, 1.4, -1], [0.3, 1.6, 6, -2.05, 2.2, -1], [0.3, 1.6, 6, 2.05, 2.2, -1],
       [4.2, 1.6, 0.3, 0, 2.2, -4], [4.2, 1.6, 0.3, 0, 2.2, 2]].forEach((b) => {
-      add(new THREE.BoxGeometry(b[0], b[1], b[2]), bedMat, b[3], b[4], b[5]);
+      const part=add(new THREE.BoxGeometry(b[0], b[1], b[2]), bedMat, b[3], b[4], b[5]);this.truckBed.attach(part);
     });
+    for(const x of [-2.23,2.23])for(let z=-3.6;z<2;z+=.8){const rib=add(new THREE.BoxGeometry(.35,1.6,.3),blueMat,x,2.2,z);this.truckBed.attach(rib);}
     add(new THREE.BoxGeometry(3.2, 1.5, 0.4), glassMat, 0, 3.7, 6.0);
     add(new THREE.BoxGeometry(0.4, 1.4, 2.2), glassMat, -2.0, 3.7, 4.2);
     add(new THREE.BoxGeometry(0.4, 1.4, 2.2), glassMat, 2.0, 3.7, 4.2);
@@ -963,22 +1122,22 @@ export class World {
     this.buildingData.push({ x: jobX + 15, y: 2, z: jobZ - 1, w: 4.2, h: 2, d: 6 });
 
     // cones
-    const coneMat = new THREE.MeshStandardMaterial({ color: 0xff5500, roughness: 0.8 });
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-    const baseGeo = new THREE.BoxGeometry(1, 0.3, 1);
-    const coneGeo = new THREE.ConeGeometry(0.45, 1.5, 8);
+    const coneMat = new THREE.MeshStandardMaterial({ color: 0xff6a1a, roughness: 0.75 });
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.95 });
+    // Base + cone are ONE geometry with two material groups, so a knocked cone
+    // tips over as one rigid object. Nothing can float away from its base.
+    const baseGeo = new THREE.BoxGeometry(0.78, 0.14, 0.78);
+    baseGeo.translate(0, 0.07, 0);
+    const coneGeo = new THREE.ConeGeometry(0.38, 1.25, 12);
+    coneGeo.translate(0, 0.14 + 1.25 / 2, 0);
+    const compound = mergeGeometries([baseGeo, coneGeo], true);
     for (let i = 0; i < 16; i++) {
       const angle = (i / 16) * Math.PI * 2;
-      const g = new THREE.Group();
-      const base = new THREE.Mesh(baseGeo, baseMat);
-      base.position.y = 0.15;
-      g.add(base);
-      const cone = new THREE.Mesh(coneGeo, coneMat);
-      cone.position.y = 1.0;
-      cone.castShadow = true;
-      g.add(cone);
-      g.position.set(Math.cos(angle) * 12, 0.04, Math.sin(angle) * 12);
-      this.jobSiteBase.add(g);
+      const m = new THREE.Mesh(compound, [baseMat, coneMat]);
+      m.castShadow = true;
+      m.position.set(Math.cos(angle) * 12, 0.04, Math.sin(angle) * 12);
+      m.userData.isCone = true;
+      this.jobSiteBase.add(m);
     }
   }
 
@@ -986,36 +1145,8 @@ export class World {
 
   createOptimizedTraffic() {
     const R = this.rand;
-    const carColors = [0xd62d2d, 0x2bb24c, 0x2f6fdd, 0xf2c230, 0xf4f4f4, 0xb0b4ba, 0x333a44, 0xe07b24];
-    const bodyGeo = new THREE.BoxGeometry(2, 0.8, 4.5);
-    const cabinGeo = new THREE.BoxGeometry(1.8, 0.8, 2.2);
-    const cabinMat = new THREE.MeshStandardMaterial({ color: 0x1c2733, roughness: 0.15, metalness: 0.3 });
-    const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
-    wheelGeo.rotateZ(Math.PI / 2);
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
-    const bodyMats = {};
-    const getBody = (c) => bodyMats[c] || (bodyMats[c] = new THREE.MeshStandardMaterial({ color: c, roughness: 0.4, metalness: 0.4 }));
-
     for (let i = 0; i < 70; i++) {
-      const color = carColors[Math.floor(R() * carColors.length)];
-      const carGroup = new THREE.Group();
-      const body = new THREE.Mesh(bodyGeo, getBody(color));
-      body.position.y = 0.6;
-      body.castShadow = true;
-      carGroup.add(body);
-      const cabin = new THREE.Mesh(cabinGeo, cabinMat);
-      cabin.position.set(0, 1.4, -0.2);
-      cabin.castShadow = true;
-      carGroup.add(cabin);
-      const wheels = [];
-      [{ x: -1.0, y: 0.4, z: 1.4 }, { x: 1.0, y: 0.4, z: 1.4 }, { x: -1.0, y: 0.4, z: -1.4 }, { x: 1.0, y: 0.4, z: -1.4 }].forEach((pos) => {
-        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-        wheel.position.set(pos.x, pos.y, pos.z);
-        wheel.castShadow = true;
-        carGroup.add(wheel);
-        wheels.push(wheel);
-      });
-
+      const carGroup=createTrafficModel(i,TRAFFIC_COLORS[i%10]),wheels=carGroup.userData.wheels;
       const isXAxis = R() > 0.5;
       const isPositiveDir = R() > 0.5;
       const laneOffset = isPositiveDir ? 6 : -6;
@@ -1043,6 +1174,9 @@ export class World {
     }
   }
 
+  // Player position for car-avoidance (set once per frame by main.js).
+  setPlayerPos(p) { this.playerPos = p; }
+
   startTrafficAI() {
     const clock = new THREE.Clock();
     const animateTraffic = () => {
@@ -1069,6 +1203,15 @@ export class World {
         const safeGap = 9;
         if (minGap < safeGap) targetSpeed = Math.max(0, car.baseSpeed * (minGap / safeGap));
         else if (minGap < 22) targetSpeed = car.baseSpeed * 0.6;
+        // TIER 8: cars slow to a stop when the machine is close in front.
+        if (this.playerPos) {
+          const dx = this.playerPos.x - car.mesh.position.x;
+          const dz = this.playerPos.z - car.mesh.position.z;
+          const ahead = car.isXAxis ? dx * car.dir : dz * car.dir;
+          const side = Math.abs(car.isXAxis ? dz : dx);
+          if (ahead > 0 && ahead < 16 && side < 6) targetSpeed = 0;
+          else if (ahead > 0 && ahead < 26 && side < 8) targetSpeed = Math.min(targetSpeed, car.baseSpeed * 0.35);
+        }
         car.speed += (targetSpeed - car.speed) * Math.min(1, dt * 4);
         if (car.speed < 0) car.speed = 0;
         const move = car.speed * car.dir * dt;
@@ -1105,8 +1248,9 @@ export class World {
     // --- street lights ---
     const poleGeo = new THREE.CylinderGeometry(0.16, 0.22, 8, 8);
     const poleMat = new THREE.MeshStandardMaterial({ color: 0x3a3d42, roughness: 0.7, metalness: 0.5 });
-    const lampGeo = new THREE.BoxGeometry(1.6, 0.4, 0.7);
-    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0xffee88, emissiveIntensity: 0.6 });
+    // A5: no blown-out white boxes. Small warm head, soft glow only at night.
+    const lampGeo = new THREE.BoxGeometry(0.5, 0.3, 0.9);
+    const lampMat = new THREE.MeshStandardMaterial({ color: 0xffe6a8, emissive: 0xffd277, emissiveIntensity: 0.16, roughness: 0.6 });
     const poles = [];
     const lamps = [];
     ROAD_POS.forEach((rp) => {
@@ -1125,8 +1269,18 @@ export class World {
     poleMesh.castShadow = true;
     this.scene.add(poleMesh);
     const lampMesh = new THREE.InstancedMesh(lampGeo, lampMat, lamps.length);
-    lamps.forEach((p, i) => setM(lampMesh, i, p.x, 8, p.z));
+    lamps.forEach((p, i) => setM(lampMesh, i, p.x, 7.9, p.z));
     this.scene.add(lampMesh);
+    // Night-only light cones. Additive and very faint so they never wash out.
+    const coneMat = new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true,
+      opacity: 0.075, blending: THREE.AdditiveBlending, depthWrite: false,
+      side: THREE.DoubleSide, fog: false });
+    const glowGeo = new THREE.ConeGeometry(2.6, 7.4, 14, 1, true);
+    const glowMesh = new THREE.InstancedMesh(glowGeo, coneMat, lamps.length);
+    lamps.forEach((p, i) => setM(glowMesh, i, p.x, 4.1, p.z));
+    glowMesh.visible = false;
+    this.scene.add(glowMesh);
+    this.nightLampCones = glowMesh;
 
     // --- traffic light poles ---
     const tlPoleGeo = new THREE.CylinderGeometry(0.15, 0.18, 5, 8);
@@ -1221,6 +1375,11 @@ export class World {
         addTree(block.x + (R() - 0.5) * (block.w - 8), block.z + (R() - 0.5) * (block.d - 8), 0.8 + R() * 0.8);
       }
     });
+    // A5: tree blockers are KEPT SEPARATE from buildingData (JobSystem uses
+    // buildingData to find free sites). keepCameraClear() reads treeData too,
+    // so the chase camera can never end up inside a tree canopy.
+    this.treeData = trees.map(t => ({ x: t.x, y: 3.0 * t.s, z: t.z,
+      w: 4.6 * t.s, h: 6.0 * t.s, d: 4.6 * t.s }));
     if (trees.length) {
       const trunkMesh = new THREE.InstancedMesh(trunkGeo, trunkMat, trees.length);
       const c1Mesh = new THREE.InstancedMesh(canopy1Geo, canopyMat, trees.length);
@@ -1554,15 +1713,67 @@ export class World {
 
   // ---------------------------------------------------------- game functions
 
-  shrinkDirtPile() {
-    for (let i = 0; i < 15; i++) {
-      if (this.allDirtClods.length > 0) {
-        this.dirtPileGroup.remove(this.allDirtClods.pop());
-      }
+  // A8: the pile eases down to a small flat patch instead of staying huge.
+  setPileLoads(n) {
+    if (!this._pileLabel) {
+      const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 128;
+      const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
+      const material = new THREE.SpriteMaterial({ map: texture, depthTest: true, transparent: true });
+      this._pileLabel = new THREE.Sprite(material);
+      this._pileLabel.scale.set(7, 1.75, 1);
+      this._pileLabel.name = 'pile-loads-label';
+      this.scene.add(this._pileLabel);
+      this._pileLabelCanvas = canvas;
     }
+    if (this._pileLabelCount === n) return;
+    this._pileLabelCount = n;
+    const ctx = this._pileLabelCanvas.getContext('2d');
+    ctx.clearRect(0,0,512,128); ctx.fillStyle = '#151d2b'; ctx.fillRect(4,12,504,104);
+    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 6; ctx.strokeRect(4,12,504,104);
+    ctx.fillStyle = '#fde68a'; ctx.font = 'bold 48px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('LOADS LEFT ' + Math.max(0,n),256,81);
+    this._pileLabel.material.map.needsUpdate = true;
+  }
+  showPileLabel(on, camera) {
+    if (!this._pileLabel) return;
+    this._pileLabel.visible = !!on && this.dirtPileGroup.visible;
+    this._pileLabel.position.copy(this.dirtPileGroup.position); this._pileLabel.position.y += 5;
+    if (camera) {
+      camera.updateMatrixWorld(true);
+      if (!this._pileLabelEye) this._pileLabelEye = new THREE.Vector3();
+      const depth = -this._pileLabelEye.copy(this._pileLabel.position).applyMatrix4(camera.matrixWorldInverse).z;
+      const pixels = window.innerWidth < 560 ? 150 : 180;
+      const width = pixels * 2 * Math.tan(camera.fov * Math.PI / 360) * Math.max(0.1, depth) / window.innerHeight;
+      this._pileLabel.scale.set(width, width / 4, 1);
+      this._pileLabel.visible &&= depth > camera.near;
+    }
+  }
+  setPileFraction(f) { this._pileTarget = Math.max(0.15, Math.min(1, Number(f) || 1)); }
+  updatePile(dt) {
+    if (!this.dirtPileGroup) return;
+    const t = this._pileTarget === undefined ? 1 : this._pileTarget;
+    const k = 1 - Math.exp(-Math.max(0, dt) * 3.2);
+    const s = this.dirtPileGroup.scale;
+    s.x += (t - s.x) * k; s.y += (t - s.y) * k; s.z += (t - s.z) * k;
+  }
+  // A5: light cones are visible ONLY on night / storm levels.
+  setNight(on) { if (this.nightLampCones) this.nightLampCones.visible = !!on; }
+
+  shrinkDirtPile() {
+    // B3: shrink VISUALLY only. Never drop clods below a third of the pile,
+    // so the third load always has something to scoop. resetDirtPile() is
+    // called by LevelEngine after every completed goal.
+    const floor = Math.ceil(this._masterClods.length / 3);
+    let n = 0;
+    for (let i = 0; i < 8 && this.allDirtClods.length > floor; i++, n++) {
+      this.dirtPileGroup.remove(this.allDirtClods.pop());
+    }
+    this.dirtPileGroup.visible = true;
   }
 
   resetDirtPile() {
+    this._pileTarget = 1;
+    if (this.dirtPileGroup) this.dirtPileGroup.scale.setScalar(1);
     this.dirtPileGroup.clear();
     this.allDirtClods = this._masterClods.slice();
     this.allDirtClods.forEach((clod) => this.dirtPileGroup.add(clod));
@@ -1579,20 +1790,28 @@ export class World {
     dirtMesh.position.set((Math.random() - 0.5) * 1.5, 1.9 + (this.truckDirtLevel * 0.45), -1 + (Math.random() - 0.5) * 2);
     dirtMesh.scale.set(1.5, 1, 1.5);
     dirtMesh.castShadow = true;
-    this.truckGroup.add(dirtMesh);
+    this.truckBed.add(dirtMesh);dirtMesh.position.sub(this.truckBed.position);
     this.truckDirtMeshes.push(dirtMesh);
   }
 
+  tipTruck(){this._tipTime=0;}
+  updateTruck(dt){if(this._tipTime==null)return;this._tipTime+=dt;const t=this._tipTime;this.truckBed.rotation.x=-(t<2?t/2*.8:t<6?.8:Math.max(0,.8*(8-t)/2));if(t>4&&!this._tipEmptied){for(const m of this.truckDirtMeshes)m.removeFromParent();this.truckDirtMeshes=[];this.truckDirtLevel=0;this._tipEmptied=true;}if(t>=8){this._tipTime=null;this._tipEmptied=false;}}
+  setCityPhysicsEnabled(enabled) {
+    this.cityPhysicsEnabled = !!enabled;
+    for (const collider of this._cityColliders || []) collider.setEnabled(!!enabled);
+  }
+
   createPhysicsColliders(world, RAPIER) {
+    this._cityColliders = [];
     const groundBodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0, 0);
     const groundBody = world.createRigidBody(groundBodyDesc);
     const groundColliderDesc = RAPIER.ColliderDesc.cuboid(1000, 0.1, 1000);
     const propBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
     (this.propColliders || []).forEach((p) => {
-      world.createCollider(
+      this._cityColliders.push(world.createCollider(
         RAPIER.ColliderDesc.cuboid(p.w / 2, p.h / 2, p.d / 2).setTranslation(p.x, p.y, p.z).setFriction(0.8).setRestitution(0),
         propBody
-      );
+      ));
     });
     world.createCollider(groundColliderDesc, groundBody);
 
@@ -1600,7 +1819,7 @@ export class World {
       const bodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(data.x, data.y, data.z);
       const body = world.createRigidBody(bodyDesc);
       const colliderDesc = RAPIER.ColliderDesc.cuboid(data.w / 2, data.h / 2, data.d / 2);
-      world.createCollider(colliderDesc, body);
+      this._cityColliders.push(world.createCollider(colliderDesc, body));
     });
   }
 }

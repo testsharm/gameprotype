@@ -1,0 +1,5 @@
+[RAN] Three real rings {"coins":15,"bestAir":0,"air":0,"rings":3,"totalRings":30,"digs":0,"minHeight":0.09000058472156525,"maxHeight":0.20989710092544556,"turnDegrees":334.5680000000074}
+[RAN] Real ramp jump {"coins":20,"bestAir":0.1405,"air":0,"rings":4,"totalRings":30,"digs":0,"minHeight":0.09000058472156525,"maxHeight":0.20989710092544556,"turnDegrees":773.9580000000445}
+[RAN] Normal RESPAWN button used after jump to take the open east route, not a QA teleport.
+[RAN] Dig before/after {"before":{"coins":25,"bestAir":0.1405,"air":0,"rings":5,"totalRings":30,"digs":0,"minHeight":0.09000058472156525,"maxHeight":0.20989710092544556,"turnDegrees":1796.5780000000464},"after":{"coins":25,"bestAir":0.1405,"air":0,"rings":5,"totalRings":30,"digs":1,"minHeight":-0.6877401471138,"maxHeight":0.20989710092544556,"turnDegrees":1833.1480000000467}}
+[RAN] PASS park real-input rings/jump/dig/respawn/exit; zero own-code errors. No setup shortcuts; portrait is viewport resize.

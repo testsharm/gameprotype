@@ -6,7 +6,7 @@ const LEVELS = {
   master: 0.9,
   music: 0.3,
   ambience: 0.22,
-  engine: 0.7,
+  engine: 0.28,   // A11: ~60% quieter than the old 0.7
   sfx: 0.8,
   reverb: 0.4,
 };
@@ -15,10 +15,9 @@ const MUTE_KEY = 'terraform_muted_v1';
 const BPM = 92;
 const STEP = 60 / BPM / 2; // one eighth note in seconds
 
+// B5: audio debug text is opt-in only (?debug). A dev server must be clean.
 let DEBUG = false;
-try {
-  DEBUG = !!(import.meta.env && import.meta.env.DEV) || /[?&]debug/.test(location.search);
-} catch (e) { /* ignore */ }
+try { DEBUG = /[?&]debug/.test(location.search); } catch (e) { /* ignore */ }
 
 // Debug only: count every AudioContext that gets created (should be 1).
 if (DEBUG && typeof window !== 'undefined' && !window.__acWrapped) {
@@ -59,6 +58,7 @@ export class AudioHub {
     this._loadUntil = 0;
     this._musicOn = false;
     this._ambOn = false;
+    this.beepCount = 0;
     this._step = 0;
     this._nextStep = 0;
     this._nextClank = 0;
@@ -483,6 +483,7 @@ export class AudioHub {
     if (!rev) { this._nextBeep = 0; return; }
     if (now >= this._nextBeep) {
       this._nextBeep = now + 0.85;
+      this.beepCount++;
       this._tone({ type: 'square', f0: 1000, f1: 1000, t: now + 0.01, dur: 0.4, a: 0.005, vol: 0.1, lp: 2200, sus: true });
     }
   }
@@ -836,6 +837,17 @@ export class AudioHub {
   stop() { this._musicOn = false; }
 
   setIntensity(v) { this._intTarget = clamp(+v || 0, 0, 1); }
+  // TIER C: each stage has its own sound bed (birds / traffic / rain / night).
+  setSoundBed(name) {
+    this._bed = String(name || 'site');
+    const quiet = this._bed === 'night' || this._bed === 'rain';
+    // Audio may not be unlocked yet on the very first stage (no user gesture).
+    // Never touch this.ctx / this.ambBus before the context exists.
+    if (this.ctx && this.ambBus) {
+      if (quiet) this._nextBird = Infinity; else this._nextBird = this.ctx.currentTime + 4;
+      this.ambBus.gain.setTargetAtTime(quiet ? 0.14 : 0.22, this.ctx.currentTime, 0.4);
+    }
+  }
 
   setEngine(speedKmh, throttle) {
     const s = this._eng;
@@ -844,11 +856,50 @@ export class AudioHub {
     s.stamp = performance.now();
   }
 
+  // TIER 3: three real volume sliders. Values are 0..1 and are saved.
+  setVolumes(master, music, effects) {
+    const c = (v, d) => Math.max(0, Math.min(1, typeof v === 'number' ? v : d));
+    this._vol = { master: c(master, 1), music: c(music, 1), effects: c(effects, 1) };
+    try { localStorage.setItem('terraform_volumes_v1', JSON.stringify(this._vol)); } catch (e) {}
+    this._applyVolumes();
+    return this._vol;
+  }
+  getVolumes() {
+    if (!this._vol) {
+      let v = null;
+      try { v = JSON.parse(localStorage.getItem('terraform_volumes_v1') || 'null'); } catch (e) {}
+      this._vol = { master: 1, music: 1, effects: 1 };
+      if (v && typeof v === 'object') {
+        for (const k of ['master', 'music', 'effects']) {
+          if (typeof v[k] === 'number') this._vol[k] = Math.max(0, Math.min(1, v[k]));
+        }
+      }
+    }
+    return { ...this._vol };
+  }
+  _applyVolumes() {
+    const v = this.getVolumes();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    try {
+      this.master.gain.setTargetAtTime((this.muted || this._adMuted) ? 0 : LEVELS.master * v.master, t, 0.05);
+      this.musicBus.gain.setTargetAtTime(LEVELS.music * v.music, t, 0.05);
+      this.sfxBus.gain.setTargetAtTime(LEVELS.sfx * v.effects, t, 0.05);
+      // B10: engine was too loud; keep it under the effects slider too.
+      this.engBus.gain.setTargetAtTime(LEVELS.engine * 0.72 * v.effects, t, 0.05);
+    } catch (e) { /* ignore */ }
+  }
+  // TIER 9: mute for an ad without touching the player's saved sound setting.
+  setAdMuted(on) {
+    this._adMuted = !!on;
+    this._applyVolumes();
+    return this._adMuted;
+  }
   setMuted(v) {
     this.muted = !!v;
     try { localStorage.setItem(MUTE_KEY, this.muted ? '1' : '0'); } catch (e) { /* ignore */ }
     if (this.ctx && this.master) {
-      this.master.gain.setTargetAtTime(this.muted ? 0 : LEVELS.master, this.ctx.currentTime, 0.05);
+      this._applyVolumes();
     }
     return this.muted;
   }

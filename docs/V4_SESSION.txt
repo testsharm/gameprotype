@@ -1,0 +1,2 @@
+[RAN] session {"seconds":600.938,"loops":383,"keyHolds":1354,"retries":3,"activeSeconds":482.587,"gameSeconds":594.0125999999981,"unplannedPauses":0,"unfocused":0,"errors":[]}
+[RAN] PASS ten-minute real-input session, zero own-code red errors

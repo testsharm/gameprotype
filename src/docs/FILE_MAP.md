@@ -1,4 +1,89 @@
+# Fix v4 current additions
+
+[READ] src/gameplay/StuntPark.js: independent 200 m Rapier sandbox and deformable terrain.
+[READ] src/core/Vehicles.js: seven code-made traffic types, ten colors; shared merged geometry templates.
+[READ] src/core/SolidWorld.js: stage/yard fixed colliders and contact-driven recoil/thud. Bucket compound collider still missing.
+[READ] scripts/level-walk.mjs, park-walk.mjs, vehicle-walk.mjs: real-input proof; art-inspect.mjs and car-closeups.mjs explicitly use QA setup.
+[READ] scripts/final-smoke.mjs: fresh storage, normal URL L1 completion and NEXT L2, no mutations.
+[READ] docs/SCREENSHOTS.md and V4_REPORT.md: current visual evidence/strict 18/21 score. Old unused files are retained; cleanup criterion fails.
+
+--- Historical map below ---
+
+## V4 continuation map (2026-11-06)
+
+[READ] Vehicle.applyStopAssist runs once after the physics solver batch using frame game time; it snaps slow grounded horizontal motion to zero. Governors use physical speed, not the display cap.
+[READ] CameraManager owns camera clearance and fading. The old main.js keepCameraClear implementation was removed. World and StageManager toggle hidden-city physics alongside visibility; TrafficPhysics follows the same stage state.
+[READ] World.setPileLoads/showPileLabel implement a code-made floating count, sized in screen pixels. GameUI.announce2 accepts a duration for GET READY. Menus picker scopes its amber outline to beat button CSS specificity and scrolls its cards, not the START button.
+[RAN] New browser tests: v4-handling.mjs, v4-camera-actions.mjs, v4-followup.mjs, v4-clock.mjs, v4-phone.mjs. v4-session.mjs was corrected after an idle/paused run; corrected active-session proof still pending.
+[READ] window.__tfObserve is read-only instrumentation for real-input tests. Existing mutation QA shortcuts are not used to claim gameplay completion.
+
+## V4 update (2026-11-06)
+
+[READ] main.js: forward-only resume save, next unfinished start info, silent modal navigation, immediate hold effects, frame-time clock, five-step physics cap, action timing observations.
+[READ] Vehicle.js: direct scoop/dump effects; stronger coast assist; reverse limit stays 14.
+[READ] Levels.js: no pile reset between loads. Stages.js: smaller front-facing signs.
+[READ] Menus.js / GameUI.js: real reward text survives refresh, named NEXT, champion label, NEW level outline, optional tap-to-act, desktop keycap visibility and amber key-down state.
+[READ] CameraManager.js: recursive collision ray, closer pull-in, upright camera, corrected wheel direction.
+[RAN] scripts/newplayer.mjs and scripts/v4-ui.mjs are this pass's real-input browser tests.
+[UNKNOWN] See docs/V4_REPORT.md for strict checklist and outstanding work.
+
 # FILE MAP - TerraForm 3D (depth summary of every file)
+
+## LATEST - QUALITY PASS v3 (2026-11-05)
+
+The table below is HISTORICAL (it describes HUD v7 and the pre-Tier-C layout).
+Current source of truth: `README.md` at the repo root and `docs/DEPTH_REPORT.md`.
+
+New/changed since this table was written:
+- `src/ui/GameUI.js` → **HUD v8**: always-visible `.tf-touch`, circular speedometer,
+  hidden keyboard pad, `setVerbs()`, `setLoads()`, ≥14px fonts, `.tf-ring{inset:0}`.
+- `src/ui/Menus.js` → steel/amber theme, square 720×720 `#tf-map-c` map canvas.
+- `src/gameplay/Stages.js` → **NEW** 15-stage environment system (`STAGE_TABLE`,
+  `StageManager`, `qaStage()`, `qaAllStages()`), ground textures, skylines,
+  landmarks, traffic lineup, 3 coach lines, sound beds.
+- `src/gameplay/Levels.js` → `stageCoach()`, compound cone gates, tumble ≤1.5 s, `+2s`.
+- `src/gameplay/Jobs.js` → six `UPGRADES` of 4 paid steps each + `UPGRADE_KEYS`.
+- `src/core/CameraManager.js` → `snapTo(vehicleMesh, pos)` kills the 4 s teleport fly-in.
+- `src/core/Audio.js` → `setSoundBed(name)`, `beepCount`, `engine:0.28`.
+- `src/main.js` → renderFrame() QA instrumentation, `qaRender()`, `qaAudio()`,
+  stage wiring, `ui.setLoads(0)` in Free Play.
+- `scripts/` → `browser.mjs`, `contrast-check.mjs`, `layout-check.mjs`,
+  `button-check.mjs`, `level-walk.mjs`, `screenshots.mjs`, `contact-sheet.mjs`,
+  `perf-check.mjs`, `sdk-check.mjs`, `session.mjs` (all real Chromium), plus
+  refreshed Node harnesses.
+- `docs/` → `QA_EVIDENCE.txt`, `QA_PERF.txt`, `QA_SESSION_LOG.txt`,
+  `DEPTH_REPORT.md`, `screenshots/` (48 real PNGs).
+
+---
+
+
+
+## LATEST (2026-11-05, FINAL PRODUCT PUSH) - new / changed files
+
+| File | Role |
+| --- | --- |
+| `src/main.js` | glue: GameUI opts (`hold/tap/action/state/data/unlock`), `uiData()`, `handleUiAction`, 3 s hold action, 6 upgrades + paint, Ads, StuntPark, `mapData()`, traffic player pos. |
+| `src/ui/GameUI.js` | HUD v7: exact portrait / landscape / desktop CSS, pointer controls, Menus integration, `setKey/setBig/setLefty/setActionProgress`. |
+| `src/ui/Menus.js` | NEW: one window layer - start, pause, settings, help, levels, garage, result, fail, confirm, big map. Code-made SVG/CSS only. |
+| `src/gameplay/Jobs.js` | economy + site finder only. Old `JobPanels` window system deleted (296 lines). |
+| `src/gameplay/Levels.js` | 15 levels + LevelEngine + verbs + boss truck + RUSH miss fix. |
+| `src/gameplay/Guidance.js` | ring + bobbing chevron + near fade + guide-arrows toggle. |
+| `src/gameplay/StuntPark.js` | NEW: TIER 7 free-play park (32 meshes, 8 colliders). |
+| `src/core/Ads.js` | NEW: safe CrazyGames v3 video-ad wrapper + `?fakeads`. |
+| `src/core/Audio.js` | `setVolumes/getVolumes/setAdMuted`, one AudioContext. |
+| `src/core/World.js` | traffic slows/stops for machine; water/park block flags. |
+| `src/vehicle/Vehicle.js` | `setPaint`, 6 upgrade effects, body roll, light smoke, `backhoe` naming. |
+| `index.html` | SDK v3 script, loading screen, `#tf-hold` minimap canvas, focus script. Old pause overlay removed. |
+| `scripts/*.mjs` | Node-only checks: tier1, ui-audit, ui-runtime, layout, level-walk, garage, park, ads. |
+| `src/docs/RESEARCH_UI.md` | <=10 min official SDK/MDN research notes. |
+| `src/docs/UI_SPEC.md` | exact HUD boxes as built. |
+| `docs/DEPTH_REPORT.md` | every button, score, evidence, NOT VERIFIED list, top 10 improvements. |
+| `docs/screenshots/` | empty on purpose (no browser); see README.md. |
+
+Internal `jcb` names are GONE from code (`this.mode = 'backhoe'`, `backhoeGroup`).
+Never show the brand "JCB" to players. Old docs below mention the old names historically.
+
+---
 
 Written 2026-11-05 at the end of a very long chat. A new AI must read this after CONTINUE.md and STATE.md.
 Rule: this map comes from memory of the previous chat. Where it says "not read in detail", ASK the user for that ONE file before you edit it. Never guess file text.
@@ -142,3 +227,35 @@ Also seen in the phone test (F12 device mode 440x956, tall): the HUD was designe
 - `npm install --no-save @sparticuz/chromium playwright-core` + `inflate(bin/al2023.tar.br)` + `setupLambdaEnvironment('/tmp/al2023/lib')` + `C.executablePath()` gives a working headless Chromium. Launch with `C.args` and `env: process.env` (LD_LIBRARY_PATH must include /tmp/al2023/lib).
 - `page.screenshot()` can hang on this WebGL game; use CDP `Page.captureScreenshot` instead. Serve `dist` with `npx vite preview --host 0.0.0.0 --port 4173` and abort the external SDK request with `ctx.route`. Launch a FRESH browser per level (one browser with many contexts crashes after the first page).
 - Level QA (2026-11-05): load /?unlockall&rich&job=N&qadebug, then window.__qaLevel.step() walks every goal; gateTest(x,z,bpy) drives gate detection deterministically; objects() counts level meshes; __levelInfo() reports the goal chain and all 15 site-finder results. Screenshots land in git-ignored qa/.
+
+## UX milestone file map (2026-11-05)
+- `index.html` - root page. SDK script now has `data-crazygames-sdk="1"` so Portal does not inject a
+  duplicate. Global `user-select:none`/`touch-action:none` removed; only GameUI's `.tf-playing` /
+  `.tf-holding` classes lock scrolling, so menus stay usable. Keeps the minimap canvas, the legacy
+  (unused) pause overlay, loading screen and focus-safety script.
+- `src/main.js` - `gameState`, `uiPaused`, `rawSite`, `currentStartPose`; real input API
+  (`actionHold`, `actionTap`, `unlockAudio`, `uiState`, `handleUiAction`); start screen flow
+  (`prepareMenu`, `startGame`, `returnToMenu`, `menuPose`, `setVehiclePose`, `pauseForMenu`,
+  `resumeGame`); per-level starts via `levelStartPose`; `Portal` wired with official gameplay
+  start/stop/happytime; signed engine speed; `__speedInfo()` / `__tfState()` QA hooks;
+  orientationchange + visualViewport resize handling; quality saved in `terraform_quality_v1`.
+- `src/ui/GameUI.js` - HUD v6 + `#tf-shell` start screen + settings/controls/confirm windows.
+  Real pointer controls (capture, multi-touch, release on all 5 paths), 7-button in-game menu,
+  persistent Camera/Sound/Zoom tools, PC clickable key pad, landscape/portrait CSS, safe-area insets.
+- `src/core/CameraManager.js` - Chase default; camera behind the machine; portrait distance factor;
+  zoom (min 0.75 / max 1.65), canZoom(), cycleMode(), showcase hero orbit for the start screen,
+  CAB near 0.3 kept, smooth lerps, wheel zoom in every zoomable mode.
+- `src/gameplay/Levels.js` - 15 `start` objects + `levelStartPose()`; L5/L10 replaced with the
+  'rush' goal (waiting trucks, countdown rings, lane numbers, expired truck leaves, L10 crossing
+  traffic + red danger strip); `_buildRushTruck`, `_updateRushRing`, `_rushExpire`,
+  `_buildCrossTraffic`; RUSH text/objective/bonus no longer says Gates.
+- `src/gameplay/Jobs.js` - `JobSystem.prepare(id)` shows a level on the start screen with
+  `running=false` (no timer, no load counting); `start(id)` unchanged.
+- `src/gameplay/Guidance.js` - floating screen arrow REMOVED; one ground ring + painted chevron
+  path on Level 1 (`setChevrons`, `onFirstLoad`, fade-out, `reset`).
+- `src/core/World.js` - `createCentralGarageHub()` rewritten: <=1.2 m walls with hazard texture,
+  painted markings plane, yard texture with oil/tyre/cracks/puddles, lit office, wash bay, 2 parked
+  machines, InstancedMesh barrels/tyres/cones, lamp posts, flag. `garageGroup` exposed.
+- `src/vehicle/Vehicle.js` - `signedSpeedKmh`; dial uses signed forward speed clamped to the
+  engine-level cap (32/14 base, Engine only), resetToSafe clears it.
+- `src/core/Portal.js` - now imported by main.js (was unused). Only documented v3 calls used.

@@ -1,4 +1,56 @@
+# Current Fix v4 — 2026-11-06
+
+[RAN] Same branch arena/0ac523ae-gameprotype, same PR #5 to clean-v1. Evidence-backed score 18/21; threshold 17 met. A, B, C1/C2/C3, D and E art/detail published in order.
+[RAN] All fifteen levels have real-input results. Final normal-URL/fresh-storage L1 +242 and NEXT L2 passed after E changes. B ten-minute active-input proof remains in V4_SESSION.txt. No own-code browser errors in final passing runs.
+[SEEN] Every generated screenshot opened; docs/SCREENSHOTS.md contains relative embeds, grades and shortcut disclosures. New phone truck-tip proof has no shortcuts. Art closeups explicitly use QA positioning/inspection camera.
+[READ] Remaining FAILS: 15 bucket/prop clipping (chassis contacts work); 17 rewarded flows unverified; 21 optional settings/dead-file cleanup incomplete. Do not claim 21/21. F cut first.
+[UNKNOWN] Physical iPhone, full park ascent/all rings, complete post-E fifteen-level replay remain unverified. L13 latest cosmetic camera fix not re-captured. Park terrain shading remains subtle.
+[RAN] Current build passes, about 5.4 MB/three application files; standard Vite warnings. Live preview 4173 serves dist.
+
+--- Historical notes below (current block above wins) ---
+
+# Current Fix v4 continuation — 2026-11-06
+
+[RAN] SAME branch arena/0ac523ae-gameprotype; SAME open PR #5. Score 13/21, DO NOT MERGE below 17/21.
+[RAN] A gallery published and B corrected full ten-minute active-input run passed (600.938 wall / 594.013 game seconds / 1354 holds / zero pauses, focus losses or own-code errors).
+[RAN] C1 five completions and C2 five completions use real keys/actions. unlockall only selects initial levels, readonly telemetry guides routes, no gameplay mutation. C2_WALK.txt covers L6–10; C2_BRIDGE_FINAL.txt repeats L9 after deck-water rendering fix. L7 real overspeed drop/recovery passed; L9 real fall adds exactly ten extra seconds. Checklist 10 now passes.
+[SEEN] All C2 screenshots opened. L7 fresh start uses concrete; older blue-grid mid/drop explicitly disclosed. L9 final start/mid/result/reset show a solid visible deck. Night forklift overlap is BAD and remains E work. Contact sheet has ten real starts, five blanks. Gallery has desktop/390x844 start/mid/results plus negatives.
+[UNKNOWN] NEXT: C3 L11–15, then D park, then E art/collisions; optional F last. C3/D/E not yet implemented or verified. Push/report after each group and continue without questions. Failures 8,9,12,13,14,15,17,21.
+[RAN] Build passes, standard Vite warnings only; preview 4173 serves current dist.
+
+--- Historical notes below (current block above wins) ---
+
+--- Historical notes below (new current block above wins) ---
+
 # CONTINUE.md - FULL HANDOFF FOR A NEW AI CHAT (zero context needed)
+
+## >>> QUALITY PASS v3 UPDATE (2026-11-05) - READ FIRST <<<
+
+The long handoff below describes an earlier phase. For the CURRENT state read
+`README.md` (repo root) and `docs/DEPTH_REPORT.md`. Summary of what changed:
+
+- **A real browser IS available.** `@sparticuz/chromium@153.0.0` +
+  `playwright-core@1.64.1` are devDependencies. `scripts/browser.mjs` exports
+  `serve()`, `newContext()`, `openGame()`, `shoot()`, `redErrors()`, `closeAll()`.
+  Run harnesses from the repo root against the *built* `dist/`; always
+  `npm run build` after a source edit or screenshots will show stale CSS.
+- HUD v8 replaced HUD v7; `Menus.js` is steel/amber with a square site map;
+  `Stages.js` provides 15 distinct environments; `CameraManager.snapTo()` fixes
+  post-teleport camera fly-in; `Jobs.UPGRADES` has six 4-step upgrades.
+- Real-browser evidence is in `docs/QA_EVIDENCE.txt`, `docs/QA_PERF.txt`,
+  `docs/QA_SESSION_LOG.txt` and 48 PNGs in `docs/screenshots/`.
+- Tier A/B/C/D are committed on `arena/154f02b1-gameprotype`. PR #1/#2/#3 are
+  MERGED; do not recreate them and do not touch `main`.
+- `redErrors()` filters SDK network noise; the unfiltered proof is
+  `scripts/sdk-check.mjs`. Do not treat `RED ERRORS []` as full proof.
+- Honest open gaps: 60 fps on real hardware, true mobile emulation, real
+  CrazyGames portal ad playback, Free Play timer HUD (cosmetic).
+
+Everything below is preserved as historical spec/context.
+
+---
+
+
 
 Written at the end of a very long chat, after M3e was saved (commit bac5f1c).
 If this file and HANDOFF.md disagree, ask the user. The opening master prompt wins over both
@@ -439,4 +491,52 @@ Round 1 (M4f) applied, backup 2026-11-05T07-51-19-422Z-lgp, NOT saved. New HUD v
 - 2026-11-05 (Arena agent, repo mode) Round 1c: GameUI.js touch detection rebuilt (coarse pointer / any-pointer + maxTouchPoints / ?touch / first real touch pointerdown; 'ontouchstart in window' removed). Added short-landscape and tall-portrait CSS blocks, mission card full width on portrait, toasts under the card, hint above the controls, min 48 px for every touch button. index.html pause buttons stay 48 px on short screens and key text is 16 px. Evidence: npx vite build OK; headless Chromium (installed from npm registry) loaded the built game and took screenshots at 1910x900, 1280x720, 800x450, 844x390, 440x956: measured 0 overlaps, 0 clipped zones, 0 old HUD ids, 0 touch targets under 48 px on the two phone sizes; screenshots in qa/ (git-ignored). Only console error = blocked CrazyGames SDK script. Status: built, awaiting user test with &touch in F12 device mode. NEXT: Round 2 (level engine, levels 1-5).
 - 2026-11-05 (Arena agent, repo mode) Rounds 2-4 (level engine + all 15 levels): NEW src/gameplay/Levels.js (LEVELS 15 levels in 3 chapters, CHAPTERS, LevelEngine with 8 goal kinds). Jobs.js now imports LEVELS as JOBS; its picker shows chapter/type/rule, the result window prints an optional bonus row, and buildSiteDressing keys off job.dressing (12 distinct dressings). main.js: START_LEVEL ?job=N, level engine created in ensureJobs, placeSite calls level.start, animate calls level.update, dump path calls level.onDump, onScooped calls level.onScoop, engineProgress counts gate/trench/debris goals, finishJob adds bonus coins, refreshCard reads level.objective/stepText, initUi no longer overwrites the card with the old hardcoded title, tutorial now runs only on Level 1, new env moods (morning/day/dusk/night/storm/dawn/golden) with e.rain/e.lights. World.js: the Job 1 dirt patch and 16 cones now live in jobSiteBase, so they move with the site (old bug fixed). GameUI.announce says LEVEL n + chapter. QA helpers guarded by ?qadebug: __levelInfo() and __qaLevel.{info,dbg,objects,site,teleport,step,gateTest,objective}.
   Evidence: node --check passed on all 5 changed/new JS files; npx vite build OK (dist/index.html 5.63 kB, main 907 kB, rapier 4,335 kB). Headless Chromium loaded all 15 levels: correct name/type/goal/timer/objective, 0 page errors, 15/15 site finder results ok, every goal chain walked to 100 percent and opened the result window with the bonus row (e.g. L15 Total reward +2070 coins, Bonus +250). Deterministic gate tests passed all gates on L2 (5), L5 (4), L10 (5), L14 (8) and L15 (3). Level meshes: HAUL 2, FILL 5, MOVE 11, CONE 32-53, TRENCH 26-38, CLEAR 50, RUSH 26-32, MIX 23. PropColliders format VERIFIED {x,y,z,w,h,d} centre-based. 5-size HUD re-check: 0 overlaps, 0 clipped, 0 old HUD ids, 0 small touch targets on phone sizes; only console error is the blocked SDK script. Screenshots in qa/ (git-ignored): goal-2/3/6/7/11/14/15 and site2-* show rain, pothole ring, cone course, trench plates, pipe yard, debris and golden hour. Status: built, awaiting user play-test on Brave/F12; real driving through gates and pipe snap feel are NOT verified. NEXT: Round 5 (new steel garage/contracts/result/fail windows), Round 6 (core/Input.js phone controls), Round 7 (SDK + optional rewarded ads), Round 8 (quality/performance/delete old files), Round 9 (submission pack).
+
+- 2026-11-05 (Arena agent, branch arena/e6525ae2-gameprotype) UX milestone (start screen, honest
+  controls, camera/sound/zoom, landscape-first HUD, per-level starts, RUSH mismatch, garage depth).
+  Official pages actually read: https://docs.crazygames.com/sdk/game/ ,
+  https://docs.crazygames.com/sdk/intro/ , https://docs.crazygames.com/requirements/technical/ ,
+  https://docs.crazygames.com/resources/crazygames-app/ ,
+  https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events ,
+  https://developer.mozilla.org/en-US/docs/Web/API/Element/setPointerCapture ,
+  https://developer.mozilla.org/en-US/docs/Web/API/Element/lostpointercapture_event .
+  Evidence: node --check OK on 9 changed JS files; npx vite build OK (main 947.49 kB, rapier
+  4,335.49 kB, dist 5.1 MB). Node-only world check: 15/15 sites ok, 15/15 distinct start poses,
+  0 unsafe starts, L5 3 rush trucks, L10 5 rush trucks. Static wiring audit: 0 unbound start
+  buttons, 0 duplicate ids, no fake KeyboardEvent, all pointer-release paths present.
+  Browser tools NOT installed (no Chromium/Playwright/jsdom); user forbade installing new packages
+  for screenshots, so NO screenshots and NO real click/touch test were possible. Status: built,
+  awaiting user play-test. NEXT after merge: fix anything the play-test finds; then DEPTH PACK
+  parts B-H in separate safe rounds (full per-level mechanics, economy, visual depth, QA, SDK/ads).
+  The 15-level design remains LOCKED; do not rebuild all 15 levels in one risky change.
+
+- 2026-11-05 (Arena agent, branch arena/66b14966-gameprotype) FINAL PRODUCT PUSH, TIER 1-10.
+  Base clean-v1 8c57ed6. NEVER ask questions; simple short English; no browser exists here.
+  NEW: src/ui/Menus.js, src/gameplay/StuntPark.js, src/core/Ads.js, rewritten GameUI.js;
+  old JobPanels windows deleted from Jobs.js; index.html old pause overlay removed.
+  Exact portrait-first HUD, 3 s hold scoop/dump, 6 upgrades + 6 paints, 15-level walk,
+  per-verb visuals, fading beam + bobbing chevron, big map, safe ads wrapper, body roll.
+  Repo checks (Node only, NOT a browser): npx vite build OK; scripts/ui-audit.mjs PASS;
+  scripts/ui-runtime-check.mjs 84 controls / 0 failures / 0 runtime errors;
+  scripts/layout-check.mjs 5 sizes / 0 overlaps / 0 off-screen / 0 targets <48 px;
+  scripts/tier1-check.mjs PASS (3 scoops + 3 dumps, RUSH expiry = miss);
+  scripts/level-walk.mjs 15/15 levels, 8 types, 7 skies, 15 distinct starts;
+  scripts/garage-check.mjs / park-check.mjs / ads-check.mjs PASS.
+  Official pages read (exact): https://docs.crazygames.com/sdk/game/ ,
+  https://docs.crazygames.com/sdk/intro/ , https://docs.crazygames.com/sdk/video-ads/ ,
+  https://docs.crazygames.com/sdk/data/ , https://docs.crazygames.com/requirements/technical/ ,
+  https://docs.crazygames.com/resources/crazygames-app/ ,
+  https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events ,
+  https://developer.mozilla.org/en-US/docs/Web/API/Element/setPointerCapture ,
+  https://developer.mozilla.org/en-US/docs/Web/API/Element/lostpointercapture_event .
+  NOT VERIFIED: real click/touch, F12 console, phone, screenshots, fps, ads in portal,
+  15 real level play-throughs. docs/screenshots/ has NO PNGs on purpose - never fake evidence.
+  STATUS: BUILT, NOT VERIFIED. NEXT: real browser play-test at 1920x1080 / 1280x720 /
+  844x390 / 440x956 / 390x844, capture the 15 screenshots, check the console, then merge
+  the PR into clean-v1 and submit to CrazyGames. Old notes below are history only.
+
+- 2026-11-06 V4 PARTIAL TIER 1: [RAN] fresh-save normal-URL L1 completed with real driving and holds; NEXT/reload CONTINUE L2 verified. +265 result and 1–2 ms action effect observations. [SEEN] pile progression, phone two-finger controls, desktop keycaps and TIME IS UP. [UNKNOWN] Tier 1 NOT complete, Tier 2 onward NOT started. Checklist 9/21, do not merge. Read docs/V4_REPORT.md first. Old level-walk uses teleport and direct steps, not valid gameplay proof under v4.
+
+- 2026-11-06 V4 CONTINUATION: [RAN] 11/21 strict checklist, docs/V4_REPORT.md. Stop/brake/reverse tests now pass, cancellation/tap and five-frame clock tested, fresh L1/NEXT/reload flow re-passed. [SEEN] Camera above pile/near wall, L3 upright after hidden-physics fix, selected P10 starts, bounded floating label and readable amber picker. [UNKNOWN] Ten-minute active-input claim REJECTED: original test sat paused after minute 3. Corrected v4-session.mjs not run. Tier 1 still awaits real L15 champion and exhaustive path checks; do not advance tiers or merge PR #5 yet.
+
 SESSION LOG END MARKER (do not remove this line)

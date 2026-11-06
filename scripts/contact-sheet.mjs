@@ -1,0 +1,6 @@
+import fs from 'node:fs';
+import {newContext,closeAll} from './browser.mjs';
+const max=+(process.env.MAX_LEVEL||5),prefix=process.env.PREFIX||'c1';
+try{const ctx=await newContext({viewport:{width:1600,height:660}}),p=await ctx.newPage();const data=[];
+for(let id=1;id<=15;id++){const path=`docs/screenshots/${id<=5?'c1':id<=10?'c2':'c3'}-l${id}-start-desktop.png`;data.push({id,src:id<=max&&fs.existsSync(path)?'data:image/png;base64,'+fs.readFileSync(path).toString('base64'):null});}
+await p.goto('about:blank');await p.evaluate(async data=>{document.body.style.margin='0';const c=document.createElement('canvas');c.id='contact';c.width=1600;c.height=660;document.body.append(c);const g=c.getContext('2d');g.fillStyle='#111827';g.fillRect(0,0,1600,660);for(const q of data){const x=((q.id-1)%5)*320,y=Math.floor((q.id-1)/5)*220;g.fillStyle=q.src?'#fbbf24':'#94a3b8';g.font='bold 18px sans-serif';g.fillText('LEVEL '+q.id+(q.src?' — REAL START':' — NOT REBUILT'),x+8,y+27);if(q.src){const im=new Image();im.src=q.src;await im.decode();g.drawImage(im,x,y+40,320,180);}else{g.fillStyle='#263244';g.fillRect(x+2,y+40,316,178);g.fillStyle='#aab4c4';g.font='16px sans-serif';g.fillText('No new screenshot / no pass',x+22,y+130);}}},data);await p.locator('#contact').screenshot({path:'docs/screenshots/levels-contact-sheet.png'});}finally{await closeAll();}

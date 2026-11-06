@@ -1,0 +1,169 @@
+================================================================
+TerraForm 3D - QUALITY PASS v3 REAL-BROWSER EVIDENCE
+Chromium 153.0.8010.0 | headless software WebGL | freshly built dist
+branch arena/154f02b1-gameprotype | 2026-11-05T16:49:22Z
+================================================================
+
+---------- node scripts/contrast-check.mjs ----------
+fail        Pause menu                 241,245,249 1           10.12      16    OK
+fail        Open site map              241,245,249 2           8.97       16    OK
+fail        C                          241,245,249 1           10.12      16    OK
+fail        M                          241,245,249 1           10.12      16    OK
+fail        +                          241,245,249 1           10.12      16    OK
+fail        −                          241,245,249 1           10.12      16    OK
+fail        M                          241,245,249 1           10.12      16    OK
+fail        SCOOP                      241,245,249 1           10.12      16    OK
+fail        DUMP                       241,245,249 1           9.35       16    OK
+fail        BRK                        241,245,249 1           8.94       16    OK
+confirm     Close window               255,255,255 2           6.47       15    OK
+confirm     Test?                      251,191,36 2           5.88       22    OK
+confirm     Just a test                203,213,225 2           6.62       15    OK
+confirm     CANCEL                     241,245,249 2           7.79       15    OK
+confirm     Yes                        241,245,249 2           7.79       15    OK
+confirm     Pause menu                 241,245,249 1           10.12      16    OK
+confirm     Open site map              241,245,249 2           8.97       16    OK
+confirm     C                          241,245,249 1           10.12      16    OK
+confirm     M                          241,245,249 1           10.12      16    OK
+confirm     +                          241,245,249 1           10.12      16    OK
+confirm     −                          241,245,249 1           10.12      16    OK
+confirm     M                          241,245,249 1           10.12      16    OK
+confirm     SCOOP                      241,245,249 1           10.12      16    OK
+confirm     DUMP                       241,245,249 1           9.35       16    OK
+confirm     BRK                        241,245,249 1           8.94       16    OK
+
+checked 172 elements across 11 screens
+default buttonface / white-on-white: 0
+contrast failures (<4.5): 0
+total FAIL rows: 0
+
+CONTRAST CHECK: PASS (0 fails)
+
+---------- node scripts/layout-check.mjs ----------
+REAL BROWSER LAYOUT CHECK (Chromium 153, actual getBoundingClientRect)
+
+VIEWPORT     BOXES  OVERLAPS  OFFSCREEN  TARGETS<48  CLIPPED  RESULT
+1920x1080    11     0         0          0           0        PASS
+   min font 14px | targets 5
+1280x720     11     0         0          0           0        PASS
+   min font 14px | targets 5
+844x390      11     0         0          0           0        PASS
+   min font 14px | targets 5
+440x956      11     0         0          0           0        PASS
+   min font 14px | targets 5
+390x844      11     0         0          0           0        PASS
+   min font 14px | targets 5
+
+LAYOUT CHECK: PASS (0 overlaps / 0 clipped / >=48px)
+
+---------- node scripts/button-check.mjs ----------
+real clicks: 52 | failures: 0
+
+--- BUTTON / INPUT CHECK ---
+PASS start every button  7 real clicks
+PASS pause every button  7 real clicks
+PASS settings every button  8 real clicks
+PASS help every button  3 real clicks
+PASS levels every button  10 real clicks
+PASS garage every button  7 real clicks
+PASS map every button  1 real clicks
+PASS result every button  3 real clicks
+PASS fail every button  3 real clicks
+PASS confirm every button  3 real clicks
+PASS EVERY screen button clickable  52 clicks
+PASS keyboard-held W drives  fwd=true speed=1
+PASS mouse-held joystick drives  fwd=true speed=8
+PASS SCOOP FIRST toast  ["SCOOP FIRST"]
+PASS SCOOP 1.6s HOLD completes + radial ring  duration=1.6 ring=0.18749999999999997 actT@0.7s=0.3
+PASS DUMP 1.2s HOLD  duration=1.2
+PASS Big buttons x1.2  --u 1 -> 1.2
+PASS Swap sides moves joystick  lefty false -> true, joy x 10 -> 505
+PASS two-finger joystick + action  fwd=true holding=true code=KeyF
+PASS 0 red console errors from our code  []
+
+20/20 passed
+BUTTON CHECK: PASS
+
+---------- node scripts/level-walk.mjs ----------
+PASS L1 stage built + real keys  draw=252 speed=0
+PASS L2 stage built + real keys  draw=216 speed=0
+PASS L3 stage built + real keys  draw=299 speed=2
+PASS L4 stage built + real keys  draw=306 speed=4
+PASS L5 stage built + real keys  draw=338 speed=1
+PASS L6 stage built + real keys  draw=151 speed=0
+PASS L7 stage built + real keys  draw=297 speed=0
+PASS L8 stage built + real keys  draw=282 speed=0
+PASS L9 stage built + real keys  draw=303 speed=0
+PASS L10 stage built + real keys  draw=358 speed=0
+PASS L11 stage built + real keys  draw=352 speed=0
+PASS L12 stage built + real keys  draw=263 speed=1
+PASS L13 stage built + real keys  draw=292 speed=2
+PASS L14 stage built + real keys  draw=326 speed=0
+PASS L15 stage built + real keys  draw=306 speed=0
+PASS 15 distinct grounds  15 unique ground colours
+PASS 15 distinct skyline/landmark pairs  15 unique pairs
+PASS 15 distinct start yaws
+PASS 15 x 3 coaching lines
+PASS L1 exactly 3 loads  total=3
+PASS L1 cycle 1: held-F scoop + held-G dump  hasDirt=true loads=1
+PASS L1 cycle 2: held-F scoop + held-G dump  hasDirt=true loads=2
+PASS L1 cycle 3: held-F scoop + held-G dump  hasDirt=true loads=3
+PASS L1 exactly 3 scoops and 3 dumps with REAL keys  F holds=3 G holds=3 loads=3/3
+PASS L4 wrong-truck dump does NOT count a load  loads=0 hasDirt=true toasts=["Drive to the blue truck"]
+PASS L7 pipe yard goals present  objective=Pick up a pipe from the rack objects=9
+PASS L7 pipe dropped away from pad does NOT complete a goal  info={"id":7,"type":"MOVE","goal":"move","done":0,"total":3,"combo":0,"maxCombo":0,"coneHits":0,"misses":0,"rushWait":null}
+PASS L9 driving off the deck is detected and stays playable  speed=5 y 1.09 -> 1.09 state=playing
+PASS 0 red console errors across 15 levels  []
+
+29/29 passed
+LEVEL WALK: PASS
+
+---------- node scripts/perf-check.mjs ----------
+REAL CHROMIUM PERFORMANCE (headless software WebGL - lower than a real GPU)
+
+START MENU                 fps   65.5 | draw calls  246 | tris   25990 | frames 29
+LEVEL 1                    fps   53.8 | draw calls  253 | tris   26234 | frames 39
+LEVEL 11                   fps   57.5 | draw calls  355 | tris   30472 | frames 46
+LEVEL 15                   fps   53.6 | draw calls  305 | tris   28672 | frames 52
+FREE PLAY                  fps     52 | draw calls  158 | tris   62420 | frames 59
+PASS reverse beeper beeps while reversing  beeps 0 -> 6 | speed -5.71
+PASS stage sound bed active  bed=birds
+PASS all five states actually render geometry  [246,253,355,305,158]
+PASS Free Play draw calls under 200  calls=158
+PASS 0 red console errors  []
+
+PERF CHECK: PASS
+
+---------- node scripts/sdk-check.mjs ----------
+
+console entries: 1
+CrazySDK-not-initialized messages: 0
+SDK network failures (no portal in sandbox, expected): 0
+  [error] Failed to load resource: net::ERR_CONNECTION_CLOSED
+PASS ZERO CrazySDK is not initialized yet  []
+PASS no pageerror exceptions  []
+
+SDK CHECK: PASS
+
+---------- NODE / STATIC CHECKS ----------
+ui-audit               UI AUDIT: PASS
+ui-runtime-check       UI RUNTIME CHECK: PASS
+tier1-check            TIER 1 CHECK: PASS
+garage-check           TIER 6 GARAGE CHECK: PASS
+park-check             TIER 7 PARK CHECK: PASS
+ads-check              TIER 9 ADS CHECK: PASS
+
+---------- node scripts/session.mjs (SECONDS=600) ----------
+
+PASS session ran >= 10 minutes  602 s
+PASS no QA hook crash  0 crashes
+PASS real input exercised  clicks=108 keyHolds=323 levelChanges=16
+PASS 0 red console errors  0 | []
+PASS fps sampled  99 samples, avg 7.4
+
+10-MIN SESSION: PASS
+
+---------- FINAL SOURCE STATE ----------
+npm run build: PASS (dist/ current for all source + CSS edits)
+src/ui/GameUI.js: #tf-hud .tf-timer.off{display:none} fixes the Free Play timer
+src/main.js: renderer.info.autoReset=false + explicit reset() fixes draw-call stats
+docs/screenshots/: 18 named PNGs + 30 stage frames + contact sheet, all viewed

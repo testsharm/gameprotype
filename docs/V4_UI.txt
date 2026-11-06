@@ -1,0 +1,5 @@
+[RAN] wheel zoom 1 -> 0.88
+[RAN] phone two fingers {"gameState":"playing","currentJob":1,"freePlay":false,"uiPaused":false,"modalOpen":false,"paused":false,"physReady":true,"loads":0,"total":3,"hasDirt":false,"scoopCount":0,"coins":0,"speed":0,"fwd":true,"lastAction":null,"actHolding":true,"actCode":"KeyF","actT":0.25,"duration":1.6,"canvas":true}
+[RAN] phone controls released {"gameState":"playing","currentJob":1,"freePlay":false,"uiPaused":false,"modalOpen":false,"paused":false,"physReady":true,"loads":0,"total":3,"hasDirt":false,"scoopCount":0,"coins":0,"speed":4,"fwd":false,"lastAction":{"code":"KeyF","holdEnd":12816.5,"effect":null},"actHolding":false,"actCode":"KeyF","actT":0,"duration":1.6,"canvas":true}
+[RAN] TIME IS UP reached by waiting without shortcuts
+[RAN] code errors []

@@ -1,0 +1,58 @@
+[
+  {
+    "id": 1,
+    "phase": "start",
+    "name": "desktop",
+    "file": "e-smoke-l1-start-desktop.png",
+    "shortcut": "normal URL, fresh storage, no QA mutation; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 1,
+    "phase": "start",
+    "name": "phone",
+    "file": "e-smoke-l1-start-phone.png",
+    "shortcut": "normal URL, fresh storage, no QA mutation; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 1,
+    "phase": "mid",
+    "name": "desktop",
+    "file": "e-smoke-l1-mid-desktop.png",
+    "shortcut": "normal URL, fresh storage, no QA mutation; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 1,
+    "phase": "mid",
+    "name": "phone",
+    "file": "e-smoke-l1-mid-phone.png",
+    "shortcut": "normal URL, fresh storage, no QA mutation; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 1,
+    "phase": "result",
+    "name": "desktop",
+    "file": "e-smoke-l1-result-desktop.png",
+    "shortcut": "normal URL, fresh storage, no QA mutation; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 1,
+    "phase": "result",
+    "name": "phone",
+    "file": "e-smoke-l1-result-phone.png",
+    "shortcut": "normal URL, fresh storage, no QA mutation; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 1,
+    "phase": "next-l2",
+    "name": "desktop",
+    "file": "e-smoke-l1-next-l2-desktop.png",
+    "shortcut": "normal URL, fresh storage, no QA mutation; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 1,
+    "phase": "next-l2",
+    "name": "phone",
+    "file": "e-smoke-l1-next-l2-phone.png",
+    "shortcut": "normal URL, fresh storage, no QA mutation; real driving and holds, viewport changed for phone"
+  }
+]

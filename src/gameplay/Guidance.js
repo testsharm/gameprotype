@@ -1,234 +1,237 @@
 import * as THREE from 'three';
 
-const _v = new THREE.Vector3();
-const _targetScreen = { x: 0, y: 0 };
+// Guidance = ONE ground target ring + a painted chevron path on the first
+// tutorial load. The weak floating screen-space arrow was removed: it hid the
+// road and never pointed at anything useful on a tall phone.
+// All markings are painted into a canvas texture (no flickering thin geometry).
+
+function chevronTexture() {
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 128;
+    const g = c.getContext('2d');
+    g.clearRect(0, 0, 128, 128);
+    g.lineWidth = 15;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.strokeStyle = 'rgba(251,191,36,0.92)';
+    g.beginPath();
+    g.moveTo(20, 86); g.lineTo(64, 42); g.lineTo(108, 86);
+    g.stroke();
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = THREE.ClampToEdgeWrapping;
+    t.wrapT = THREE.RepeatWrapping;
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.magFilter = THREE.LinearFilter;
+    t.generateMipmaps = true;
+    t.anisotropy = 8;
+    return t;
+}
 
 export default class Guidance {
-  constructor(scene, camera, renderer) {
-    this.scene = scene;
-    this.camera = camera;
-    this.renderer = renderer;
+    constructor(scene, camera, renderer) {
+        this.scene = scene;
+        this.camera = camera;
+        this.renderer = renderer;
 
-    this._injectCSS();
+        this._target = null;
+        this._visible = true;
+        // A6: ground ring radius 2.2 m, only on the CURRENT target.
+        this._ringGeo = new THREE.RingGeometry(1.95, 2.2, 48);
+        this._ringMat = new THREE.MeshBasicMaterial({
+            color: 0xffb84a, transparent: true, opacity: 0.75,
+            blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+        });
+        this._ring = new THREE.Mesh(this._ringGeo, this._ringMat);
+        this._ring.rotation.x = -Math.PI / 2;
+        this._ring.visible = false;
+        this.scene.add(this._ring);
 
-    this._target = null;
-    this._ring = null;
-    this._ringGeo = new THREE.RingGeometry(0.55, 0.85, 40);
-    this._ringMat = new THREE.MeshBasicMaterial({
-      color: 0xffb84a,
-      transparent: true,
-      opacity: 0.75,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      side: THREE.DoubleSide
-    });
-    this._ring = new THREE.Mesh(this._ringGeo, this._ringMat);
-    this._ring.rotation.x = -Math.PI / 2;
-    this._ring.visible = false;
-    this.scene.add(this._ring);
+        // A6: ONE thin additive beam, radius 0.5 m, 12 m tall. It fades out
+        // completely when the machine is closer than 8 m. The old 60 m yellow
+        // wedge was deleted from main.js.
+        this._beamMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true,
+            opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
+            side: THREE.DoubleSide, fog: false });
+        this._beam = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 12, 16, 1, true), this._beamMat);
+        this._beam.visible = false;
+        this.scene.add(this._beam);
+        this._pulseBoost = 0;
 
-    this._pulseTime = 0;
+        // TIER 5: a soft bobbing chevron above the glowing ground ring.
+        this._float = new THREE.Group();
+        this._floatMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true,
+            opacity: 0.9, depthWrite: false, side: THREE.DoubleSide, fog: false });
+        const shape = new THREE.Shape();
+        shape.moveTo(-1, 0.22); shape.lineTo(0, -0.22); shape.lineTo(1, 0.22);
+        shape.lineTo(1, 0.02); shape.lineTo(0, -0.42); shape.lineTo(-1, 0.02); shape.closePath();
+        const v = new THREE.Mesh(new THREE.ShapeGeometry(shape), this._floatMat);
+        v.rotation.x = -0.35;
+        this._float.add(v);
+        this._float.visible = false;
+        this.scene.add(this._float);
+        this._nearFade = 0;
 
-    this._arrow = document.createElement('div');
-    this._arrow.className = 'guid-arrow';
-    this._arrow.textContent = '➤';
-    this._arrow.style.display = 'none';
-    document.body.appendChild(this._arrow);
+        this._pulseTime = 0;
+        this._chevrons = null;
+        this._chevMat = null;
+        this._chevFade = -1;
 
-    this._arrowAngle = 0;
-    this._arrowActive = false;
-
-    this._steps = [
-      'Drive to the dirt pile',
-      'Lower the arm and scoop',
-      'Dump into the blue truck'
-    ];
-    this._stepIndex = -1;
-    this._card = null;
-    this._cardActive = false;
-
-    this._tutKey = 'jobguidance_tutorial_done';
-  }
-
-  _injectCSS() {
-    if (document.getElementById('guidance-css')) return;
-    const style = document.createElement('style');
-    style.id = 'guidance-css';
-    style.textContent = `
-      .guid-arrow {
-        position: fixed;
-        pointer-events: none;
-        font-size: 34px;
-        color: #ffb84a;
-        text-shadow: 0 2px 8px rgba(0,0,0,0.6), 0 0 14px rgba(255,170,40,0.65);
-        transform: translate(-50%, -50%);
-        z-index: 9990;
-        will-change: left, top, transform;
-      }
-      .guid-card {
-        position: fixed;
-        top: 18px;
-        left: 50%;
-        transform: translateX(-50%);
-        max-width: 340px;
-        padding: 14px 22px;
-        background: rgba(22,26,34,0.62);
-        border: 1px solid rgba(255,255,255,0.22);
-        border-radius: 14px;
-        backdrop-filter: blur(10px) saturate(140%);
-        -webkit-backdrop-filter: blur(10px) saturate(140%);
-        color: #fff;
-        font-family: system-ui, -apple-system, sans-serif;
-        font-size: 16px;
-        font-weight: 600;
-        text-align: center;
-        cursor: pointer;
-        z-index: 9999;
-        box-shadow: 0 8px 26px rgba(0,0,0,0.35);
-        user-select: none;
-        opacity: 0;
-        transition: opacity 0.25s ease;
-      }
-      .guid-card.show { opacity: 1; }
-      .guid-card .guid-step {
-        display: block;
-        margin-top: 4px;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 1px;
-        color: #ffcf6b;
-        text-transform: uppercase;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  setTarget(target) {
-    if (target) {
-      this._target = target.clone();
-      this._ring.position.copy(this._target);
-      this._ring.position.y += 0.05;
-      this._ring.visible = true;
-      this._arrowActive = true;
-      this._arrow.style.display = 'block';
-    } else {
-      this._target = null;
-      this._ring.visible = false;
-      this._arrowActive = false;
-      this._arrow.style.display = 'none';
-    }
-  }
-
-  // The old floating centre card overlapped the mission card. Tutorial steps now go
-  // through the HUD v5 hint + toast system (GameUI listens for 'tf-tutorial').
-  startTutorial() {
-    let done = false;
-    try { done = localStorage.getItem(this._tutKey) === '1'; } catch (e) { done = false; }
-    if (done) return;
-    this._stepIndex = 0;
-    this._cardActive = true;
-    this._emitStep();
-  }
-
-  _emitStep() {
-    if (this._stepIndex < 0 || this._stepIndex >= this._steps.length) { this._endTutorial(); return; }
-    try {
-      window.dispatchEvent(new CustomEvent('tf-tutorial', {
-        detail: { text: this._steps[this._stepIndex], step: this._stepIndex + 1, total: this._steps.length }
-      }));
-    } catch (e) { /* storage or browser restriction */ }
-  }
-
-  _renderStep() { this._emitStep(); }
-
-  nextTutorialStep() {
-    if (!this._cardActive) return;
-    this._stepIndex++;
-    if (this._stepIndex >= this._steps.length) this._endTutorial();
-    else this._emitStep();
-  }
-
-  _endTutorial() {
-    this._cardActive = false;
-    this._stepIndex = -1;
-    try { localStorage.setItem(this._tutKey, '1'); } catch (e) { /* ignore */ }
-    if (this._card) {
-      this._card.classList.remove('show');
-      const card = this._card;
-      this._card = null;
-      setTimeout(() => { if (card.parentNode) card.parentNode.removeChild(card); }, 260);
-    }
-  }
-
-  update(dt) {
-    if (dt <= 0) return;
-
-    if (this._target && this._ring.visible) {
-      this._pulseTime += dt;
-      const pulse = 0.5 + 0.5 * Math.sin(this._pulseTime * 3.2);
-      const s = 1 + pulse * 0.18;
-      this._ring.scale.set(s, s, s);
-      this._ringMat.opacity = 0.35 + pulse * 0.5;
+        this._steps = [
+            'Drive to the highlighted dirt pile',
+            'Lower the arm and press F to scoop',
+            'Drive to the blue truck and press F to dump'
+        ];
+        this._stepIndex = -1;
+        this._cardActive = false;
+        this._tutKey = 'jobguidance_tutorial_done';
     }
 
-    if (this._target && this._arrowActive) {
-      _v.copy(this._target);
-      _v.project(this.camera);
-
-      const onScreen = _v.z < 1 && _v.x >= -0.92 && _v.x <= 0.92 && _v.y >= -0.92 && _v.y <= 0.92;
-      const dist = this.camera.position.distanceTo(this._target);
-
-      if (onScreen && dist < 9) {
-        this._arrow.style.display = 'none';
-        return;
-      }
-      this._arrow.style.display = 'block';
-
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      let sx = (_v.x * 0.5 + 0.5) * w;
-      let sy = (-_v.y * 0.5 + 0.5) * h;
-
-      if (_v.z >= 1) {
-        sx = w - sx;
-        sy = h - sy;
-      }
-
-      const margin = 46;
-      const cx = w * 0.5;
-      const cy = h * 0.5;
-      let dx = sx - cx;
-      let dy = sy - cy;
-      if (dx === 0 && dy === 0) dy = 1;
-
-      const maxX = w * 0.5 - margin;
-      const maxY = h * 0.5 - margin;
-      const scaleX = maxX / Math.max(1e-4, Math.abs(dx));
-      const scaleY = maxY / Math.max(1e-4, Math.abs(dy));
-      const k = Math.min(scaleX, scaleY, 1);
-      const ex = cx + dx * k;
-      const ey = cy + dy * k;
-
-      this._arrow.style.left = ex + 'px';
-      this._arrow.style.top = ey + 'px';
-      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-      this._arrow.style.transform = 'translate(-50%, -50%) rotate(' + angle + 'deg)';
+    setTarget(target) {
+        if (target) {
+            this._target = target.clone();
+            this._ring.position.copy(this._target);
+            this._ring.position.y += 0.06;
+            this._ring.visible = this._visible;
+        } else {
+            this._target = null;
+            this._ring.visible = false;
+            this._float.visible = false;
+            if (this._beam) this._beam.visible = false;
+        }
     }
-  }
 
-  reset() {
-    this._target = null;
-    if (this._ring) this._ring.visible = false;
-    this._pulseTime = 0;
-    if (this._arrow) {
-      this._arrow.style.display = 'none';
-      this._arrowActive = false;
+    // Settings -> Guide arrows. Hides the ring and the painted chevrons.
+    setVisible(on) {
+        this._visible = on !== false;
+        if (this._ring) this._ring.visible = this._visible && !!this._target;
+        if (this._chevrons) this._chevrons.group.visible = this._visible;
+        if (!this._visible && this._float) this._float.visible = false;
+        if (!this._visible && this._beam) this._beam.visible = false;
+        return this._visible;
     }
-    this._cardActive = false;
-    this._stepIndex = -1;
-    if (this._card) {
-      if (this._card.parentNode) this._card.parentNode.removeChild(this._card);
-      this._card = null;
+    isVisible() { return this._visible; }
+
+    // Painted ground chevrons from the start pose to the first pile (Level 1 only).
+    setChevrons(from, to) {
+        this._clearChevrons();
+        if (!from || !to) return;
+        const dx = to.x - from.x, dz = to.z - from.z;
+        const len = Math.hypot(dx, dz);
+        if (len < 4 || len > 90) return;
+        const tex = chevronTexture();
+        tex.repeat.set(1, Math.max(2, Math.round(len / 3.2)));
+        this._chevMat = new THREE.MeshBasicMaterial({
+            map: tex, transparent: true, opacity: 0.85, depthWrite: false,
+            side: THREE.DoubleSide, polygonOffset: true,
+            polygonOffsetFactor: -5, polygonOffsetUnits: -5
+        });
+        const plane = new THREE.Mesh(new THREE.PlaneGeometry(2.4, len), this._chevMat);
+        plane.rotation.x = -Math.PI / 2;
+        plane.renderOrder = 3;
+        const group = new THREE.Group();
+        // local -Z (the chevron tip) must point from the machine towards the pile
+        group.rotation.y = Math.atan2(-dx, -dz);
+        group.position.set((from.x + to.x) / 2, 0.09, (from.z + to.z) / 2);
+        group.add(plane);
+        this.scene.add(group);
+        this._chevrons = { group: group, geometry: plane.geometry, material: this._chevMat, map: tex };
+        this._chevFade = -1;
     }
-  }
+
+    onFirstLoad() {
+        if (this._chevrons) this._chevFade = 1;
+    }
+
+    _clearChevrons() {
+        if (this._chevrons) {
+            this.scene.remove(this._chevrons.group);
+            this._chevrons.geometry.dispose();
+            if (this._chevrons.map) this._chevrons.map.dispose();
+            this._chevrons.material.dispose();
+        }
+        this._chevrons = null;
+        this._chevMat = null;
+        this._chevFade = -1;
+    }
+
+    // Tutorial steps go through the HUD hint + toast system (GameUI listens for 'tf-tutorial').
+    startTutorial() {
+        let done = false;
+        try { done = localStorage.getItem(this._tutKey) === '1'; } catch (e) { done = false; }
+        if (done) return;
+        this._stepIndex = 0;
+        this._cardActive = true;
+        this._emitStep();
+    }
+
+    _emitStep() {
+        if (this._stepIndex < 0 || this._stepIndex >= this._steps.length) { this._endTutorial(); return; }
+        try {
+            window.dispatchEvent(new CustomEvent('tf-tutorial', {
+                detail: { text: this._steps[this._stepIndex], step: this._stepIndex + 1, total: this._steps.length }
+            }));
+        } catch (e) { /* browser restriction */ }
+    }
+
+    nextTutorialStep() {
+        if (!this._cardActive) return;
+        this._stepIndex++;
+        if (this._stepIndex >= this._steps.length) this._endTutorial();
+        else this._emitStep();
+    }
+
+    _endTutorial() {
+        this._cardActive = false;
+        this._stepIndex = -1;
+        try { localStorage.setItem(this._tutKey, '1'); } catch (e) { /* ignore */ }
+    }
+
+    // playerPos lets the ring / beam / chevron fade out near the goal.
+    update(dt, playerPos) {
+        if (dt <= 0) return;
+        if (this._target && this._ring.visible) {
+            this._pulseTime += dt;
+            const pulse = 0.5 + 0.5 * Math.sin(this._pulseTime * 3.2);
+            const s = 1 + pulse * 0.18;
+            this._ring.scale.set(s, s, s);
+            this._ringMat.opacity = 0.35 + pulse * 0.5;
+            const d = playerPos ? Math.hypot(playerPos.x - this._target.x, playerPos.z - this._target.z) : 40;
+            this._nearFade = Math.max(0, Math.min(1, (d - 7) / 24));
+            // A6: bobbing chevron + beam fade below 8 m. Both belong to the
+            // SAME single target; nothing is drawn at old goals.
+            this._float.visible = this._visible && this._nearFade > 0.03;
+            this._float.position.set(this._target.x, 4.4 + Math.sin(this._pulseTime * 2.4) * 0.35, this._target.z);
+            this._floatMat.opacity = 0.9 * this._nearFade;
+            const beamFade = Math.max(0, Math.min(1, (d - 8) / 14));
+            this._beam.visible = this._visible && beamFade > 0.01;
+            if (this._beam.visible) {
+                this._beam.position.set(this._target.x, 6.0, this._target.z);
+                this._beamMat.opacity = (0.10 + 0.04 * Math.sin(this._pulseTime * 3)) * beamFade;
+            }
+            if (this._pulseBoost > 0) {
+                this._pulseBoost = Math.max(0, this._pulseBoost - dt * 2.2);
+                this._ring.scale.multiplyScalar(1 + this._pulseBoost * 0.16);
+            }
+        } else { this._float.visible = false; this._nearFade = 0; if (this._beam) this._beam.visible = false; }
+        if (this._chevrons && this._chevFade >= 0) {
+            this._chevFade = Math.max(0, this._chevFade - dt / 1.4);
+            this._chevMat.opacity = 0.85 * this._chevFade;
+            if (this._chevFade <= 0) this._clearChevrons();
+        }
+    }
+    nearFade() { return this._nearFade; }
+    // A7: the hold ring on the button also flashes the ground ring.
+    pulseGround() { this._pulseBoost = 1; }
+
+    reset() {
+        this._target = null;
+        if (this._ring) this._ring.visible = false;
+        if (this._float) this._float.visible = false;
+        if (this._beam) this._beam.visible = false;
+        this._nearFade = 0;
+        this._pulseTime = 0;
+        this._clearChevrons();
+        this._cardActive = false;
+        this._stepIndex = -1;
+    }
 }
