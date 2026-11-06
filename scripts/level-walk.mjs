@@ -7,11 +7,13 @@ await serve();
 try{
 for(let id=from;id<=to;id++){
  const c=await newContext({viewport:{width:1280,height:720}}),p=await openGame(c,{query:'?unlockall',settle:200});await p.bringToFront();
+ if(process.env.QA_QUALITY){await p.locator('#tf-start [data-a="settings"]').click();await p.locator('[data-set="quality"][data-v="'+process.env.QA_QUALITY+'"]').click();await p.locator('.tf-x').click();report.push('[RAN] L'+id+' graphics '+process.env.QA_QUALITY+' explicitly selected through Settings; not default AUTO performance proof');}
+
  const held=new Set();
  async function keys(list){for(const k of [...held])if(!list.includes(k)){await p.keyboard.up(k);held.delete(k);}for(const k of list)if(!held.has(k)){await p.keyboard.down(k);held.add(k);}}
  const observe=()=>p.evaluate(()=>window.__tfObserve());
  async function stop(){await keys(['Space']);await p.waitForTimeout(500);await keys([]);}
- async function snap(phase){await keys([]);for(const [name,w,h] of [['desktop',1280,720],['phone',390,844]]){await p.setViewportSize({width:w,height:h});await p.waitForTimeout(150);const file=`${prefix}-l${id}-${phase}-${name}.png`;await shoot(p,file);manifest.push({id,phase,name,file,shortcut:'unlockall only for initial level selection; real driving and holds, viewport changed for phone'});}await p.setViewportSize({width:800,height:450});}
+ async function snap(phase){await keys([]);for(const [name,w,h] of [['desktop',1280,720],['phone',390,844]]){await p.setViewportSize({width:w,height:h});await p.waitForTimeout(150);const file=`${prefix}-l${id}-${phase}-${name}.png`;await shoot(p,file);manifest.push({id,phase,name,file,shortcut:'unlockall only for initial level selection; real driving and holds, viewport changed for phone; graphics '+(process.env.QA_QUALITY||'AUTO')+(process.env.QA_QUALITY?' explicitly selected through Settings':'')});}await p.setViewportSize({width:800,height:450});}
  async function drive(x,z,r=1.5){const start=Date.now();let reverse=null;while(Date.now()-start<65000){const o=await observe();if(!o.playing)throw Error('Stopped playing '+JSON.stringify(o));const dx=x-o.position.x,dz=z-o.position.z,d=Math.hypot(dx,dz);if(d<r){await stop();return;}
    let yaw=Math.atan2(dx,dz),e=Math.atan2(Math.sin(yaw-o.yaw),Math.cos(yaw-o.yaw));if(reverse===null)reverse=Math.abs(e)>Math.PI/2;if(reverse){yaw+=Math.PI;e=Math.atan2(Math.sin(yaw-o.yaw),Math.cos(yaw-o.yaw));}
    const steer=Math.abs(e)>.065?((e>0)!==reverse?'a':'d'):null;
@@ -22,7 +24,7 @@ for(let id=from;id<=to;id++){
  async function hold(k){const before=(await observe()).action.last?.holdEnd||0;await keys([k]);try{await p.waitForFunction(b=>{const o=window.__tfObserve();return !o.action.holding&&(o.action.last?.holdEnd||0)>b;},before,{timeout:7000});}finally{await keys([]);}await p.waitForTimeout(100);}
  try{
  await p.locator('#tf-start [data-a="levels"]').click();if(id>5)await p.locator('[data-a="chapter"][data-ch="'+Math.ceil(id/5)+'"]').click();await p.locator(`[data-a="select"][data-id="${id}"]`).click();await p.locator('[data-a="start"]').click();await p.waitForTimeout(300);await snap('start');
- const base=await p.evaluate(()=>window.__tfState().site);let mid=false,negative=false;
+ const base=await p.evaluate(()=>window.__tfState().site);const initialWallet=Number((await p.locator('#tf-coins-v').innerText()).replace(/[^0-9]/g,''));let mid=false,negative=false;
  if(id===9){const before=await observe();await keys(['w']);try{await p.waitForFunction(()=>window.__tfObserve().level.resets>0,null,{timeout:90000});}finally{await stop();}const after=await observe();const penalty=(before.timeLeft-after.timeLeft)-(after.elapsed-before.elapsed);report.push('[RAN] L9 real fall/reset '+JSON.stringify({resets:after.level.resets,penalty}));if(after.level.resets!==1||Math.abs(penalty-10)>.1)throw Error('Bridge +10 penalty not proven');await snap('bridge-reset');}
 
  while((await observe()).loads<(await observe()).level.total){
@@ -51,6 +53,7 @@ for(let id=from;id<=to;id++){
  }
  if(process.env.CONE_VISUAL_ONLY){report.push('[RAN] Cone visual-only followup; result not retested in this run');fs.writeFileSync('docs/C1_CONE_VISUAL.txt',report.join('\n'));await p.goto('about:blank');continue;}
  await p.locator('#tf-coin-count').waitFor({timeout:7000});await p.waitForTimeout(600);await snap('result');
+ if(process.env.CHECK_WALLET){const wallet=Number((await p.locator('#tf-coins-v').innerText()).replace(/[^0-9]/g,'')),shown=Number((await p.locator('#tf-coin-count').innerText()).replace(/[^0-9]/g,''));report.push('[RAN] L'+id+' wallet reconciliation '+JSON.stringify({initialWallet,wallet,delta:wallet-initialWallet,shown}));if(wallet-initialWallet!==shown)throw Error('Displayed result does not match wallet delta');}
  if(id===11&&(await observe()).level.binLoads.some(n=>n!==3))throw Error('Four bins must each receive three piles');if(id===12&&(await observe()).level.depth!==3)throw Error('Foundation must reach 3m');if(id===14&&(await observe()).level.ghostProgress<=0)throw Error('Ghost never moved');
  const errors=redErrors(p.__logs);if(errors.length)throw Error(JSON.stringify(errors));report.push(`[RAN] PASS L${id} real-input result `+await p.locator('#tf-win').textContent());console.log(`[RAN] PASS L${id}`);
  }catch(e){failures++;report.push(`[UNKNOWN] FAIL L${id} ${e.stack}`);await stop();await snap('failed');console.log(`[UNKNOWN] FAIL L${id} ${e.message}`);}

@@ -1056,15 +1056,17 @@ export class World {
     // dirt pile: cone shape, highest clods are removed first
     this.dirtPileGroup = new THREE.Group();
     this.dirtPileGroup.position.set(jobX, 0, jobZ);
-    const clodGeo = new THREE.DodecahedronGeometry(1.2, 0);
+    const soilCanvas=document.createElement('canvas');soilCanvas.width=soilCanvas.height=128;const soilCtx=soilCanvas.getContext('2d');soilCtx.fillStyle='#8b5a2b';soilCtx.fillRect(0,0,128,128);for(let i=0;i<3500;i++){soilCtx.fillStyle=R()>.5?'#a5723c':'#784b25';soilCtx.globalAlpha=.3;soilCtx.fillRect(R()*128,R()*128,1.5,1.5);}const soilTex=new THREE.CanvasTexture(soilCanvas);soilTex.colorSpace=THREE.SRGBColorSpace;
+    const mound=new THREE.Mesh(new THREE.SphereGeometry(1,48,24,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0xffffff,map:soilTex,roughness:1}));mound.scale.set(6.5,3.2,6.5);mound.position.y=.12;mound.castShadow=true;mound.receiveShadow=true;
+    const clodGeo = new THREE.IcosahedronGeometry(.09,1);
     const clodMats = [0x7a5233, 0x6b4a2b, 0x8a6238].map((h) => new THREE.MeshStandardMaterial({ color: h, roughness: 1.0 }));
     const clods = [];
     for (let i = 0; i < 45; i++) {
       const clod = new THREE.Mesh(clodGeo, clodMats[i % 3]);
       const r = Math.sqrt(R()) * 6.5;
       const theta = R() * Math.PI * 2;
-      const y = Math.max(0.5, (1 - r / 7.5) * 3.4 + R() * 0.6);
-      const s = 0.8 + R() * 0.7;
+      const y = .12+3.2*Math.sqrt(Math.max(0,1-r*r/(6.5*6.5)));
+      const s = .8 + R() * .4;
       clod.position.set(Math.cos(theta) * r, y, Math.sin(theta) * r);
       clod.rotation.set(R() * Math.PI, R() * Math.PI, 0);
       clod.scale.setScalar(s);
@@ -1073,7 +1075,7 @@ export class World {
       clods.push(clod);
     }
     clods.sort((a, b) => a.position.y - b.position.y);
-    this._masterClods = clods.slice();
+    clods.unshift(mound);this._masterClods = clods.slice();
     this.allDirtClods = clods.slice();
     clods.forEach((c) => this.dirtPileGroup.add(c));
     this.scene.add(this.dirtPileGroup);
@@ -1736,7 +1738,7 @@ export class World {
   }
   showPileLabel(on, camera) {
     if (!this._pileLabel) return;
-    this._pileLabel.visible = !!on && this.dirtPileGroup.visible;
+    this._pileLabel.visible = false; // A2: only HUD pill displays load count
     this._pileLabel.position.copy(this.dirtPileGroup.position); this._pileLabel.position.y += 5;
     if (camera) {
       camera.updateMatrixWorld(true);
@@ -1784,7 +1786,7 @@ export class World {
     this.truckDirtLevel++;
     if (!this._truckDirtMat) {
       this._truckDirtMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b, roughness: 1.0 });
-      this._truckDirtGeo = new THREE.DodecahedronGeometry(1.5, 0);
+      this._truckDirtGeo = new THREE.DodecahedronGeometry(.08, 1);
     }
     const dirtMesh = new THREE.Mesh(this._truckDirtGeo, this._truckDirtMat);
     dirtMesh.position.set((Math.random() - 0.5) * 1.5, 1.9 + (this.truckDirtLevel * 0.45), -1 + (Math.random() - 0.5) * 2);

@@ -34,8 +34,8 @@ try {
  out.push('[RAN] code errors '+JSON.stringify(redErrors(p.__logs)));
  // Requested filmstrip: eight real screenshot frames; labels show wall time.
  const data=frames.slice(0,8).map(f=>({src:'data:image/png;base64,'+fs.readFileSync(f.path).toString('base64'),label:f.time}));
- await p.goto('about:blank');await p.setViewportSize({width:1280,height:440});
- await p.evaluate(async data=>{document.body.style.margin='0';const c=document.createElement('canvas');c.id='film';c.width=1280;c.height=440;document.body.append(c);const g=c.getContext('2d');g.fillStyle='#151d2b';g.fillRect(0,0,1280,440);for(let i=0;i<data.length;i++){const im=new Image();im.src=data[i].src;await im.decode();const x=(i%4)*320,y=Math.floor(i/4)*220;g.drawImage(im,x,y+40,320,180);g.fillStyle='#fde68a';g.font='bold 16px sans-serif';g.fillText(data[i].label.slice(0,35),x+6,y+25);}},data);
+ await p.goto('about:blank');await p.setViewportSize({width:1280,height:480});
+ await p.evaluate(async data=>{document.body.style.margin='0';const c=document.createElement('canvas');c.id='film';c.width=1280;c.height=480;document.body.append(c);const g=c.getContext('2d');g.fillStyle='#151d2b';g.fillRect(0,0,1280,480);for(let i=0;i<data.length;i++){const im=new Image();im.src=data[i].src;await im.decode();const x=(i%4)*320,y=Math.floor(i/4)*240;g.drawImage(im,x,y+60,320,180);g.fillStyle='#fde68a';g.font='bold 18px sans-serif';g.fillText(data[i].label.split(' — ')[0],x+6,y+23);g.fillText(['Level 1: first view','Level 1: five seconds','Level 1: fifteen seconds','Real SCOOP hold','Real DUMP hold','Second scoop: smaller pile','Result earned by real inputs','NEXT: Level 2 ready'][i],x+6,y+48);}},data);
  await p.locator('#film').screenshot({path:'docs/screenshots/filmstrip-L1.png'});
  fs.writeFileSync('docs/SCREENSHOT_MANIFEST.json',JSON.stringify(shots,null,2));
 }catch(e){out.push('[UNKNOWN] '+e.stack);process.exitCode=1;}

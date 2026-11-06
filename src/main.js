@@ -49,7 +49,7 @@ const GARAGE = [
   { key: 'beacon', name: 'BEACON', icon: 'star', save: 'beaconLevel', stat: 'COIN BONUS', lines: ['+0%', '+3%', '+6%', '+10%', '+15%'] }
 ];
 const GARAGE_PRICES = [100, 250, 500, 900];
-const PAINTS = [0xffb400, 0x2f6fdb, 0x34d399, 0xef4444, 0xe5e7eb, 0x7c3aed, 0xf97316, 0x14b8a6, 0x263244, 0x94a3b8];
+const PAINTS = [0xf5b700, 0x2f6fdb, 0x34d399, 0xef4444, 0xe5e7eb, 0x7c3aed, 0xf97316, 0x14b8a6, 0x263244, 0x94a3b8];
 const GARAGE_MAX = GARAGE_PRICES.length + 1;
 let uiSettings = { big: false, lefty: false, guide: true };
 try { const raw = localStorage.getItem(UI_KEY); if (raw) Object.assign(uiSettings, JSON.parse(raw)); } catch (e) {}
@@ -231,7 +231,7 @@ function applyQualitySettings(q) {
 
 function stepDownQuality() {
     if (currentQuality === 'high') applyQualitySettings('medium');
-    else if (currentQuality === 'medium') applyQualitySettings('low');
+    // Automatic mode never selects LOW; LOW is an explicit player choice.
 }
 
 function setupPostProcessing() {
@@ -305,7 +305,9 @@ function renderFrame() {
     _lastFrameT = now;
 }
 
+let qualityAuto= !readQuality()||readQuality()==='auto';
 window.setQuality = (q) => {
+    qualityAuto=q==='auto';if(qualityAuto){applyQualitySettings(matchMedia('(pointer:coarse)').matches?'medium':'high');writeQuality('auto');return;}
     if (!QUALITY_PRESETS[q]) return;
     applyQualitySettings(q);
     writeQuality(q);
@@ -313,17 +315,7 @@ window.setQuality = (q) => {
 };
 
 // Initial quick hardware-based quality detection (a saved setting wins).
-(function quickQualityDetect() {
-    let level = readQuality();
-    if (!QUALITY_PRESETS[level]) {
-        level = 'high';
-        const cores = navigator.hardwareConcurrency || 4;
-        const pxr = window.devicePixelRatio || 1;
-        if (cores <= 4 || pxr >= 2.5) level = 'medium';
-        if (cores <= 2) level = 'low';
-    }
-    applyQualitySettings(level);
-})();
+(function quickQualityDetect(){const saved=readQuality();applyQualitySettings(QUALITY_PRESETS[saved]?saved:matchMedia('(pointer:coarse)').matches?'medium':'high');})();
 
 // ---------------------------------------------------------------- start flow, menus, real input API
 function canPlay() {
@@ -358,7 +350,7 @@ function uiState() {
         cameraLabel: CAMERA_LABELS[cameraManager.currentMode] || 'Chase',
         zoomable: cameraManager.canZoom(),
         zoom: cameraManager.zoom,
-        quality: currentQuality
+        quality: qualityAuto ? 'auto' : currentQuality, effectiveQuality: currentQuality
     };
 }
 // All data Menus needs. Safe while GameUI is still being constructed (ui === null).
@@ -373,14 +365,14 @@ function uiData() {
   return {
     coins: saveData.coins,
     volumes: hub.getVolumes ? hub.getVolumes() : { master: 1, music: 1, effects: 1 },
-    muted: !!hub.isMuted(), quality: currentQuality,
+    muted: !!hub.isMuted(), quality: qualityAuto ? 'auto' : currentQuality, effectiveQuality: currentQuality,
     big: !!uiSettings.big, lefty: !!uiSettings.lefty, guide: uiSettings.guide !== false, tapAct: !!uiSettings.tapAct,
     jobs, chapters: (CHAPTERS || []).map(c => ({ id: c.id, name: c.name.toUpperCase() })),
     currentJob, nextLevel: LEVEL_LIST.find(j => !jm.isDone(j.id))?.id || 15,
     upgrades: GARAGE.map(g => {
       const lv = Math.max(1, Math.min(GARAGE_MAX, saveData[g.save] || 1));
       return { key: g.key, name: g.name, icon: g.icon, level: lv, maxPips: GARAGE_MAX,
-        line: g.stat + ' · ' + g.lines[lv - 1], price: lv >= GARAGE_MAX ? null : GARAGE_PRICES[lv - 1] };
+        line: g.stat + ' / NOW: ' + g.lines[lv - 1] + (lv<GARAGE_MAX?' / NEXT: '+g.lines[lv]:' / MAX'), price: lv >= GARAGE_MAX ? null : GARAGE_PRICES[lv - 1] };
     }),
     paints: PAINTS.map(c => '#' + c.toString(16).padStart(6, '0')), paint: saveData.paint || 0,
     ads: ads.rewardedAvailable(),
@@ -567,7 +559,8 @@ function setUiSetting(p) {
     const vols = hub.getVolumes();
     vols[k] = Math.max(0, Math.min(1, +v || 0));
     hub.setVolumes(vols.master, vols.music, vols.effects);
-  } else if (k === 'mute') { hub.setMuted(+v === 1); safe(() => { if (ui) ui.toast('Sound ' + (+v === 1 ? 'off' : 'on'), 'info'); }); }
+  } else if(k==='sound'){if(hub.isMuted()===!!v)hub.toggleMute();}
+  else if (k === 'mute') { hub.setMuted(+v === 1); safe(() => { if (ui) ui.toast('Sound ' + (+v === 1 ? 'off' : 'on'), 'info'); }); }
   else if (k === 'quality') { window.setQuality(String(v)); }
   else if (k === 'tapAct') { uiSettings.tapAct = +v === 1; }
   else if (k === 'big') { uiSettings.big = +v === 1; safe(() => { if (ui) ui.setBig(uiSettings.big); }); }
@@ -688,7 +681,7 @@ function trackFPS(dt) {
         const fps = fpsFrameCount / fpsCheckAccum;
         if (fps < 40) lowFpsAccum += fpsCheckAccum;
         else lowFpsAccum = 0;
-        if (lowFpsAccum >= 3.0 && currentQuality !== 'low') {
+        if (lowFpsAccum >= 5.0 && qualityAuto && currentQuality === 'high') {
             stepDownQuality();
             lowFpsAccum = 0;
         }
@@ -707,7 +700,7 @@ function startFpsTest() {
             requestAnimationFrame(test);
         } else {
             const fps = frames / (elapsed / 1000);
-            if (fps < 40 && currentQuality !== 'low') stepDownQuality();
+            // Five-second sustained monitor alone controls automatic downgrades.
         }
     }
     requestAnimationFrame(test);
@@ -1092,7 +1085,7 @@ function placeSite(id) {
         const moved = !!(lay && lay.ok && !lay.keep);
         const pg = worldBuilder.dirtPileGroup, tg = worldBuilder.truckGroup;
         const px = moved ? lay.pile.x : siteBase.pc.x, pz = moved ? lay.pile.z : siteBase.pc.z;
-        const tx = moved ? lay.truck.x : siteBase.tc.x, tz = moved ? lay.truck.z : siteBase.tc.z;
+        const tx = id===1 ? px+18 : moved ? lay.truck.x : siteBase.tc.x, tz = id===1 ? pz+9 : moved ? lay.truck.z : siteBase.tc.z;
         pg.position.set(siteBase.pPos.x + (px - siteBase.pc.x), siteBase.pPos.y, siteBase.pPos.z + (pz - siteBase.pc.z));
         tg.position.set(siteBase.tPos.x + (tx - siteBase.tc.x), siteBase.tPos.y, siteBase.tPos.z + (tz - siteBase.tc.z));
         pg.updateMatrixWorld(true); tg.updateMatrixWorld(true);
@@ -1121,7 +1114,9 @@ function placeSite(id) {
             scene.add(g);
             siteGroups.set(id, g);
         }
-        if (level) level.start(job, { pile: { x: px, z: pz }, truck: { x: tx, z: tz } });solidWorld?.rebuild(stages.group,level,rawSite);
+        if (level) level.start(job, { pile: { x: px, z: pz }, truck: { x: tx, z: tz } });
+        if(id===3 && level) stages.cutRepairHoles(level.goals);
+        solidWorld?.rebuild(stages.group,level,rawSite);
         cameraManager.setCollidables([pg, tg, level?.group, siteGroups.get(id), ...(stages.group ? stages.group.children.filter(o => o.isMesh && o.geometry?.type !== 'PlaneGeometry' && o !== stages.group.children[1]) : [])]);
     });
 }
@@ -1267,9 +1262,9 @@ function onScooped() {
 }
 function deliverLoad(tipOverride) {
     ensureJobs();
-    const r = jm.addLoad(jobCtx());
+    const r = jm.addLoad(jobCtx(), tipOverride);
     if (!r) return false;
-    const tip = (typeof tipOverride === 'number') ? tipOverride : r.tip;
+    const tip = r.tip;
     saveData.coins += tip;
     writeSave();
     safe(() => {
@@ -1356,7 +1351,7 @@ function openShop() {
 safe(() => { if (import.meta.env.DEV && /[?&]rich/.test(location.search)) saveData.coins = Math.max(saveData.coins, 3000); });
 setTimeout(() => safe(() => {
     ensureJobs();
-    if (ui && jm.dailyStatus().canClaim) { ui.setMenuDot(true); ui.toast('Daily bonus ready!', 'success'); }
+    if (ui && jm.dailyStatus().canClaim) { ui.setMenuDot(false); ui.toast('Daily bonus ready!', 'success'); }
 }), 3000);
 
 const clock = new THREE.Clock();

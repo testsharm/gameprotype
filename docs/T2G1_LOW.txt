@@ -1,0 +1,71 @@
+[RAN] L1 graphics low explicitly selected through Settings; not default AUTO performance proof
+[RAN] PASS L1 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +242
+      BONUS +40 INCLUDED
+      
+      
+         RETRY
+         NEXT: CONE SCHOOL
+      
+      
+[RAN] L2 graphics low explicitly selected through Settings; not default AUTO performance proof
+[RAN] PASS L2 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +415
+      BONUS +50 INCLUDED
+      
+      
+         RETRY
+         NEXT: FILL THE POTHOLE
+      
+      
+[RAN] L3 graphics low explicitly selected through Settings; not default AUTO performance proof
+[RAN] PASS L3 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +347
+      COINS EARNED
+      
+      
+         RETRY
+         NEXT: MATERIAL MATCH
+      
+      
+[RAN] L4 graphics low explicitly selected through Settings; not default AUTO performance proof
+[RAN] L4 wrong-truck {"loads":0,"hasDirt":true,"toast":true}
+[RAN] PASS L4 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +406
+      COINS EARNED
+      
+      
+         RETRY
+         NEXT: RUSH HOUR LITE
+      
+      
+[RAN] L5 graphics low explicitly selected through Settings; not default AUTO performance proof
+[RAN] PASS L5 real-input result 
+      
+        
+        JOB COMPLETE
+      
+      +583
+      BONUS +90 INCLUDED
+      
+      
+         RETRY
+         NEXT: DIG THE TRENCH
+      
+      

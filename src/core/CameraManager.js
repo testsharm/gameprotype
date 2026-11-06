@@ -13,7 +13,7 @@ export const CAMERA_LABELS = { chase: 'Chase', orbit: 'Orbit', cab: 'Cab', bucke
 
 // Third-person cameras stay BEHIND the machine (the loader arms are at local +Z).
 // Portrait phones need a longer distance: their horizontal field of view is narrow.
-const CHASE_OFFSET = new THREE.Vector3(0, 4.4, -11);
+const CHASE_OFFSET = new THREE.Vector3(0, 6, -12);
 const BUCKET_FOCUS = new THREE.Vector3(0, 1.1, 2.0);
 const BUCKET_OFFSET = new THREE.Vector3(0, 3.6, -17);
 const ZOOM_MIN = 0.75;
@@ -99,7 +99,7 @@ export class CameraManager {
         const offset = this._offset.copy(CHASE_OFFSET).multiplyScalar(zoom)
             .applyQuaternion(vehicleMesh.quaternion);
         this.camera.position.set(p.x, p.y, p.z).add(offset);
-        this.currentLookAt.set(p.x, p.y + 2, p.z);
+        this.currentLookAt.copy(new THREE.Vector3(0, .8, 4).applyQuaternion(vehicleMesh.quaternion).add(new THREE.Vector3(p.x,p.y,p.z)));
         this.camera.up.set(0, 1, 0);
         this.camera.lookAt(this.currentLookAt);
     }
@@ -222,11 +222,11 @@ export class CameraManager {
         // Portrait / narrow windows get a wider camera distance so the machine
         // and the road ahead stay visible instead of the bucket filling the screen.
         const aspect = Math.max(0.35, this.camera.aspect || 1.7);
-        this._distFactor = Math.min(1.85, Math.max(1, 0.95 / aspect));
+        this._distFactor = Math.min(1.6, Math.max(1, 0.8 / aspect));
         const zoom = this._zoom * this._distFactor;
 
         // A little FOV widening at speed, but never so wide that a phone loses the road.
-        const baseFov = aspect < 0.85 ? 65 : 70;
+        const baseFov = aspect < 0.85 ? 65 : 82;
         const speedRatio = Math.min(Math.abs(currentSpeed || 0) / 40, 1);
         const targetFov = baseFov + speedRatio * 12;
         this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, k(3));
@@ -269,7 +269,7 @@ export class CameraManager {
             offset.copy(CHASE_OFFSET).multiplyScalar(zoom).applyQuaternion(this._yawQuat);
             idealPos.copy(vehiclePos).add(offset);
             this.camera.position.lerp(idealPos, k(6.5));
-            this.currentLookAt.lerp(headPos, k(10));
+            this._focus.set(0,.8,4).applyQuaternion(this._yawQuat).add(vehiclePos);this.currentLookAt.lerp(this._focus,k(10));
             this.camera.up.set(0, 1, 0);
             this.camera.lookAt(this.currentLookAt);
 

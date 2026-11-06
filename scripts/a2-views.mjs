@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+import {serve,newContext,openGame,closeAll,shoot,redErrors} from './browser.mjs';
+const phase=process.env.PHASE||'before',report=[];await serve();try{const c=await newContext({viewport:{width:1280,height:720}}),p=await openGame(c,{query:'?qadebug&unlockall',settle:100});await p.bringToFront();await p.locator('[data-a="play"]').click();const s=await p.evaluate(()=>window.__tfState().site),x=s.pile.x-22,z=s.pile.z;
+const place=async(a,b,yaw=0)=>{await p.evaluate(v=>window.__tfQA.qaPlace(...v),[a,b,yaw]);await p.waitForTimeout(500);};
+async function shot(name,w=1280,h=720){await p.setViewportSize({width:w,height:h});await p.waitForTimeout(250);await shoot(p,`a2-${phase}-${name}.png`);report.push(`[RAN] ${phase} ${name}: QA scene/pose setup; same documented world or objective-relative pose; real renderer.`);}
+await place(x,z,Math.PI/2);await shot('chase');await shot('hud1920',1920,1080);await shot('hud844',844,390);await shot('hud390',390,844);await p.setViewportSize({width:1280,height:720});await p.evaluate(({x,z})=>window.__tfQA.qaInspect([x+9,6,z+10],[x,1.7,z]),{x,z});await shot('11-backhoe-closeup');await p.evaluate(()=>window.__tfQA.qaInspect(null));await place(x,z,Math.PI/2);await shot('world');
+await place(s.pile.x-8,s.pile.z,Math.PI/2);async function hold(k){const b=await p.evaluate(()=>window.__tfObserve().action.last?.holdEnd||0);await p.keyboard.down(k);await p.waitForFunction(b=>{const a=window.__tfObserve().action;return !a.holding&&(a.last?.holdEnd||0)>b;},b,{timeout:10000});await p.keyboard.up(k);await p.waitForTimeout(150);}await hold('f');await place(s.truck.x,s.truck.z-11);await hold('g');await shot('dump');
+await p.evaluate(()=>window.__tfQA.qaLevel(2));await shot('l2');await p.evaluate(()=>window.__tfQA.qaLevel(3));await shot('l3');
+await p.evaluate(()=>window.__tfQA.qaMenu());await p.locator('[data-a="settings"]').click();await shot('settings');await shot('settings-phone',390,844);await p.locator('.tf-x').click();await p.locator('[data-a="garage"]').click();await shot('garage');await shot('garage-desktop',1280,720);
+report.push('[RAN] Browser errors '+JSON.stringify(redErrors(p.__logs)));fs.writeFileSync('docs/A2_'+phase.toUpperCase()+'.txt',report.join('\n'));
+}finally{await closeAll();}

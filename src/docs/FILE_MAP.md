@@ -1,3 +1,11 @@
+# Tier 2 group 1 evidence
+
+[READ] scripts/t2g1-visuals.mjs captures scene setup; scripts/level-walk.mjs now supports QA_QUALITY chosen via real Settings clicks and optional CHECK_WALLET assertion. docs/T2G1_LOW.txt = five results; T2G1_WALLET.txt = actual cone contact/result/wallet equality; T2G1_REPLAY.txt = failed AUTO attempt retained. Group 1 report and all graded captions in docs/T2G1_REPORT.md / SCREENSHOTS.md.
+
+# A2 evidence files
+
+[READ] scripts/a2-views.mjs = matched scene capture; a2-extras.mjs = fresh real driving, touch/settings and filmstrip/contact sheet; a2-phone-layout.mjs = HUD overlap/fade regression. docs/SCREENSHOTS.md leads with A2 pairs; docs/A2_*.txt / .json contain logs. Current branch arena/06e604a9-gameprotype; PR #5 already merged.
+
 # Fix v4 current additions
 
 [READ] src/gameplay/StuntPark.js: independent 200 m Rapier sandbox and deformable terrain.

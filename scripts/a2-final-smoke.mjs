@@ -1,0 +1,2 @@
+// Run with TF_QA_PORT=4173 against the live preview.
+import fs from 'node:fs';import {newContext,openGame,shoot,closeAll,redErrors} from './browser.mjs';const out=[];try{const c=await newContext(),p=await openGame(c,{settle:100});await p.locator('[data-a="play"]').click();await shoot(p,'a2-after-first-frame.png');out.push({test:'live preview normal URL fresh PLAY',play:await p.evaluate(()=>window.__tfState()),errors:redErrors(p.__logs)});}finally{fs.writeFileSync('docs/A2_FINAL_SMOKE.json',JSON.stringify(out,null,2));await closeAll();}

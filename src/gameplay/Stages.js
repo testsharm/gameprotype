@@ -12,12 +12,12 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 // ---------------------------------------------------------------------------
 export const STAGE_TABLE = [
   { id: 1, name: 'First Scoop', verbs: ['SCOOP', 'DUMP'], chapter: 'Rookie Yard',
-    ground: 0x6fa85a, ground2: 0x4f8240, pattern: 'grass', skyline: 'suburb', landmark: 'shed',
+    ground: 0x5fa34a, ground2: 0x4d8f3c, pattern: 'grass', skyline: 'suburb', landmark: 'shed',
     props: 'fence', sky: 0xcfe2f3, fog: 0.0034, sun: 1.00, hemi: 1.00, accent: 0xfbbf24,
     sound: 'birds', yaw: -0.18, soundBed: 'YARD',
     coach: ['Drive to the dirt pile', 'Hold SCOOP for 1.6 seconds', 'Hold DUMP over the blue truck'] },
   { id: 2, name: 'Cone School', verbs: ['DRIVE', 'PARK'], chapter: 'Rookie Yard',
-    ground: 0x2d5a8c, ground2: 0x21436b, pattern: 'lanes', skyline: 'grandstand', landmark: 'scoreboard',
+    ground: 0x3a3f47, ground2: 0x343941, pattern: 'lanes', skyline: 'grandstand', landmark: 'scoreboard',
     props: 'cones', sky: 0xd8e7f5, fog: 0.0030, sun: 1.05, hemi: 1.00, accent: 0xff6a1a,
     sound: 'traffic', yaw: 0.12, soundBed: 'COURSE',
     coach: ['Six gates make an S', 'Keep the bucket low', 'Stop inside PARK for one second'] },
@@ -25,7 +25,7 @@ export const STAGE_TABLE = [
     ground: 0x5b6068, ground2: 0x3f444b, pattern: 'cracks', skyline: 'roadworks', landmark: 'roadroller',
     props: 'barriers', sky: 0xcfe2f3, fog: 0.0036, sun: 1.00, hemi: 1.00, accent: 0xfbbf24,
     sound: 'traffic', yaw: 0.35, soundBed: 'ROAD',
-    coach: ['Three holes need one load each', 'Watch the crossing traffic', 'Fill the amber hole, then the next'] },
+    coach: ['Fill three potholes', 'Watch the crossing traffic', 'Fill the amber hole, then the next'] },
   { id: 4, name: 'Material Match', verbs: ['SCOOP', 'DUMP'], chapter: 'Rookie Yard',
     ground: 0xb7a084, ground2: 0x857c6b, pattern: 'concrete', skyline: 'industrial', landmark: 'weighbridge',
     props: 'trees', sky: 0xd8e7f5, fog: 0.0042, sun: 1.05, hemi: 1.00, accent: 0x34d399,
@@ -124,7 +124,7 @@ function groundTexture(s) {
   } else if (s.pattern === 'lanes') {
     g.fillStyle = 'rgba(255,255,255,.7)';
     for (let x = 16; x < 256; x += 64) for (let y = 0; y < 256; y += 48) g.fillRect(x, y, 5, 26);
-    g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 3;
+    g.strokeStyle = '#e8bd35'; g.lineWidth = 3;
     for (let x = 0; x <= 256; x += 64) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 256); g.stroke(); }
   } else if (s.pattern === 'water') {
     g.strokeStyle = 'rgba(220,245,255,.35)'; g.lineWidth = 3;
@@ -147,6 +147,7 @@ function groundTexture(s) {
     for (let i = 0; i < 60; i++) { g.globalAlpha = .12; g.fillRect(R() * 256, R() * 256, 14 + R() * 30, 8 + R() * 18); }
     g.globalAlpha = 1;
   }
+  if(s.pattern==='grass'){g.globalAlpha=.12;g.fillStyle='#254d25';for(let y=0;y<256;y+=64)g.fillRect(0,y,256,32);g.globalAlpha=1;}
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -228,6 +229,23 @@ export class StageManager {
     for (const o of this._owned) { try { o.dispose && o.dispose(); } catch (e) {} }
     this._owned.length = 0;
   }
+  cutRepairHoles(goals) {
+    if (this.current !== 3 || !this.group) return;
+    const ground = this.group.getObjectByName('stage-ground');
+    if (!ground) return;
+    this.group.updateWorldMatrix(true, true);
+    const shape = new THREE.Shape();
+    shape.moveTo(-260,-260); shape.lineTo(260,-260);
+    shape.lineTo(260,260); shape.lineTo(-260,260); shape.closePath();
+    for (const goal of goals.filter(g => g.kind === 'fill')) {
+      const p = ground.worldToLocal(new THREE.Vector3(goal.x,.1,goal.z));
+      const hole = new THREE.Path(); hole.absarc(p.x,p.y,4.3,0,Math.PI*2,true);
+      shape.holes.push(hole);
+    }
+    const geometry = this._own(new THREE.ShapeGeometry(shape,48));
+    ground.geometry = geometry;
+  }
+
   leave() { this.dispose(); this._showCity(); this.current = null; }
 
   enter(id, center) {
@@ -251,6 +269,7 @@ export class StageManager {
     const ground = new THREE.Mesh(this._own(groundGeo),
       this._own(new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 1,
         polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })));
+    ground.name='stage-ground';
     ground.rotation.x = -Math.PI / 2; ground.position.y = id===9 ? -0.7 : 0.10;
     g.add(ground);
     if(id===14){ground.material.map=null;ground.material.color.setHex(0x4c6252);ground.position.y=-.2;}
@@ -258,12 +277,12 @@ export class StageManager {
       // Large coherent surfaces, not a road texture tiled over an entire world.
       if(id===2||id===3||id===5)ground.material.map=null;
       if(id===2)ground.material.color.setHex(0x456443);
-      if(id===3)ground.material.color.setHex(0x6b7858);
+      if(id===3){ground.material.color.setHex(0x6b7858);ground.material.polygonOffset=false;}
       if(id===5)ground.material.color.setHex(0x26333f);
       const slab=(w,d,color,x,z)=>{const m=this._mesh(new THREE.PlaneGeometry(w,d),this._mat(color,{polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3}),x,.12,z);m.rotation.x=-Math.PI/2;return m;};
       if(id===1){slab(72,48,0x8d7453,0,0);for(let z=-36;z<=36;z+=12){this._mesh(new THREE.BoxGeometry(.5,2,.5),this._mat(0xc4a272),-50,1,z);}}
       if(id===2){slab(138,44,0x283746,12,0);slab(135,.35,0xe8edf2,12,-21);slab(135,.35,0xe8edf2,12,21);for(let x=-48;x<80;x+=12)slab(4,.35,0xe8edf2,x,0);}
-      if(id===3){slab(26,160,0x414b58,8,0);for(let z=-75;z<80;z+=12)slab(.35,5,0xf6df91,8,z);slab(.35,158,0xf4f4f2,-4,0);slab(.35,158,0xf4f4f2,20,0);}
+      // L3's road is aligned to its actual goals by LevelEngine, not a fixed offset.
       if(id===4){slab(90,70,0x857d67,0,0);for(const z of [-30,30])this._mesh(new THREE.BoxGeometry(65,2,.5),this._mat(0x475569),8,1,z);}
       if(id===5){slab(110,70,0x384454,0,0);for(let z=-23;z<24;z+=9.5)slab(48,.35,0xfbbf24,25,z);for(let i=0;i<3;i++)this._mesh(new THREE.BoxGeometry(8,4,5),this._mat([0x9c6045,0x385a80,0x566b48][i]),52,2,-24+i*12);}
     }
@@ -311,7 +330,8 @@ export class StageManager {
       roadworks: [0x6b7076, 0x545b62, 0x848b91, 0x43494f]
     }[s.skyline] || [0x556272, 0x6b7b8c, 0x3f4c5c, 0x8492a2];
     const geo = this._own(new THREE.BoxGeometry(1, 1, 1));
-    const mat = this._own(new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 }));
+    const canvas=document.createElement('canvas');canvas.width=128;canvas.height=256;const ctx=canvas.getContext('2d');ctx.fillStyle='#dce5ef';ctx.fillRect(0,0,128,256);for(let y=10;y<248;y+=22)for(let x=9;x<120;x+=23){ctx.fillStyle=((x*7+y*11)%9)<3?'#f3d797':'#415872';ctx.fillRect(x,y,12,13);}const windows=this._own(new THREE.CanvasTexture(canvas));windows.colorSpace=THREE.SRGBColorSpace;windows.anisotropy=4;
+    const mat = this._own(new THREE.MeshStandardMaterial({map:windows,roughness:.85,metalness:0}));
     const im = new THREE.InstancedMesh(geo, mat, n);
     const dummy = new THREE.Object3D();
     let seed = s.id * 104729;
@@ -327,7 +347,8 @@ export class StageManager {
       dummy.rotation.y = a;
       dummy.updateMatrix();
       im.setMatrixAt(i, dummy.matrix);
-      im.setColorAt(i, new THREE.Color(palette[i % palette.length]));
+      this._mesh(new THREE.BoxGeometry(w*.28,2.4,d*.28),this._mat(0x718096),Math.cos(a)*r,h+1.2,Math.sin(a)*r);
+      im.setColorAt(i, new THREE.Color([0x8a97a8,0x6f7f94,0xb7c2cf][i%3]));
     }
     im.instanceMatrix.needsUpdate = true;
     if (im.instanceColor) im.instanceColor.needsUpdate = true;
@@ -353,15 +374,7 @@ export class StageManager {
         put(new THREE.BoxGeometry(4, 5, 0.3), dark, X, 2.5, Z + 6.1);
         break;
       case 'scoreboard':
-        put(new THREE.BoxGeometry(2, 13, 26), dark, X, 12, Z);
-        put(new THREE.BoxGeometry(0.3, 9, 23), amber, X-1.2, 12, Z);
-        put(new THREE.BoxGeometry(1.4, 10, 1.4), steel, X, 5, Z-10);
-        put(new THREE.BoxGeometry(1.4, 10, 1.4), steel, X, 5, Z+10);
-        { const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');
-          ctx.fillStyle='#182638';ctx.fillRect(0,0,512,256);ctx.fillStyle='#fbbf24';ctx.textAlign='center';ctx.font='bold 52px sans-serif';ctx.fillText('CONE SCHOOL',256,90);ctx.fillStyle='#ffffff';ctx.font='bold 40px sans-serif';ctx.fillText('6 GATES + PARK',256,168);
-          const t=this._own(new THREE.CanvasTexture(c));t.colorSpace=THREE.SRGBColorSpace;
-          const m=this._mesh(new THREE.PlaneGeometry(23,9),this._own(new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide})),X-1.4,12,Z);m.rotation.y=-Math.PI/2;
-        }
+        // The readable 2.5 x 1.2 m stage sign replaces the giant orange billboard.
         break;
       case 'roadroller':
         put(new THREE.BoxGeometry(16, 6, 8), amber, X, 4, Z);

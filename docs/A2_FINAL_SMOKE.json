@@ -1,0 +1,38 @@
+[
+  {
+    "test": "live preview normal URL fresh PLAY",
+    "play": {
+      "gameState": "playing",
+      "uiPaused": false,
+      "modalOpen": false,
+      "job": 1,
+      "timerRunning": true,
+      "camera": "chase",
+      "zoom": 1,
+      "startPose": {
+        "x": 1078,
+        "y": 1.2,
+        "z": 1800,
+        "yaw": 1.5707963267948966,
+        "cam": 12,
+        "quat": {
+          "x": 0,
+          "y": 0.7071067811865475,
+          "z": 0,
+          "w": 0.7071067811865476
+        }
+      },
+      "site": {
+        "pile": {
+          "x": 1100,
+          "z": 1800
+        },
+        "truck": {
+          "x": 1118,
+          "z": 1809
+        }
+      }
+    },
+    "errors": []
+  }
+]

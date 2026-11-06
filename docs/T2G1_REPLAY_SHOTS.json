@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "phase": "start",
+    "name": "desktop",
+    "file": "t2g1-replay-l1-start-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 1,
+    "phase": "start",
+    "name": "phone",
+    "file": "t2g1-replay-l1-start-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 1,
+    "phase": "mid",
+    "name": "desktop",
+    "file": "t2g1-replay-l1-mid-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 1,
+    "phase": "mid",
+    "name": "phone",
+    "file": "t2g1-replay-l1-mid-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 1,
+    "phase": "failed",
+    "name": "desktop",
+    "file": "t2g1-replay-l1-failed-desktop.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  },
+  {
+    "id": 1,
+    "phase": "failed",
+    "name": "phone",
+    "file": "t2g1-replay-l1-failed-phone.png",
+    "shortcut": "unlockall only for initial level selection; real driving and holds, viewport changed for phone"
+  }
+]

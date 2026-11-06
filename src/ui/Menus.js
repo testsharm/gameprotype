@@ -199,7 +199,7 @@ const CSS = `
 .tf-up-card button.cant{background:#3a4c68;color:var(--ink)}
 .tf-up-card button:disabled{opacity:.5;cursor:default}
 .tf-max{font-size:14px;font-weight:900;color:var(--success)}
-.tf-sw{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.tf-unaffordable{color:#ff7272!important;background:#48515e!important}.tf-tog{width:100px!important;gap:10px!important}.tf-tog span{font-size:14px;position:absolute;left:12px;top:10px}.tf-tog i,.tf-tog.on i{left:60px!important}.tf-unaffordable:disabled{opacity:1}.tf-sw{padding:8px 8px 20px;display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;align-items:center}
 .tf-sw i{width:34px;height:34px;border-radius:50%;border:3px solid var(--border);cursor:pointer}
 .tf-sw i.on{outline:3px solid var(--goal)}
 
@@ -456,7 +456,7 @@ export default class Menus {
       `<button class="tf-sec ${x.v === cur ? 'on' : ''}" data-a="setting" data-set="${name}" data-v="${x.v}">${x.t}</button>`).join('')}</div>`;
   }
   _tog(name, on) {
-    return `<button class="tf-tog tf-sec ${on ? 'on' : ''}" data-a="setting" data-set="${name}" data-v="${on ? 0 : 1}" aria-label="Toggle"><i></i></button>`;
+    return `<button class="tf-tog tf-sec ${on ? 'on' : ''}" data-a="setting" data-set="${name}" data-v="${on ? 0 : 1}" aria-label="${name} ${on?'ON':'OFF'}"><span>${on?'ON':'OFF'}</span><i></i></button>`;
   }
   _settings(d, s) {
     const v = d.volumes || { master: 1, music: 1, effects: 1 };
@@ -467,9 +467,9 @@ export default class Menus {
     return `<h2 class="tf-h2 tf-title">SETTINGS</h2>
       ${row('master', 'MASTER')}${row('music', 'MUSIC')}${row('effects', 'EFFECTS')}
       <div class="tf-row"><label>TAP TO ACT</label>${this._tog('tapAct', !!d.tapAct)}</div>
-      <div class="tf-row"><label>SOUND</label>${this._tog('mute', !!d.muted)}</div>
+      <div class="tf-row"><label>SOUND</label>${this._tog('sound', !d.muted)}</div>
       <div class="tf-row"><label>GRAPHICS</label>${this._seg('quality', [
-        { v: 'low', t: 'LOW' }, { v: 'medium', t: 'MED' }, { v: 'high', t: 'HIGH' }], q)}</div>
+        { v: 'auto', t: 'AUTO' }, { v: 'low', t: 'LOW' }, { v: 'medium', t: 'MED' }, { v: 'high', t: 'HIGH' }], q)}</div>
       <div class="tf-row"><label>BIG BUTTONS</label>${this._tog('big', !!d.big)}</div>
       <div class="tf-row"><label>LEFT-HANDED</label>${this._tog('lefty', !!d.lefty)}</div>
       <div class="tf-row"><label>GUIDE ARROWS</label>${this._tog('guide', d.guide !== false)}</div>`;
@@ -520,7 +520,7 @@ export default class Menus {
           <div class="tf-pips">${pips}</div>
           <div class="ln">${u.line}</div>
           ${max ? '<div class="tf-max">MAX</div>'
-            : `<button class="${can ? 'tf-green' : 'tf-sec'}" data-a="buy" data-k="${u.key}" ${can ? '' : 'disabled'}>${svg('coin')} ${u.price}</button>`}
+            : `<button class="${can ? 'tf-green' : 'tf-sec tf-unaffordable'}" data-a="buy" data-k="${u.key}" ${can ? '' : 'disabled'}>${svg('coin')} ${u.price}</button>`}
         </div>`;
       }).join('')}</div>
       <div class="tf-sw"><span class="tf-mut">PAINT</span>${paints.map((c, i) =>

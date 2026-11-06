@@ -272,6 +272,20 @@ body.tf-menu #tf-hud{display:none !important}
   .tf-dump{right:calc(110px + ${SAFE_R});width:${U('68px')};height:${U('68px')}}
 }
 
+
+/* A2: one source of information, input-aware controls, compact instruments. */
+#tf-hud .tf-hint{display:none!important}
+#tf-hud .tf-mini{width:110px;height:110px;left:12px;right:auto;top:132px}
+#tf-hud .tf-speed{width:84px;height:84px;bottom:12px}
+#tf-hud .tf-speed .v{font-size:30px}
+#tf-hud .tf-pad{top:auto;bottom:14px;left:12px;transform:scale(.6);transform-origin:bottom left;opacity:.7}
+#tf-hud:not(.tf-touch-on) .tf-drive,#tf-hud:not(.tf-touch-on) .tf-action,#tf-hud:not(.tf-touch-on) .tf-dump,#tf-hud:not(.tf-touch-on) .tf-brake{display:none!important}
+#tf-hud.tf-touch-on .tf-pad{display:none!important}
+#tf-hud .tf-dot{display:none!important}
+#tf-hud .tf-toasts{bottom:148px}
+#tf-hud .tf-level-pill{bottom:112px}
+@media(max-width:600px) and (min-height:501px){#tf-hud.tf-touch-on .tf-speed{bottom:152px}#tf-hud .tf-toasts{bottom:248px}#tf-hud .tf-tools{top:132px;left:134px;right:12px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px}#tf-hud .tf-tools .tf-b{width:100%;min-width:0;height:52px}}
+@media(max-height:500px){#tf-hud .tf-mini{top:100px;width:90px;height:90px}#tf-hud .tf-speed{bottom:8px}#tf-hud .tf-mission{max-width:260px}}
 `;
 
 const HOLD_CODES = { KeyW: 1, KeyA: 1, KeyS: 1, KeyD: 1, Space: 1, KeyF: 1, KeyG: 1 };
@@ -605,7 +619,7 @@ export default class GameUI {
   setJob(title, objective, stepText) {
     this.el.job.textContent = String(title || '').toUpperCase();
     // TIER 5: name + ONE short goal line + three step dots. No paragraphs.
-    this.el.step.textContent = String(objective || stepText || '').slice(0, 48);
+    this.el.step.textContent = String(this.el.hint.textContent || objective || stepText || '');
     const n = Math.max(0, Math.min(3, parseInt(String(stepText || '').match(/(\d+)\s*\/\s*(\d+)/)?.[1] || '0', 10)));
     Array.from(this.el.pips.children).forEach((p, i) => p.classList.toggle('on', i < n));
   }
@@ -621,16 +635,17 @@ export default class GameUI {
   setHint(text) {
     const t = String(text || '').slice(0, 90);
     this.el.hint.textContent = t;
+    if(t) this.el.step.textContent=t;
     this.el.hint.classList.toggle('on', !!t);
   }
-  setMenuDot(on) { this.el.mdot.classList.toggle('on', !!on); this.el.cdot.classList.toggle('on', !!on); }
+  setMenuDot(on) { this.el.mdot.classList.remove('on'); this.el.cdot.classList.remove('on'); }
   toast(msg, type) {
     const d = document.createElement('div');
     d.className = 'tf-toast tf-p ' + (type || 'info');
     d.textContent = String(msg).slice(0, 80);
     this.el.toasts.appendChild(d);
     while (this.el.toasts.children.length > 2) this.el.toasts.removeChild(this.el.toasts.firstChild);
-    setTimeout(() => { if (d.isConnected) d.remove(); }, 2600);
+    setTimeout(() => { if (d.isConnected) d.remove(); }, /^LEVEL /.test(d.textContent) ? 3000 : 2600);
   }
   announce(job) {
     // Small toast, NOT a giant story card. The mission card stays 52 px tall.
