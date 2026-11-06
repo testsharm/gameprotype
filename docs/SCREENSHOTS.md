@@ -1,6 +1,168 @@
-# Real game screenshots — Fix v4
+# A2 visual refresh — matched BEFORE / AFTER
 
-[SEEN] Latest phone proof: fresh-player truck tipping below. Full gallery retains earlier failures and discloses all setup shortcuts.
+[RAN] Current branch: `arena/06e604a9-gameprotype`. Baseline is merged v4 (`5ac28a7`). PR #5 is already merged; this refresh is a new checkpoint on the active branch, not a reopened PR. Historical v4 scores below are NOT A2 acceptance scores.
+
+[READ] Matching method: same viewport and vehicle world pose for L1 chase/world/closeup; closeup eye = vehicle + (9,6,10), target = vehicle + (0,1.7,0). Camera settings intentionally change in chase. Dump uses the same truck-relative pose (11 m behind it); truck position intentionally changes. L2/L3 use each level's unchanged starting pose. Menus use the same panel and viewport, with a blurred background that is not frame-synchronized.
+
+[READ] Shortcut disclosure for ALL paired scene images: `?qadebug&unlockall` plus QA level/position/inspection-camera setup; real renderer and real F/G holds for dump. These are visual comparisons, NOT proof of driving or level completion. Phone BEFORE images resize a desktop context; phone AFTER HUDs additionally use Chromium touch emulation at the same stationary pose. No physical-phone claim. Fresh normal-URL driving evidence is separately identified below. Filmstrip is a caption-only re-layout of the SAME historical frames, not a new playthrough.
+
+## A2.1 — Backhoe silhouette
+
+[SEEN] BEFORE — BAD: front loader only, undersized wheels and dark cab. Setup: the paired-scene method disclosed above.
+
+![A2.1 before](screenshots/a2-before-11-backhoe-closeup.png)
+
+[SEEN] AFTER — GOOD: folded rear boom/dipper/small bucket, outriggers, larger treaded yellow-hub wheels, blue glazing, mirrors, exhaust and paired front arms. Rear assembly is a fixed folded model, not an animated digging tool. Setup: the paired-scene method disclosed above.
+
+![A2.1 after](screenshots/a2-after-11-backhoe-closeup.png)
+
+## A2.2 — Chase and dump clearance
+
+[SEEN] BEFORE — BAD: oversized machine, duplicate labels and coarse soil. Setup: the paired-scene method disclosed above.
+
+![A2.2 before](screenshots/a2-before-dump.png)
+
+[SEEN] AFTER — OK: clearer raised truck bed, compact machine and small soil pieces; no brown screen in this matched dump. This is one pose, not an exhaustive obstruction sweep. Setup: the paired-scene method disclosed above.
+
+![A2.2 after](screenshots/a2-after-dump.png)
+
+## A2.3 — Pile and blue truck visible together
+
+[SEEN] BEFORE — BAD: pile blocks the truck and vehicle dominates the view. Setup: the paired-scene method disclosed above.
+
+![A2.3 before](screenshots/a2-before-chase.png)
+
+[SEEN] AFTER — GOOD: pile and offset blue truck are both visible, with one load counter and a true drive-to-pile hint. Normal-play distances and driving are below; this pair itself uses QA placement. Setup: the paired-scene method disclosed above.
+
+![A2.3 after](screenshots/a2-after-chase.png)
+
+### A2.3 — separate fresh-player input proof
+
+[SEEN] GOOD — normal URL, fresh localStorage, real PLAY click, no QA/unlock/save/teleport shortcuts. Initial measured distances: about 22 m to pile and 41 m to truck. The second image follows a real W hold and Space brake; both targets remain visible. No level-completion claim.
+
+![Fresh normal URL first playing view](screenshots/a2-after-first-frame.png)
+![Real forward driving](screenshots/a2-after-driving.png)
+
+## A2.4 — Compact desktop HUD, 1920×1080
+
+[SEEN] BEFORE — BAD: large left key panel, duplicate hint/load labels, fake notification dots and touch actions on desktop. Setup: the paired-scene method disclosed above.
+
+![A2.4 before](screenshots/a2-before-hud1920.png)
+
+[SEEN] AFTER — OK: small translucent bottom-left keycaps, 84 px speed dial, 110 px minimap, one hint in mission card, one load label, no fake dots or desktop touch actions. The 1280×720 pair is A2.3 above. Setup: the paired-scene method disclosed above.
+
+![A2.4 after](screenshots/a2-after-hud1920.png)
+
+### A2.4 — 844×390
+
+[SEEN] BEFORE — BAD: duplicate instructions/counts and oversized instruments. Shortcut: QA pose, desktop context resized to 844×390; not real touch.
+
+![HUD 844×390 before](screenshots/a2-before-hud844.png)
+
+[SEEN] AFTER — OK: compact instruments and touch-only joystick/action buttons, with desktop keycaps hidden. Shortcut: same QA pose and Chromium touch emulation; not a physical handset. Tight landscape layout still merits device testing. Portrait speed was lifted above the touch actions and its tools moved into a row to reveal the truck.
+
+![HUD 844×390 after](screenshots/a2-after-hud844.png)
+
+### A2.4 — 390×844
+
+[SEEN] BEFORE — BAD: duplicate instructions/counts and oversized instruments. Shortcut: QA pose, desktop context resized to 390×844; not real touch.
+
+![HUD 390×844 before](screenshots/a2-before-hud390.png)
+
+[SEEN] AFTER — OK: compact instruments and touch-only joystick/action buttons, with desktop keycaps hidden. Shortcut: same QA pose and Chromium touch emulation; not a physical handset. Tight landscape layout still merits device testing. Portrait speed was lifted above the touch actions and its tools moved into a row to reveal the truck.
+
+![HUD 390×844 after](screenshots/a2-after-hud390.png)
+
+## A2.5 — World materials and smooth soil
+
+[SEEN] BEFORE — BAD: blank skyline boxes, dark voxel-like dirt. Setup: the paired-scene method disclosed above.
+
+![A2.5 before](screenshots/a2-before-world.png)
+
+[SEEN] AFTER — OK: varied windowed buildings/roof boxes, textured green stripes, smooth soil mound and small clods. L2 road is asphalt rather than blue, and giant orange scoreboard is removed. Exact sign readability from every route and every night lamp are NOT VERIFIED by this view. Setup: the paired-scene method disclosed above.
+
+![A2.5 after](screenshots/a2-after-world.png)
+
+## A2.6 — Explicit L1 / L2 / L3 sameness check
+
+[SEEN] BEFORE — BAD: L3 shares the yard framing and huge pile; potholes read mostly as rings. Setup: the paired-scene method disclosed above.
+
+![A2.6 before](screenshots/a2-before-l3.png)
+
+[SEEN] AFTER — BAD for the complete criterion: road repair is distinguishable from L1 and L2, but the distant potholes still read as rings rather than unmistakable depressions. Fix and recapture in Tier 2 group 1; do NOT mark this accepted. Setup: the paired-scene method disclosed above.
+
+![A2.6 after](screenshots/a2-after-l3.png)
+
+[SEEN] OK — L2 has an asphalt cone course and no pile/truck in its first view. Shortcut: QA level selection, same starting pose; camera and art intentionally revised.
+
+![L2 before](screenshots/a2-before-l2.png)
+![L2 after](screenshots/a2-after-l2.png)
+
+[SEEN] OK — contact sheet explicitly compares L1, L2 and L3, top BEFORE / bottom AFTER. Same source images and shortcuts as the individual pairs; no new gameplay evidence. The shared skyline remains repetitive; L3 depressions remain BAD.
+
+![L1 L2 L3 comparison](screenshots/a2-level-contact.png)
+
+## A2.7 — Settings with explicit state
+
+[SEEN] BEFORE — BAD: no ON/OFF text, sound looks off despite being enabled, LOW selected by automatic detection. Setup: the paired-scene method disclosed above.
+
+![A2.7 before](screenshots/a2-before-settings.png)
+
+[SEEN] AFTER — OK: visible ON/OFF labels, SOUND ON by default and AUTO selected. Real sound taps tested ON/OFF/ON. AUTO policy is desktop HIGH / coarse-pointer MEDIUM; code permits HIGH to MEDIUM after sustained slow frames, never auto LOW. Exact five-second timing under controlled throttling is NOT VERIFIED. Setup: the paired-scene method disclosed above.
+
+![A2.7 after](screenshots/a2-after-settings.png)
+
+### A2.7 — Garage and phone menus
+
+[SEEN] BEFORE — BAD: no next-stat comparison and unaffordable buttons appear green. Shortcut: QA navigation; 1280×720 panel.
+
+![Garage before](screenshots/a2-before-garage-desktop.png)
+
+[SEEN] AFTER — OK: NOW / NEXT values with units, red unaffordable prices on grey buttons, ten paints with wrap/ring padding. Shortcut: QA navigation, same 1280×720 panel. Values are not a purchase-effect test.
+
+![Garage after](screenshots/a2-after-garage-desktop.png)
+
+[SEEN] BEFORE — BAD: ambiguous phone sound state and no AUTO. Shortcut: desktop context resized to 390×844.
+
+![Phone settings before](screenshots/a2-before-settings-phone.png)
+
+[SEEN] AFTER — OK: phone ON/OFF states and AUTO. Shortcut: QA menu navigation in a fresh touch-emulated context; sound toggled through real taps and restored ON.
+
+![Phone settings after](screenshots/a2-after-settings-phone.png)
+
+[SEEN] OK — additional phone Garage proof, no matched phone BEFORE available. Shortcut: QA menu navigation in the same fresh touch context; no rich/save staging. Ten paint options are available; actual phone hardware is NOT VERIFIED.
+
+![Phone garage after](screenshots/a2-after-garage-phone.png)
+
+## A2.8 — Readable two-line filmstrip captions
+
+[SEEN] BEFORE — BAD: single-line captions truncated. Setup: the paired-scene method disclosed above.
+
+![A2.8 before](screenshots/a2-before-filmstrip.png)
+
+[SEEN] AFTER — GOOD: time and compact complete action caption on separate lines, 18 px. SAME eight historical frames reused solely to compare caption layout; no new gameplay, no new timing claims. Original frames used normal URL, real inputs, no gameplay shortcuts. Setup: the paired-scene method disclosed above.
+
+![A2.8 after](screenshots/a2-after-filmstrip.png)
+
+### Additional diagnostic evidence
+
+[SEEN] BAD — intermediate Garage capture retained: the arrow glyph did not render, so it was replaced with explicit NOW / NEXT text in the final Garage images above. Shortcut: QA navigation, desktop context. This intermediate image is NOT the final UI.
+
+![Intermediate missing-arrow diagnostic](screenshots/a2-after-garage.png)
+
+[RAN] `A2_PHONE_LAYOUT.json` checks measured speed/action/joystick and map/tool separation plus eventual toast disappearance at both phone sizes. The toast WRAPPER reported zero height when sampled, so this is not a measured active-toast overlap test. Final phone screenshots were opened and visually checked. A final 12 px desktop-toast clearance adjustment is checked separately; the earlier L3 BAD comparison predates it.
+
+### Remaining limits / next order
+
+[UNKNOWN] A2 is not unconditional acceptance: L3 clear depressions remain BAD; controlled auto-quality timing, exhaustive camera/pile intersections, physical iPhone behavior and every world sign/lamp remain unverified. Existing bucket/prop penetration, rewarded flows and cleanup failures are not fixed by this art pass.
+
+[READ] Next: Tier 2 group 1 (including L3 holes), then groups 2 / 3, D, E and optional F. Historical v4 completions below are not a replay of the changed A2 build.
+
+---
+
+# Historical real game screenshots — Fix v4
+
+[SEEN] Historical phone proof: fresh-player truck tipping below. Full gallery retains earlier failures and discloses all setup shortcuts.
 
 ![Latest normal-play phone truck tipping](screenshots/e-smoke-l1-mid-phone.png)
 

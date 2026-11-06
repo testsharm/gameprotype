@@ -54,12 +54,12 @@ const S = (bearing, dist, spread, gap) => ({ bearing, dist, spread, gap });
 // actual free site found by JobSystem, so no machine can spawn inside a prop.
 // 'face' points the machine at its first task; 'cam' is the chase distance.
 export function levelStartPose(job, site, firstGoal) {
-  const s = job && job.start ? job.start : { back: 20, side: 8, face: 'pile', cam: 12 };
+  const s = job?.id===1?{back:22,side:0,face:'pile',cam:12}:job && job.start ? job.start : { back: 20, side: 8, face: 'pile', cam: 12 };
   const dx = site.truck.x - site.pile.x, dz = site.truck.z - site.pile.z;
   const L = Math.hypot(dx, dz) || 1;
   const ux = dx / L, uz = dz / L, vx = -uz, vz = ux;
-  const x = site.pile.x - ux * s.back + vx * s.side;
-  const z = site.pile.z - uz * s.back + vz * s.side;
+  const x = job?.id===1 ? site.pile.x-22 : site.pile.x - ux * s.back + vx * s.side;
+  const z = job?.id===1 ? site.pile.z : site.pile.z - uz * s.back + vz * s.side;
   let tx = firstGoal?.scoop?.x ?? site.pile.x, tz = firstGoal?.scoop?.z ?? site.pile.z;
   if (s.face === 'truck') { tx = site.truck.x; tz = site.truck.z; }
   else if (s.face === 'first' && firstGoal) { tx = firstGoal.x; tz = firstGoal.z; }
@@ -350,6 +350,8 @@ export class LevelEngine {
     this.crossCar = null;this.roadCars=null;this.parkHold=0;this.resets=0;this.drops=0;this.forklifts=null;this.bins=[];this.depth=0;this.foundation=null;this.hookRig=null;this.hookPhase=0;this.ghost=null;this.ghostProgress=0;
     this.materialHeaps={};
     this._buildGoals();
+    if(job.id===1){for(let i=9;i<=19;i+=5){const c=document.createElement('canvas');c.width=128;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle='#f4c845';ctx.beginPath();ctx.moveTo(110,64);ctx.lineTo(68,20);ctx.lineTo(68,45);ctx.lineTo(15,45);ctx.lineTo(15,83);ctx.lineTo(68,83);ctx.lineTo(68,108);ctx.closePath();ctx.fill();const tex=new THREE.CanvasTexture(c);const arrow=new THREE.Mesh(new THREE.PlaneGeometry(2.4,2.4),new THREE.MeshBasicMaterial({map:tex,transparent:true,polygonOffset:true,polygonOffsetFactor:-1,depthWrite:false}));arrow.rotation.x=-Math.PI/2;arrow.position.set(site.pile.x-i,.14,site.pile.z);this.group.add(arrow);}}
+
     if(job.id===3) this._buildRoadTraffic();
     if(job.id>=6&&job.id<=10)this._contractorSite();
     if(job.id>=11)this._bossSite();

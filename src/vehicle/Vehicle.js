@@ -5,7 +5,7 @@ export class Vehicle {
     constructor(scene, world, RAPIER) {
         this.scene = scene; this.world = world; this.RAPIER = RAPIER;
         this.mode = 'backhoe'; this.hasDirt = false;
-        
+
         this.armIsDown = false; this.bucketIsCurled = false;
         this.targetBoomAngle = -0.2; this.targetBucketAngle = 0.2;
         this.engineMultiplier = 1.0; this.hydraulicMultiplier = 1.0;
@@ -14,14 +14,14 @@ export class Vehicle {
         this.particles = []; this.particlePool = []; this.particleGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
         // soft round smoke / dust puffs (sprites with a painted radial gradient)
         this.puffTex = this._makePuffTexture(); this.puffPool = []; this.puffs = []; this._smokeAcc = 0; this._dustAcc = 0;
-        
+
         this.chassisBody = this.createChassis();
         this.vehicleController = this.createVehicleController();
         this.mesh = this.createMesh(); this.scene.add(this.mesh);
-        
+
         // Combined steering + spin requires intrinsic Y-X order on the wheel groups
         for (const w of this.wheelMeshes) { w.group.rotation.order = 'YXZ'; }
-        
+
         // Physics state
         this.throttleState = 0;
         this.currentSteerAngle = 0;
@@ -31,13 +31,13 @@ export class Vehicle {
         this.tipTimer = 0;
         this.lastSafePosition = { x: 0, y: 1.2, z: 0 };
         this.lastSafeQuaternion = { x: 0, y: 0, z: 0, w: 1 };
-        
+
         // Scratch vectors (avoid per-frame allocations)
         this._tempVel = new THREE.Vector3();
         this._tempForward = new THREE.Vector3();
         this._tempQuat = new THREE.Quaternion();
         this._tempUp = new THREE.Vector3();
-        
+
         // Spawn inside the new central garage hub
         this.chassisBody.setTranslation({ x: 0, y: 1.2, z: 0 }, true);
         this.chassisBody.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
@@ -68,9 +68,9 @@ export class Vehicle {
             .setLinearDamping(0.15)
             .setAngularDamping(2.5)
             .setCcdEnabled(true);
-        
+
         const chassisBody = this.world.createRigidBody(chassisDesc);
-        
+
         // Light collider shell; the bulk of the mass is added below at a low offset.
         const colliderDesc = R.ColliderDesc.cuboid(0.9, 0.3, 1.5)
             .setMass(500)
@@ -78,7 +78,7 @@ export class Vehicle {
             .setRestitution(0.0)
             .setTranslation(0, -0.3, 0);
         this.world.createCollider(colliderDesc, chassisBody);
-        
+
         // Additional 6500kg at y=-0.5 => total 7000kg, COM ~ -0.48 from body origin.
         // Higher principal inertia on X/Y resists tipping and spinout.
         chassisBody.setAdditionalMassProperties(
@@ -87,20 +87,20 @@ export class Vehicle {
             { x: 5000, y: 6600, z: 2000 },
             { x: 0, y: 0, z: 0, w: 1 }
         );
-        
+
         return chassisBody;
     }
 
     createVehicleController() {
         const R = this.RAPIER; const controller = this.world.createVehicleController(this.chassisBody);
         const wheelPositions = [
-            { x: -0.9, y: -0.2, z: 1.2, r: 0.35 }, { x: 0.9, y: -0.2, z: 1.2, r: 0.35 }, 
-            { x: -1.0, y: -0.1, z: -1.1, r: 0.55 }, { x: 1.0, y: -0.1, z: -1.1, r: 0.55 }  
+            { x: -0.9, y: -0.2, z: 1.2, r: 0.6 }, { x: 0.9, y: -0.2, z: 1.2, r: 0.6 },
+            { x: -1.0, y: -0.1, z: -1.1, r: 0.88 }, { x: 1.0, y: -0.1, z: -1.1, r: 0.88 }
         ];
         const direction = { x: 0, y: -1, z: 0 }; const axle = { x: -1, y: 0, z: 0 };
-        
+
         for (let pos of wheelPositions) controller.addWheel({x: pos.x, y: pos.y, z: pos.z}, direction, axle, 0.4, pos.r);
-        
+
         for (let i = 0; i < 4; i++) {
             // Stiff springs tuned for a ~7-ton body
             controller.setWheelSuspensionStiffness(i, 150.0);
@@ -117,7 +117,7 @@ export class Vehicle {
 
     toggleArm() {
         this.armIsDown = !this.armIsDown;
-        if (!this.armIsDown) { this.targetBoomAngle = -0.2; this.bucketIsCurled = false; this.targetBucketAngle = 0.2; } 
+        if (!this.armIsDown) { this.targetBoomAngle = -0.2; this.bucketIsCurled = false; this.targetBucketAngle = 0.2; }
         else { this.targetBoomAngle = 0.8; }
     }
 
@@ -180,19 +180,19 @@ export class Vehicle {
         const group = new THREE.Group();
 
         // ---------- materials (plain standard materials: cheap and stable) ----------
-        const paint = new THREE.MeshStandardMaterial({ color: 0xffb400, roughness: 0.42, metalness: 0.1 });
-        const paintDark = new THREE.MeshStandardMaterial({ color: 0xc98a00, roughness: 0.5, metalness: 0.1 });
+        const paint = new THREE.MeshStandardMaterial({ color: 0xf5b700, roughness: 0.42, metalness: 0.1 });
+        const paintDark = new THREE.MeshStandardMaterial({ color: 0xf5b700, roughness: 0.5, metalness: 0.1 });
         this.paintMats = [paint, paintDark];
-        const blackPlastic = new THREE.MeshStandardMaterial({ color: 0x23262b, roughness: 0.7, metalness: 0.2 });
+        const blackPlastic = new THREE.MeshStandardMaterial({ color: 0x2b3038, roughness: 0.7, metalness: 0.2 });
         const darkSteel = new THREE.MeshStandardMaterial({ color: 0x3a3e45, roughness: 0.55, metalness: 0.35 });
         const steel = new THREE.MeshStandardMaterial({ color: 0xb4b9bf, roughness: 0.35, metalness: 0.3 });
         const wornSteel = new THREE.MeshStandardMaterial({ color: 0x8d9298, roughness: 0.6, metalness: 0.3 });
-        const glass = new THREE.MeshStandardMaterial({ color: 0x4a7396, roughness: 0.12, metalness: 0.1, transparent: true, opacity: 0.55, depthWrite: false });
-        const tireRubber = new THREE.MeshStandardMaterial({ color: 0x0c0c0d, roughness: 1.0 });
+        const glass = new THREE.MeshStandardMaterial({ color: 0x9fd0e8, roughness: 0.12, metalness: 0.1, transparent: true, opacity: 0.55, depthWrite: false });
+        const tireRubber = new THREE.MeshStandardMaterial({ color: 0x2b3038, roughness: 1.0 });
         const headlightMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffaa, emissiveIntensity: 2.0 });
         const taillightMat = new THREE.MeshStandardMaterial({ color: 0xff2222, emissive: 0xff0000, emissiveIntensity: 1.6 });
         const hazardYellow = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.55 });
-        const hazardBlack = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.55 });
+        const hazardBlack = new THREE.MeshStandardMaterial({ color: 0x2b3038, roughness: 0.55 });
         const beaconMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xff8800, emissiveIntensity: 0 });
 
         // ---------- small helpers ----------
@@ -277,6 +277,17 @@ export class Vehicle {
         const reflector=new THREE.Mesh(new THREE.BoxGeometry(.4,.26,.12),steel);this.beaconRotor.add(reflector);
         for(const side of [-1,1]){const hose=new THREE.CatmullRomCurve3([new THREE.Vector3(side*.65,1.2,.5),new THREE.Vector3(side*.95,1.7,1.3),new THREE.Vector3(side*.85,1.3,2),new THREE.Vector3(side*.65,1,2.6)]);const tube=new THREE.Mesh(new THREE.TubeGeometry(hose,12,.07,6,false),blackPlastic);backhoeGroup.add(tube);}
 
+        // A2: unmistakable folded rear excavator assembly and outriggers.
+        const rear=new THREE.Group();rear.name='folded-rear-backhoe';backhoeGroup.add(rear);
+        const beam=(a,b,w,d,material)=>{const av=new THREE.Vector3(...a),bv=new THREE.Vector3(...b),v=bv.clone().sub(av);const m=box(rear,w,v.length(),d,material,...av.clone().add(bv).multiplyScalar(.5).toArray());m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());return m;};
+        box(rear,.9,.7,.8,paint,0,.8,-2.05);
+        beam([0,1,-2.15],[-.35,3.5,-2.9],.48,.55,paint);
+        beam([-.35,3.5,-2.9],[.35,1.7,-3.4],.36,.45,paint);
+        beam([.16,1.1,-2.3],[-.35,2.9,-2.85],.15,.15,steel);
+        for(const [x,y,z] of [[0,1,-2.15],[-.35,3.5,-2.9],[.35,1.7,-3.4]])cyl(rear,.2,.65,'x',darkSteel,x,y,z);
+        box(rear,.85,.3,.85,darkSteel,.35,1.25,-3.25);box(rear,.85,.7,.3,darkSteel,.35,1.55,-3.6);
+        for(const x of [0,.35,.7])box(rear,.14,.3,.36,steel,x,1.1,-3);
+        for(const side of [-1,1]){beam([side*.8,.7,-1.9],[side*1.65,-.55,-2.35],.28,.3,paint);box(rear,.65,.22,.7,darkSteel,side*1.65,-.55,-2.35);box(backhoeGroup,.2,.2,.6,darkSteel,side*1.1,2.7,0);box(backhoeGroup,.35,.4,.16,steel,side*1.2,2.7,.22);}
         // ---------- exhaust ----------
         this.exhaustTip = new THREE.Object3D(); this.exhaustTip.position.set(0.9, 3.55, 1.15); backhoeGroup.add(this.exhaustTip);
         cyl(backhoeGroup, 0.15, 1.8, 'y', darkSteel, 0.9, 2.3, 1.15, 12).userData.cabHide = true;
@@ -328,13 +339,13 @@ export class Vehicle {
 
         // Bucket dirt (hidden until scooped)
         this.bucketDirtGroup = new THREE.Group(); this.bucketDirtGroup.position.set(0, 0.2, 0);
-        const clodGeo = new THREE.DodecahedronGeometry(0.35, 0); const clodMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 1.0 });
+        const clodGeo = new THREE.DodecahedronGeometry(0.1, 1); const clodMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 1.0 });
         for(let i = 0; i < 8; i++) { const clod = new THREE.Mesh(clodGeo, clodMat); clod.position.set((Math.random()-0.5)*2.0, (Math.random()-0.5)*0.4, (Math.random()-0.5)*1.0); clod.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0); clod.visible = false; this.bucketDirtGroup.add(clod); }
         this.bucketPivot.add(this.bucketDirtGroup);
 
         // ---------- wheels: tyre, tread blocks, rim, hub ----------
         this.wheelMeshes = [];
-        const wheelData = [{ x: -0.9, y: -0.2, z: 1.2, r: 0.35, w: 0.3 }, { x: 0.9, y: -0.2, z: 1.2, r: 0.35, w: 0.3 }, { x: -1.0, y: -0.1, z: -1.1, r: 0.55, w: 0.5 }, { x: 1.0, y: -0.1, z: -1.1, r: 0.55, w: 0.5 }];
+        const wheelData = [{ x: -0.9, y: -0.2, z: 1.2, r: 0.6, w: 0.3 }, { x: 0.9, y: -0.2, z: 1.2, r: 0.6, w: 0.3 }, { x: -1.0, y: -0.1, z: -1.1, r: 0.88, w: 0.5 }, { x: 1.0, y: -0.1, z: -1.1, r: 0.88, w: 0.5 }];
         wheelData.forEach((pos) => {
             const wheelGroup = new THREE.Group();
             const tire = new THREE.Mesh(new THREE.CylinderGeometry(pos.r, pos.r, pos.w, 24).rotateZ(Math.PI / 2), tireRubber);
@@ -359,7 +370,7 @@ export class Vehicle {
 
     spawnParticle(pos, velocity, color, life, scale) {
         let particle;
-        if (this.particlePool.length > 0) { particle = this.particlePool.pop(); particle.mesh.visible = true; } 
+        if (this.particlePool.length > 0) { particle = this.particlePool.pop(); particle.mesh.visible = true; }
         else { const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.8 }); const mesh = new THREE.Mesh(this.particleGeo, mat); this.scene.add(mesh); particle = { mesh: mesh, velocity: new THREE.Vector3(), life: 0, maxLife: 0, scale: 1 }; }
         particle.mesh.position.copy(pos); particle.mesh.material.color.setHex(color); particle.mesh.scale.set(scale, scale, scale);
         particle.velocity.copy(velocity); particle.life = life; particle.maxLife = life; particle.scale = scale;
@@ -374,7 +385,7 @@ export class Vehicle {
         this.spawnPuff(pos, vel, 0xc9ced6, 0.55 + Math.random() * 0.15, 0.20, 0.55, 0.26);
     }
     spawnTireDust(wheelIndex) { const pos = new THREE.Vector3(); this.wheelMeshes[wheelIndex].group.getWorldPosition(pos); pos.y = 0.2; const vel = new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 1.5, (Math.random() - 0.5) * 2); this.spawnPuff(pos, vel.multiplyScalar(0.4), 0xb5a58a, 0.8 + Math.random() * 0.5, 0.4, 1.8, 0.32); }
-    spawnDirtBurst() { if (!this.hasDirt) return; const pos = new THREE.Vector3(); this.bucketPivot.getWorldPosition(pos); for (let i = 0; i < 15; i++) { const vel = new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 4, (Math.random() - 0.5) * 6); this.spawnParticle(pos, vel, 0x5c3a21, 0.8 + Math.random() * 0.4, 2.0); } }
+    spawnDirtBurst() { if (!this.hasDirt) return; const pos = new THREE.Vector3(); this.bucketPivot.getWorldPosition(pos); for (let i = 0; i < 15; i++) { const vel = new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 4, (Math.random() - 0.5) * 6); this.spawnParticle(pos, vel, 0x5c3a21, 0.8 + Math.random() * 0.4, 0.5); } }
 
     _makePuffTexture() {
         const c = document.createElement('canvas');
@@ -497,11 +508,11 @@ export class Vehicle {
 
     updateController(input, deltaTime) {
         if (input.forward || input.backward || input.left || input.right || input.brake) this.chassisBody.wakeUp();
-        
+
         // === Throttle ramp ===
         const throttleRampRate = 1 / 0.35; // 0 -> full in 0.6s
         const targetThrottle = input.brake ? 0 : (input.forward ? 1 : (input.backward ? -1 : 0));
-        
+
         if (targetThrottle !== 0) {
             if (this.throttleState * targetThrottle < 0) this.throttleState = 0;
             const sign = Math.sign(targetThrottle - this.throttleState);
@@ -510,30 +521,30 @@ export class Vehicle {
         } else {
             this.throttleState = 0;
         }
-        
+
         // === Governor (top speed caps) ===
         const maxForwardSpeed = Math.min(32 + (this.engineMultiplier - 1) * 10, 60) / 3.6;
         const maxReverseSpeed = 14 / 3.6;
-        
+
         const currentFwdSpeed = this.getForwardSpeedMps();
-        
+
         const baseEngineForce = 6500 * this.engineMultiplier;
         let forceMultiplier = 1;
-        
+
         if (this.throttleState > 0.01) {
             if (currentFwdSpeed > maxForwardSpeed) forceMultiplier = 0;
         } else if (this.throttleState < -0.01) {
             if (currentFwdSpeed < -maxReverseSpeed) forceMultiplier = 0;
         }
-        
+
         const appliedForce = baseEngineForce * this.throttleState * forceMultiplier;
-        
+
         // === RWD: rear wheels are 2,3 ===
         this.vehicleController.setWheelEngineForce(0, 0);
         this.vehicleController.setWheelEngineForce(1, 0);
         this.vehicleController.setWheelEngineForce(2, appliedForce);
         this.vehicleController.setWheelEngineForce(3, appliedForce);
-        
+
         // === Brakes: strong user brake, light engine braking when coasting ===
         if (input.brake) {
             for (let i = 0; i < 4; i++) this.vehicleController.setWheelBrake(i, 100.0);
@@ -542,7 +553,7 @@ export class Vehicle {
         } else {
             for (let i = 0; i < 4; i++) this.vehicleController.setWheelBrake(i, 0);
         }
-        
+
         // === Speed-sensitive steering ===
         const speedAbs = Math.abs(currentFwdSpeed);
         const speedFactor = Math.max(0.25, 1 - speedAbs / 12);
@@ -551,14 +562,14 @@ export class Vehicle {
         let steerInput = 0;
         if (input.left) steerInput = 1;
         else if (input.right) steerInput = -1;
-        
+
         this.currentSteerAngle = steerInput * maxSteerAngle;
-        
+
         this.vehicleController.setWheelSteering(0, this.currentSteerAngle);
         this.vehicleController.setWheelSteering(1, this.currentSteerAngle);
         this.vehicleController.setWheelSteering(2, 0);
         this.vehicleController.setWheelSteering(3, 0);
-        
+
         this.vehicleController.updateVehicle(deltaTime);
     }
 
@@ -597,14 +608,14 @@ export class Vehicle {
         // === Safety check (before sync, so a reset is reflected this frame) ===
         const rotPre = this.chassisBody.rotation();
         const transPre = this.chassisBody.translation();
-        
+
         if (transPre.y < -5) {
             this.resetToSafe();
         } else {
             this._tempQuat.set(rotPre.x, rotPre.y, rotPre.z, rotPre.w);
             this._tempUp.set(0, 1, 0).applyQuaternion(this._tempQuat);
             const upDot = this._tempUp.y;
-            
+
             if (upDot < Math.cos(70 * Math.PI / 180)) {
                 this.tipTimer += dt;
                 if (this.tipTimer > 2.0) this.resetToSafe();
@@ -616,7 +627,7 @@ export class Vehicle {
                 }
             }
         }
-        
+
         // === Sync mesh from physics ===
         const translation = this.chassisBody.translation(); const rotation = this.chassisBody.rotation();
         if (this._currPos) {
@@ -628,23 +639,23 @@ export class Vehicle {
             this.mesh.position.set(translation.x, translation.y, translation.z);
             this.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
         }
-        
+
         // === Wheels: suspension + spin + (front) steer ===
         for (let i = 0; i < this.wheelMeshes.length; i++) {
-            const wheelData = this.wheelMeshes[i]; 
+            const wheelData = this.wheelMeshes[i];
             const suspensionLength = this.vehicleController.wheelSuspensionLength(i);
-            wheelData.group.position.y = wheelData.baseY - suspensionLength; 
+            wheelData.group.position.y = wheelData.baseY - suspensionLength;
             wheelData.group.rotation.x = this.vehicleController.wheelRotation(i);
             if (i < 2) wheelData.group.rotation.y = this.currentSteerAngle;
         }
-        
+
         // === Hydraulics ===
         if (this.mode === 'backhoe') {
             const hydraulicSpeed = 1 - Math.pow(1 - Math.min(0.25, 0.09 * this.hydraulicMultiplier), Math.min(dt, 0.05) * 60); this._autoStep(dt);
             this.boomPivot.rotation.x = THREE.MathUtils.lerp(this.boomPivot.rotation.x, this.targetBoomAngle, hydraulicSpeed);
             this.bucketPivot.rotation.x = THREE.MathUtils.lerp(this.bucketPivot.rotation.x, this.targetBucketAngle, hydraulicSpeed);
         }
-        
+
         // === Smoothed speed (km/h) ===
         // Base cap: 32 km/h forward, 14 km/h reverse. Only Engine Power changes it.
         // The dial uses the SIGNED forward speed (lateral sliding must not inflate it)
@@ -657,7 +668,7 @@ export class Vehicle {
         this.currentSpeed = Math.round(this.smoothedSpeed);
         // Signed value for the reverse beeper / engine sound (Audio.js uses Math.abs for rpm).
         this.signedSpeedKmh = fwdKmh;
-        
+
         // exhaust smoke is counted by time (same at 60 and 144 fps): a little at idle, more when working
         // B8: light exhaust only while the throttle is actually held.
         this._smokePower = Math.min(1, Math.abs(this.throttleState));

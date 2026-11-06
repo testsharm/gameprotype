@@ -1,0 +1,46 @@
+[
+  {
+    "test": "fresh normal URL initial distances",
+    "pile": 21.8887939453125,
+    "truck": 40.89151357447655
+  },
+  {
+    "test": "real W driving",
+    "position": {
+      "x": 1089.291015625,
+      "y": 1.3752367496490479,
+      "z": 1800
+    }
+  },
+  {
+    "errors": []
+  },
+  {
+    "test": "hud844",
+    "touch": {
+      "maxTouchPoints": 1,
+      "controls": true
+    }
+  },
+  {
+    "errors": []
+  },
+  {
+    "test": "hud390",
+    "touch": {
+      "maxTouchPoints": 1,
+      "controls": true
+    }
+  },
+  {
+    "test": "sound ON/OFF/ON by real taps",
+    "label": "ON"
+  },
+  {
+    "test": "paint count",
+    "count": 10
+  },
+  {
+    "errors": []
+  }
+]

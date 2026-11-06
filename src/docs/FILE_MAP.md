@@ -1,3 +1,7 @@
+# A2 evidence files
+
+[READ] scripts/a2-views.mjs = matched scene capture; a2-extras.mjs = fresh real driving, touch/settings and filmstrip/contact sheet; a2-phone-layout.mjs = HUD overlap/fade regression. docs/SCREENSHOTS.md leads with A2 pairs; docs/A2_*.txt / .json contain logs. Current branch arena/06e604a9-gameprotype; PR #5 already merged.
+
 # Fix v4 current additions
 
 [READ] src/gameplay/StuntPark.js: independent 200 m Rapier sandbox and deformable terrain.
